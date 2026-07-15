@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Ascent - Professional Vertical Climber</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #050505; font-family: 'Inter', sans-serif; touch-action: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; }
+        canvas { display: block; width: 100%; height: 100%; }
+        .ui-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 15, 25, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 2.5rem; border-radius: 1.5rem; color: white; text-align: center; min-width: 300px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); z-index: 20; }
+        .neon-text { text-shadow: 0 0 15px rgba(34, 211, 238, 0.8); }
+        .btn-gradient { background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%); transition: transform 0.2s; }
+        .btn-gradient:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- UI Layer -->
+    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+        <!-- Main Menu -->
+        <div id="menu-screen" class="ui-panel pointer-events-auto">
+            <h1 class="text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 neon-text">NEON ASCENT</h1>
+            <p class="text-cyan-200/60 mb-8 font-mono text-sm">ASCEND TO THE LIMIT</p>
+            <button onclick="game.start()" class="w-full py-4 mb-4 btn-gradient rounded-xl font-bold shadow-lg shadow-cyan-900/20">LAUNCH GAME</button>
+            <div class="flex gap-2">
+                <button onclick="game.toggleSound()" id="sound-btn" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-bold">SOUND: ON</button>
+            </div>
+            <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-6">Engineered by Minteez & Gemini AI. © 2026. All data streams reserved.</p>
+        </div>
+
+        <!-- HUD -->
+        <div id="hud" class="absolute top-6 left-6 right-6 flex justify-between pointer-events-none hidden">
+            <div class="text-2xl font-black text-cyan-400 neon-text font-mono">SCORE: <span id="current-score">0</span></div>
+            <div class="text-2xl font-black text-yellow-400 neon-text font-mono">LEVEL: <span id="current-level">0</span></div>
+            <div class="text-2xl font-black text-purple-400 neon-text font-mono">COINS: <span id="current-coins">0</span></div>
+        </div>
+
+        <!-- Game Over -->
+        <div id="gameover-screen" class="ui-panel pointer-events-auto hidden">
+            <h2 class="text-3xl font-bold mb-2">GAME OVER</h2>
+            <p class="text-slate-400 mb-6">Your climb has ended.</p>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-slate-900 rounded-lg p-4">
+                    <div class="text-xs text-slate-500">SCORE</div>
+                    <div id="final-score" class="text-xl font-mono text-white">0</div>
+                </div>
+                <div class="bg-slate-900 rounded-lg p-4">
+                    <div class="text-xs text-slate-500">BEST</div>
+                    <div id="high-score" class="text-xl font-mono text-cyan-400">0</div>
+                </div>
+            </div>
+            <button onclick="game.start()" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 rounded-lg font-bold mb-3 transition">RETRY</button>
+            <button onclick="game.showMenu()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold transition">MENU</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    class SoundEngine {
+        constructor() {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.enabled = true;
+            this.musicInterval = null;
+        }
+
+        playNote(freq, type, duration, startTime) {
+            if (!this.enabled) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + startTime);
+            gain.gain.setValueAtTime(0.1, this.ctx.currentTime + startTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + startTime + duration);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + startTime);
+            osc.stop(this.ctx.currentTime + startTime + duration);
+        }
+
+        stopMusic() {
+            if (this.musicInterval) clearInterval(this.musicInterval);
+        }
+
+        playMenuMusic() {
+            this.stopMusic();
+            if (!this.enabled) return;
+            this.musicInterval = setInterval(() => {
+                const sequence = [440, 554, 659, 880];
+                sequence.forEach((f, i) => this.playNote(f, 'square', 0.2, i * 0.3));
+            }, 1200);
+        }
+
+        playGameMusic() {
+            this.stopMusic();
+            if (!this.enabled) return;
+            this.musicInterval = setInterval(() => {
+                const sequence = [220, 261, 329, 392];
+                sequence.forEach((f, i) => this.playNote(f, 'sawtooth', 0.1, i * 0.15));
+            }, 600);
+        }
+
+        playCoinSound() {
+            if (!this.enabled) return;
+            this.playNote(880, 'square', 0.05, 0);
+            this.playNote(1760, 'square', 0.1, 0.05);
+        }
+
+        playGameOverSound() {
+            if (!this.enabled) return;
+            this.playNote(440, 'sawtooth', 0.1, 0);
+            this.playNote(330, 'sawtooth', 0.1, 0.1);
+            this.playNote(220, 'sawtooth', 0.1, 0.2);
+            this.playNote(110, 'sawtooth', 0.5, 0.3);
+        }
+    }
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const sound = new SoundEngine();
+    const config = { gravity: 0.45, jumpForce: -11, moveSpeed: 5, platformHeight: 12, playerSize: 20 };
+
+    class Entity { constructor(x, y, w, h) { this.x = x; this.y = y; this.w = w; this.h = h; } }
+
+    class Player extends Entity {
+        constructor() { super(0, 0, config.playerSize, config.playerSize); this.reset(); }
+        reset() { this.x = window.innerWidth / 2; this.y = window.innerHeight - 200; this.vx = 0; this.vy = 0; this.onGround = false; this.canDoubleJump = false; }
+        update(input) {
+            this.vx = input.left ? -config.moveSpeed : input.right ? config.moveSpeed : 0;
+            this.vy += config.gravity;
+            this.x += this.vx; this.y += this.vy;
+            if (this.x < -this.w) this.x = window.innerWidth;
+            if (this.x > window.innerWidth) this.x = -this.w;
+        }
+        draw() {
+            ctx.fillStyle = '#22d3ee';
+            ctx.shadowBlur = 15; ctx.shadowColor = '#22d3ee';
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    class Platform extends Entity {
+        constructor(x, y, type = 'normal') { super(x, y, 70 + Math.random() * 50, config.platformHeight); this.type = type; }
+        draw() {
+            ctx.fillStyle = this.type === 'spike' ? '#ef4444' : '#64748b';
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+        }
+    }
+
+    class Coin extends Entity {
+        constructor(x, y) { super(x, y, 12, 12); this.collected = false; }
+        draw() {
+            if(this.collected) return;
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath(); ctx.arc(this.x + 6, this.y + 6, 6, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+
+    class Game {
+        constructor() {
+            this.player = new Player();
+            this.platforms = [];
+            this.coins = [];
+            this.score = 0;
+            this.coinsCount = 0;
+            this.level = 0;
+            this.input = { left: false, right: false };
+            this.state = 'MENU';
+            this.init();
+        }
+
+        init() {
+            window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            window.addEventListener('keydown', e => { 
+                if(e.code==='ArrowLeft'||e.code==='KeyA') this.input.left=true; 
+                if(e.code==='ArrowRight'||e.code==='KeyD') this.input.right=true; 
+                if(e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW') this.jump(); 
+            });
+            window.addEventListener('keyup', e => { 
+                if(e.code==='ArrowLeft'||e.code==='KeyA') this.input.left=false; 
+                if(e.code==='ArrowRight'||e.code==='KeyD') this.input.right=false; 
+            });
+            sound.playMenuMusic();
+            this.animate();
+        }
+
+        jump() {
+            if (this.player.onGround) { this.player.vy = config.jumpForce; this.player.onGround = false; this.player.canDoubleJump = true; }
+            else if (this.player.canDoubleJump) { this.player.vy = config.jumpForce; this.player.canDoubleJump = false; }
+        }
+
+        toggleSound() {
+            sound.enabled = !sound.enabled;
+            document.getElementById('sound-btn').innerText = sound.enabled ? 'SOUND: ON' : 'SOUND: OFF';
+            if(sound.enabled) sound.ctx.resume();
+            if(this.state === 'PLAYING') sound.playGameMusic();
+            else sound.playMenuMusic();
+        }
+
+        start() {
+            sound.ctx.resume();
+            this.state = 'PLAYING';
+            sound.playGameMusic();
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            this.player.reset();
+            this.platforms = [new Platform(window.innerWidth/2 - 40, window.innerHeight - 100)];
+            this.coins = [];
+            this.score = 0; 
+            this.level = 0;
+            this.coinsCount = 0;
+            this.highScore = parseInt(localStorage.getItem('neonAscentHighScore')) || 0;
+            document.getElementById('current-coins').innerText = '0';
+            document.getElementById('current-score').innerText = '0';
+            document.getElementById('current-level').innerText = '0';
+        }
+
+        showMenu() {
+            this.state = 'MENU';
+            sound.playMenuMusic();
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+            document.getElementById('hud').classList.add('hidden');
+        }
+
+        gameOver() {
+            if (this.score > this.highScore) {
+                this.highScore = this.score;
+                localStorage.setItem('neonAscentHighScore', this.highScore);
+            }
+            this.state = 'GAMEOVER';
+            sound.playGameOverSound();
+            document.getElementById('gameover-screen').classList.remove('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('final-score').innerText = this.score;
+            document.getElementById('high-score').innerText = this.highScore;
+        }
+
+        update() {
+            if (this.state !== 'PLAYING') return;
+            this.player.update(this.input);
+            
+            this.level = Math.floor(this.score / 100);
+            document.getElementById('current-level').innerText = this.level;
+
+            // Platform collision and camera scroll
+            if (this.player.y < canvas.height / 2) {
+                let diff = canvas.height / 2 - this.player.y;
+                this.player.y += diff;
+                this.platforms.forEach(p => { p.y += diff; });
+                this.platforms = this.platforms.filter(p => p.y < canvas.height);
+                this.coins.forEach(c => { c.y += diff; });
+                this.coins = this.coins.filter(c => c.y < canvas.height);
+                this.score += Math.floor(diff/10);
+                document.getElementById('current-score').innerText = this.score;
+            }
+
+            // Platform generation
+            if (this.platforms.length < 8) {
+                let lastY = Math.min(...this.platforms.map(p => p.y));
+                // Difficulty scaling: gap increases with level, starts easy at 120
+                let gap = Math.min(220, 120 + (this.level * 5));
+                let newPlat = new Platform(
+                    Math.random() * (canvas.width - 100), 
+                    lastY - gap, 
+                    Math.random() > (0.8 - (this.level * 0.02)) ? 'spike' : 'normal'
+                );
+                this.platforms.push(newPlat);
+                if(Math.random() > 0.5) this.coins.push(new Coin(newPlat.x + newPlat.w/2 - 6, newPlat.y - 20));
+            }
+
+            // Collisions
+            this.player.onGround = false;
+            this.platforms.forEach(p => {
+                if (this.player.vy > 0 && this.player.x + this.player.w > p.x && this.player.x < p.x + p.w && this.player.y + this.player.h > p.y && this.player.y + this.player.h < p.y + p.h + 10) {
+                    if (p.type === 'spike') this.gameOver();
+                    else { this.player.vy = config.jumpForce; this.player.onGround = true; this.player.canDoubleJump = true; }
+                }
+            });
+
+            this.coins.forEach(c => {
+                if (!c.collected && this.player.x < c.x + c.w && this.player.x + this.player.w > c.x && this.player.y < c.y + c.h && this.player.y + this.player.h > c.y) {
+                    c.collected = true;
+                    this.coinsCount++;
+                    sound.playCoinSound();
+                    document.getElementById('current-coins').innerText = this.coinsCount;
+                }
+            });
+
+            if (this.player.y > canvas.height) this.gameOver();
+        }
+
+        animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            this.update();
+            this.player.draw();
+            this.platforms.forEach(p => p.draw());
+            this.coins.forEach(c => c.draw());
+            requestAnimationFrame(() => this.animate());
+        }
+    }
+
+    const game = new Game();
+</script>
+</body>
+</html>

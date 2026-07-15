@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Survivor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0f172a; font-family: 'Inter', sans-serif; }
+        #gameCanvas { display: block; touch-action: none; cursor: crosshair; }
+        .ui-panel { pointer-events: auto; }
+        .menu-overlay { transition: opacity 0.3s ease; }
+        .hidden { display: none; }
+        .pixelated { image-rendering: pixelated; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white">
+
+    <div id="ui-layer" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        
+        <!-- Main Menu -->
+        <div id="main-menu" class="menu-overlay ui-panel p-8 bg-slate-800/90 rounded-2xl border border-slate-700 shadow-2xl backdrop-blur-sm text-center">
+            <h1 class="text-6xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">NEON SURVIVOR</h1>
+            <p class="text-slate-400 mb-8">Survive the endless horde</p>
+            <button onclick="game.start()" class="px-8 py-3 bg-red-600 hover:bg-red-500 rounded-full font-bold text-xl transition-transform hover:scale-105 active:scale-95">START GAME</button>
+            <div class="mt-8 text-xs text-slate-500 font-mono">
+                Engineered by Minteez & Gemini AI. © 2026. All data streams reserved.
+            </div>
+        </div>
+
+        <!-- Pause Menu -->
+        <div id="pause-menu" class="hidden menu-overlay ui-panel p-8 bg-slate-800/90 rounded-2xl border border-slate-700 backdrop-blur-sm text-center">
+            <h2 class="text-4xl font-bold mb-6">PAUSED</h2>
+            <button onclick="game.resume()" class="block w-full px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded-full font-bold mb-4">RESUME</button>
+            <button onclick="location.reload()" class="block w-full px-8 py-3 bg-slate-600 hover:bg-slate-500 rounded-full font-bold">QUIT</button>
+        </div>
+
+        <!-- HUD -->
+        <div id="hud" class="hidden absolute top-0 left-0 w-full p-6 flex justify-between items-start pointer-events-none">
+            <div>
+                <div class="text-2xl font-mono font-bold" id="score-display">SCORE: 0</div>
+                <div class="text-lg text-slate-400" id="wave-display">WAVE: 1</div>
+            </div>
+            <div class="text-right">
+                <div class="text-sm uppercase tracking-widest text-slate-400">Health</div>
+                <div id="hp-bar" class="w-48 h-4 bg-slate-700 rounded-full overflow-hidden">
+                    <div id="hp-fill" class="h-full bg-green-500 transition-all duration-300" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const ui = {
+            main: document.getElementById('main-menu'),
+            pause: document.getElementById('pause-menu'),
+            hud: document.getElementById('hud'),
+            score: document.getElementById('score-display'),
+            wave: document.getElementById('wave-display'),
+            hp: document.getElementById('hp-fill')
+        };
+
+        const keys = {};
+        const mouse = { x: 0, y: 0, down: false };
+        let gameActive = false;
+
+        class Game {
+            constructor() {
+                this.entities = [];
+                this.particles = [];
+                this.score = 0;
+                this.wave = 1;
+                this.time = 0;
+                this.dayCycle = 0; // 0 to 1
+                this.player = new Player(window.innerWidth/2, window.innerHeight/2);
+                this.lastSpawn = 0;
+                this.spawnRate = 2000;
+                this.highScore = localStorage.getItem('ns_highScore') || 0;
+            }
+
+            start() {
+                ui.main.classList.add('hidden');
+                ui.hud.classList.remove('hidden');
+                gameActive = true;
+                this.loop();
+            }
+
+            resume() {
+                ui.pause.classList.add('hidden');
+                gameActive = true;
+                this.loop();
+            }
+
+            pause() {
+                gameActive = false;
+                ui.pause.classList.remove('hidden');
+            }
+
+            update() {
+                if (!gameActive) return;
+                this.time++;
+                this.dayCycle = Math.sin(this.time * 0.001) * 0.3 + 0.3; // Cycles between 0 and 0.6 opacity
+
+                // Spawn logic
+                if (Date.now() - this.lastSpawn > Math.max(500, this.spawnRate - this.wave * 50)) {
+                    this.spawnZombie();
+                    this.lastSpawn = Date.now();
+                }
+
+                this.player.update();
+                this.entities.forEach(e => e.update());
+                this.particles.forEach(p => p.update());
+                
+                // Cleanup
+                this.entities = this.entities.filter(e => e.active);
+                this.particles = this.particles.filter(p => p.life > 0);
+
+                if (this.player.hp <= 0) this.gameOver();
+            }
+
+            spawnZombie() {
+                const side = Math.floor(Math.random() * 4);
+                let x, y;
+                if (side === 0) { x = Math.random() * canvas.width; y = -50; }
+                else if (side === 1) { x = canvas.width + 50; y = Math.random() * canvas.height; }
+                else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + 50; }
+                else { x = -50; y = Math.random() * canvas.height; }
+                this.entities.push(new Zombie(x, y));
+            }
+
+            gameOver() {
+                gameActive = false;
+                if(this.score > this.highScore) localStorage.setItem('ns_highScore', this.score);
+                alert("Game Over! Score: " + this.score);
+                location.reload();
+            }
+
+            draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw Day/Night Overlay
+                ctx.fillStyle = `rgba(0, 0, 20, ${this.dayCycle})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                this.particles.forEach(p => p.draw());
+                this.entities.forEach(e => e.draw());
+                this.player.draw();
+            }
+
+            loop() {
+                if (!gameActive) return;
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.loop());
+            }
+        }
+
+        class Player {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.hp = 100;
+                this.speed = 4;
+                this.dash = 0;
+                this.angle = 0;
+                this.radius = 20;
+            }
+
+            update() {
+                if (keys['w']) this.y -= this.speed;
+                if (keys['s']) this.y += this.speed;
+                if (keys['a']) this.x -= this.speed;
+                if (keys['d']) this.x += this.speed;
+                
+                // Dash
+                if (keys['Shift'] && this.dash === 0) {
+                    this.speed = 15;
+                    this.dash = 60;
+                    setTimeout(() => { this.speed = 4; }, 200);
+                }
+                if (this.dash > 0) this.dash--;
+
+                this.angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+                ui.hp.style.width = this.hp + '%';
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                ctx.fillStyle = '#3b82f6';
+                ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(10, -5, 20, 10); // Gun
+                ctx.restore();
+            }
+        }
+
+        class Zombie {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.hp = 20 + (game.wave * 5);
+                this.speed = 1.5 + (game.wave * 0.1);
+                this.active = true;
+                this.radius = 15;
+            }
+
+            update() {
+                const dx = game.player.x - this.x;
+                const dy = game.player.y - this.y;
+                const dist = Math.hypot(dx, dy);
+                this.x += (dx / dist) * this.speed;
+                this.y += (dy / dist) * this.speed;
+
+                if (dist < 30) {
+                    game.player.hp -= 0.5;
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath(); ctx.arc(this.x, this.y, 12, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y;
+                this.vx = (Math.random() - 0.5) * 5;
+                this.vy = (Math.random() - 0.5) * 5;
+                this.life = 1;
+                this.color = color;
+            }
+            update() { this.x += this.vx; this.y += this.vy; this.life -= 0.02; }
+            draw() {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, 4, 4);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        const game = new Game();
+
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+        window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener('mousedown', () => {
+            if (!gameActive) return;
+            // Create bullet logic
+            const angle = Math.atan2(mouse.y - game.player.y, mouse.x - game.player.x);
+            game.entities.forEach(e => {
+                if (e instanceof Zombie) {
+                    const dist = Math.hypot(e.x - game.player.x, e.y - game.player.y);
+                    // Hit detection simplified
+                    if (Math.abs(angle - Math.atan2(e.y - game.player.y, e.x - game.player.x)) < 0.2) {
+                        e.hp -= 50;
+                        if (e.hp <= 0) {
+                            e.active = false;
+                            game.score += 10;
+                            ui.score.innerText = 'SCORE: ' + game.score;
+                            for(let i=0; i<5; i++) game.particles.push(new Particle(e.x, e.y, '#991b1b'));
+                        }
+                    }
+                }
+            });
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+        
+        // Initial setup
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    </script>
+</body>
+</html>

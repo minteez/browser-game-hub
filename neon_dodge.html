@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Dodge | Retro-Futuristic Arcade</title>
+    <!-- Tailwind CSS for modern responsive UI layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Orbitron for futuristic gaming fonts, Inter for UI readability -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #03030d;
+            color: #ffffff;
+            overflow: hidden;
+            touch-action: none; /* Prevents double-tap zooming & native gestures */
+            user-select: none;
+        }
+
+        .neon-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Ambient glowing cyber grid background */
+        .cyber-grid {
+            background-image: 
+                linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center center;
+            animation: gridScroll 12s linear infinite;
+        }
+
+        @keyframes gridScroll {
+            0% { background-position: 0px 0px; }
+            100% { background-position: 40px 40px; }
+        }
+
+        /* Pulsing ambient neon blooms */
+        .neon-glow-cyan {
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .neon-glow-pink {
+            box-shadow: 0 0 20px rgba(255, 0, 127, 0.4), inset 0 0 10px rgba(255, 0, 127, 0.2);
+        }
+
+        .neon-text-cyan {
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+
+        .neon-text-pink {
+            text-shadow: 0 0 8px rgba(255, 0, 127, 0.8), 0 0 20px rgba(255, 0, 127, 0.3);
+        }
+
+        .neon-border-cyan {
+            border: 2px solid #00f0ff;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .neon-border-pink {
+            border: 2px solid #ff007f;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
+        }
+
+        /* Custom glitch effect for warning states */
+        .glitch-anim {
+            animation: glitch 1.5s linear infinite;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+        }
+
+        /* Hide scrollbars completely */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative flex items-center justify-center bg-[#050510] cyber-grid">
+
+    <!-- Main game viewport enclosure, keeping an exact responsive aspect ratio standard -->
+    <div class="relative w-full max-w-[800px] aspect-square flex flex-col items-center justify-center p-4">
+        
+        <!-- Interactive Canvas Panel -->
+        <div class="relative w-full h-full neon-border-cyan rounded-2xl overflow-hidden bg-[#03030b] flex items-center justify-center">
+            
+            <!-- Game Canvas Element (Internal engine dimensions 800x800) -->
+            <canvas id="gameCanvas" width="800" height="800" class="w-full h-full block bg-transparent"></canvas>
+
+            <!-- Active Gameplay HUD Overlay (Rendered directly in HTML for ultra-crisp UI overlays) -->
+            <div id="hudPanel" class="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-10 pointer-events-none hidden">
+                <!-- Score & High Score Readout -->
+                <div class="flex flex-col gap-1 pointer-events-auto">
+                    <div class="text-xs text-cyan-400 font-semibold tracking-wider neon-text-cyan">SCORE</div>
+                    <div id="hudScore" class="neon-font text-3xl font-extrabold text-white">00000</div>
+                    <div class="text-[10px] text-gray-400 mt-1">BEST: <span id="hudBest" class="text-pink-500 font-bold">0</span>0</div>
+                </div>
+
+                <!-- Timer, Level, and Pause Combo -->
+                <div class="flex items-center gap-4 pointer-events-auto">
+                    <div class="flex flex-col items-end gap-1">
+                        <div class="text-[10px] text-pink-400 font-semibold tracking-wider neon-text-pink">STABILITY SPEED</div>
+                        <div id="hudLevel" class="neon-font text-xl font-bold text-white">x1.0</div>
+                        <div id="hudTimer" class="text-[11px] text-cyan-300 font-bold">SURVIVED: 0s</div>
+                    </div>
+                    <!-- Audio-Trigger Safe Toggle Button -->
+                    <button id="pauseBtn" class="w-12 h-12 rounded-xl border border-cyan-500/30 bg-[#060c21]/80 hover:bg-cyan-500/20 flex items-center justify-center transition duration-200 pointer-events-auto cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-400">
+                        <!-- Custom Play/Pause inline SVGs -->
+                        <svg id="pauseIcon" class="w-5 h-5 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+                            <rect x="5" y="4" width="4" height="16" rx="1"></rect>
+                            <rect x="15" y="4" width="4" height="16" rx="1"></rect>
+                        </svg>
+                        <svg id="resumeIcon" class="w-5 h-5 text-cyan-400 hidden" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STATE overlay: Main Menu -->
+            <div id="mainMenu" class="absolute inset-0 bg-[#020208]/95 backdrop-blur-sm flex flex-col items-center justify-between p-8 text-center z-20">
+                <div class="my-auto flex flex-col items-center">
+                    <!-- Retro cyber-logo structure -->
+                    <div class="relative mb-6">
+                        <div class="neon-font text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 tracking-wider uppercase mb-1 glitch-anim neon-text-cyan">
+                            NEON DODGE
+                        </div>
+                        <div class="w-32 h-1 bg-gradient-to-r from-pink-500 to-cyan-400 mx-auto rounded-full mt-2"></div>
+                    </div>
+                    <p class="max-w-md text-gray-300 text-sm md:text-base leading-relaxed mb-8">
+                        Survive the relentless assault of glowing matrix fields. The grid adapts, speeding up every 10 seconds.
+                    </p>
+
+                    <!-- Primary Enter Game Trigger -->
+                    <button id="startBtn" class="neon-font text-lg font-bold text-[#020208] bg-gradient-to-r from-cyan-400 to-blue-500 px-10 py-4 rounded-full shadow-[0_0_25px_rgba(6,182,212,0.5)] hover:shadow-[0_0_40px_rgba(6,182,212,0.8)] hover:scale-105 active:scale-95 transition-all duration-300 transform cursor-pointer">
+                        INITIALIZE MATRIX
+                    </button>
+
+                    <!-- Desktop and Touch Dual Control Layout Assist Guide -->
+                    <div class="mt-12 grid grid-cols-2 gap-6 border-t border-cyan-500/20 pt-8 w-full max-w-lg">
+                        <div class="text-left">
+                            <h4 class="text-xs text-cyan-400 font-bold uppercase tracking-widest mb-2 neon-font">PC Controls</h4>
+                            <p class="text-xs text-gray-400 leading-relaxed">Use <span class="text-cyan-300 font-bold">W-A-S-D</span> or <span class="text-cyan-300 font-bold">ARROW KEYS</span> to navigate inside the electric grid lines.</p>
+                        </div>
+                        <div class="text-left border-l border-cyan-500/20 pl-4">
+                            <h4 class="text-xs text-pink-400 font-bold uppercase tracking-widest mb-2 neon-font">Mobile Controls</h4>
+                            <p class="text-xs text-gray-400 leading-relaxed">A virtual tracking <span class="text-pink-300 font-bold">Joystick</span> will automatically spawn on screen for navigation.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-[10px] text-gray-600 tracking-widest">Engineered by Minteez & Gemini. © 2026. All data streams reserved.</div>
+            </div>
+
+            <!-- STATE overlay: Game Over Screen -->
+            <div id="gameOverMenu" class="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center z-20 hidden">
+                <div class="max-w-md w-full flex flex-col items-center">
+                    <div class="w-16 h-16 rounded-full border-2 border-pink-500 flex items-center justify-center mb-6 animate-pulse neon-glow-pink">
+                        <svg class="w-8 h-8 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+
+                    <h2 class="neon-font text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-red-500 uppercase tracking-widest mb-2 neon-text-pink">
+                        GRID COLLAPSED
+                    </h2>
+                    <p class="text-xs text-gray-400 uppercase tracking-widest mb-8">System Collision Detected</p>
+
+                    <!-- Score Recaps Box -->
+                    <div class="w-full bg-[#0c0512] border border-pink-500/20 rounded-2xl p-6 mb-8 flex flex-col gap-4">
+                        <div class="flex justify-between items-center border-b border-pink-500/10 pb-3">
+                            <span class="text-sm text-gray-400 uppercase">FINAL MATRIX SCORE</span>
+                            <span id="finalScore" class="neon-font text-2xl font-bold text-white neon-text-cyan">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-400 uppercase">GRID HIGH RECORD</span>
+                            <span id="highScore" class="neon-font text-2xl font-bold text-pink-400 neon-text-pink">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Reset Trigger buttons -->
+                    <button id="restartBtn" class="neon-font w-full text-base font-bold text-[#020208] bg-gradient-to-r from-pink-500 to-red-500 py-4 px-8 rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:shadow-[0_0_30px_rgba(239,68,68,0.7)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer mb-4">
+                        REBOOT GRID LOGS
+                    </button>
+                    
+                    <button id="exitBtn" class="text-xs text-gray-400 hover:text-white uppercase tracking-widest transition duration-150 cursor-pointer">
+                        Return to Control Terminal
+                    </button>
+                </div>
+            </div>
+
+            <!-- STATE overlay: Paused Panel -->
+            <div id="pauseOverlay" class="absolute inset-0 bg-[#010104]/85 backdrop-blur-md flex flex-col items-center justify-center p-8 z-15 hidden">
+                <h3 class="neon-font text-3xl font-extrabold text-cyan-400 tracking-widest neon-text-cyan mb-2">
+                    GRID DOCKED
+                </h3>
+                <p class="text-xs text-gray-400 uppercase tracking-wider mb-8">Main sequence loop suspended</p>
+                <button id="resumeBtn" class="neon-font text-sm font-semibold bg-transparent hover:bg-cyan-500/10 border border-cyan-400/50 text-cyan-400 px-6 py-3 rounded-full cursor-pointer transition-all duration-150 shadow-[0_0_10px_rgba(6,182,212,0.1)] hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+                    RESUME SIMULATION
+                </button>
+            </div>
+
+            <!-- Warning Glitch Banner for 10s Speed-up Event -->
+            <div id="speedWarning" class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 neon-border-pink rounded-xl bg-black/95 px-6 py-4 z-12 text-center select-none pointer-events-none hidden transition-transform duration-200 shadow-[0_0_40px_rgba(255,0,127,0.5)]">
+                <div class="text-pink-500 neon-font font-bold text-sm tracking-widest uppercase mb-1 animate-pulse">WARNING: FREQUENCY SHIFT</div>
+                <div class="text-xs text-white opacity-80 uppercase font-semibold">Grid Core Acceleration Initiated</div>
+            </div>
+
+            <!-- On-screen mobile navigation joystick visible to touch actions -->
+            <div id="mobileJoystickArea" class="absolute bottom-10 left-10 w-32 h-32 rounded-full border border-cyan-500/20 bg-[#020208]/60 backdrop-blur-xs select-none z-10 opacity-0 transition-opacity duration-300 hidden">
+                <div id="joystickKnob" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.8)] neon-glow-cyan border border-white/20 pointer-events-none transition-transform duration-75"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Web Audio Retro Synthesizer Engine ---
+        // Creates offline dynamic audio nodes matching the aesthetic perfectly. No CDNs or sound resources required.
+        const SoundFX = {
+            audioCtx: null,
+
+            init() {
+                if (!this.audioCtx) {
+                    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                // Wake up audio context if suspended
+                if (this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume();
+                }
+            },
+
+            playBeep(freq, type = 'sine', duration = 0.08, vol = 0.1) {
+                try {
+                    this.init();
+                    const osc = this.audioCtx.createOscillator();
+                    const gainNode = this.audioCtx.createGain();
+                    
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
+                    
+                    gainNode.gain.setValueAtTime(vol, this.audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + duration);
+                    
+                    osc.connect(gainNode);
+                    gainNode.connect(this.audioCtx.destination);
+                    
+                    osc.start();
+                    osc.stop(this.audioCtx.currentTime + duration);
+                } catch(e) { console.warn("Audio Context init error: ", e); }
+            },
+
+            playExplosion() {
+                try {
+                    this.init();
+                    const duration = 0.6;
+                    // White noise generation for friction explosion
+                    const bufferSize = this.audioCtx.sampleRate * duration;
+                    const buffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    
+                    const noise = this.audioCtx.createBufferSource();
+                    noise.buffer = buffer;
+                    
+                    const filter = this.audioCtx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(1000, this.audioCtx.currentTime);
+                    filter.frequency.exponentialRampToValueAtTime(50, this.audioCtx.currentTime + duration);
+
+                    const gainNode = this.audioCtx.createGain();
+                    gainNode.gain.setValueAtTime(0.4, this.audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + duration);
+                    
+                    noise.connect(filter);
+                    filter.connect(gainNode);
+                    gainNode.connect(this.audioCtx.destination);
+                    
+                    noise.start();
+                    noise.stop(this.audioCtx.currentTime + duration);
+
+                    // Add sub-bass transient
+                    this.playBeep(120, 'sawtooth', 0.4, 0.3);
+                } catch(e) { console.warn("Explosion generation error: ", e); }
+            },
+
+            playLevelUp() {
+                try {
+                    this.init();
+                    // Retro cyber arpeggio
+                    const now = this.audioCtx.currentTime;
+                    const notes = [261.63, 329.63, 392.00, 523.25, 659.25]; // C4-E4-G4-C5-E5
+                    notes.forEach((freq, idx) => {
+                        setTimeout(() => {
+                            this.playBeep(freq, 'triangle', 0.15, 0.15);
+                        }, idx * 60);
+                    });
+                } catch(e) { console.warn("Arpeggio synthesis error: ", e); }
+            }
+        };
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Logical Resolution matches canvas width/height elements
+        const V_WIDTH = 800;
+        const V_HEIGHT = 800;
+
+        // Grid Configuration Constants
+        const PLAYER_SIZE = 24;
+        const PARTICLE_LIFETIME = 60; // frames
+        const ACCELERATION_INTERVAL = 10000; // 10s step-up duration
+
+        // Game State Variables
+        let gameState = 'MENU'; // 'MENU' | 'PLAYING' | 'PAUSED' | 'GAMEOVER'
+        let score = 0;
+        let highscore = parseInt(localStorage.getItem('neon_dodge_highscore') || '0', 10);
+        let timeSurvived = 0; // Milliseconds elapsed
+        let startTime = 0;
+        let lastTimestamp = 0;
+        let speedMultiplier = 1.0;
+        let obstacleSpawnTimer = 0;
+        let obstacleSpawnRate = 1200; // Spawn every 1.2s at level 1
+        
+        // Sound and warning timers
+        let soundTimer = 0; // Tick sound every 1s
+        let warningActive = false;
+        let warningTimer = 0;
+
+        // Player Attributes
+        const player = {
+            x: V_WIDTH / 2,
+            y: V_HEIGHT / 2,
+            vx: 0,
+            vy: 0,
+            speed: 6.8,
+            friction: 0.85,
+            glowTimer: 0,
+            trail: [] // History array to create trailing effect
+        };
+
+        // Arrays containing visual particles and active entities
+        let obstacles = [];
+        let particles = [];
+
+        // Controller input structures
+        const keys = {
+            w: false, s: false, a: false, d: false,
+            ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false
+        };
+
+        // Touch Joystick attributes
+        const joystick = {
+            active: false,
+            startX: 0,
+            startY: 0,
+            curX: 0,
+            curY: 0,
+            vx: 0,
+            vy: 0,
+            maxRadius: 45
+        };
+
+        function setupEventListeners() {
+            // Keyboard Input Listeners
+            window.addEventListener('keydown', (e) => {
+                if (gameState === 'PLAYING') {
+                    if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+                        togglePause();
+                    }
+                }
+                const keyName = e.key.toLowerCase();
+                if (keyName in keys) keys[keyName] = true;
+                if (e.key in keys) keys[e.key] = true;
+            });
+
+            window.addEventListener('keyup', (e) => {
+                const keyName = e.key.toLowerCase();
+                if (keyName in keys) keys[keyName] = false;
+                if (e.key in keys) keys[e.key] = false;
+            });
+
+            // Touch Joystick Listeners inside canvas wrapper
+            const container = canvas.parentElement;
+            
+            container.addEventListener('touchstart', (e) => {
+                if (gameState !== 'PLAYING') return;
+                const touch = e.touches[0];
+                const rect = container.getBoundingClientRect();
+                
+                // Keep touch interaction relative inside dynamic client bounds
+                joystick.active = true;
+                joystick.startX = touch.clientX;
+                joystick.startY = touch.clientY;
+                joystick.curX = touch.clientX;
+                joystick.curY = touch.clientY;
+                joystick.vx = 0;
+                joystick.vy = 0;
+
+                // Position virtual layout element dynamically matching target touch position
+                const pad = document.getElementById('mobileJoystickArea');
+                pad.style.display = 'block';
+                pad.style.left = `${touch.clientX - rect.left - 64}px`;
+                pad.style.top = `${touch.clientY - rect.top - 64}px`;
+                pad.style.opacity = '1';
+            }, { passive: true });
+
+            container.addEventListener('touchmove', (e) => {
+                if (!joystick.active) return;
+                const touch = e.touches[0];
+                joystick.curX = touch.clientX;
+                joystick.curY = touch.clientY;
+
+                let dx = joystick.curX - joystick.startX;
+                let dy = joystick.curY - joystick.startY;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist > joystick.maxRadius) {
+                    dx = (dx / dist) * joystick.maxRadius;
+                    dy = (dy / dist) * joystick.maxRadius;
+                }
+
+                // Render displacement visual indicator
+                const knob = document.getElementById('joystickKnob');
+                knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+                // Calculate vector strength value range: -1.0 to 1.0
+                joystick.vx = dx / joystick.maxRadius;
+                joystick.vy = dy / joystick.maxRadius;
+            }, { passive: true });
+
+            const endTouch = () => {
+                joystick.active = false;
+                joystick.vx = 0;
+                joystick.vy = 0;
+                const pad = document.getElementById('mobileJoystickArea');
+                pad.style.opacity = '0';
+                setTimeout(() => {
+                    if (!joystick.active) pad.style.display = 'none';
+                }, 300);
+            };
+
+            container.addEventListener('touchend', endTouch, { passive: true });
+            container.addEventListener('touchcancel', endTouch, { passive: true });
+
+            // Document Resize safety
+            window.addEventListener('resize', fitCanvasElement);
+
+            // Hook state actions to HTML static buttons
+            document.getElementById('startBtn').addEventListener('click', startGame);
+            document.getElementById('restartBtn').addEventListener('click', startGame);
+            document.getElementById('exitBtn').addEventListener('click', showTerminalMenu);
+            
+            document.getElementById('pauseBtn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                togglePause();
+            });
+            document.getElementById('resumeBtn').addEventListener('click', togglePause);
+        }
+
+        function fitCanvasElement() {
+            // Keep container scale bounds in sync, logic scales within canvas resolution automatically
+            const dpr = window.devicePixelRatio || 1;
+            // Internal buffers remain 800x800, canvas scale properties handled responsively by Tailwind CSS
+        }
+
+        class Obstacle {
+            constructor(type, x, y, size, vx, vy, color, glowColor) {
+                this.type = type; // 'BASIC' | 'CHASER' | 'SPIKE'
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.glowColor = glowColor;
+                this.rotation = 0;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.05;
+                this.pulseTimer = Math.random() * 100;
+            }
+
+            update(delta) {
+                // Rotational physics for visual satisfaction
+                this.rotation += this.rotationSpeed * (delta / 16.666);
+                this.pulseTimer += 0.05;
+
+                if (this.type === 'CHASER') {
+                    // Slight chase dynamic vector adjustments toward player
+                    const dx = player.x - this.x;
+                    const dy = player.y - this.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist > 5) {
+                        const targetVx = (dx / dist) * 2.5 * speedMultiplier;
+                        const targetVy = (dy / dist) * 2.5 * speedMultiplier;
+                        // Interpolate movement smoothly
+                        this.vx += (targetVx - this.vx) * 0.015;
+                        this.vy += (targetVy - this.vy) * 0.015;
+                    }
+                }
+
+                // Apply velocity vectors
+                this.x += this.vx * (delta / 16.666);
+                this.y += this.vy * (delta / 16.666);
+            }
+
+            draw() {
+                ctx.save();
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.glowColor;
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 3;
+
+                const pulseSize = this.size + Math.sin(this.pulseTimer) * 2;
+
+                if (this.type === 'BASIC') {
+                    // Regular solid square obstacle
+                    ctx.strokeRect(-pulseSize / 2, -pulseSize / 2, pulseSize, pulseSize);
+                    ctx.fillStyle = 'rgba(255, 0, 127, 0.05)';
+                    ctx.fillRect(-pulseSize / 2, -pulseSize / 2, pulseSize, pulseSize);
+                } else if (this.type === 'CHASER') {
+                    // Dangerous diamond seeker pattern
+                    ctx.beginPath();
+                    ctx.moveTo(0, -pulseSize / 2);
+                    ctx.lineTo(pulseSize / 2, 0);
+                    ctx.lineTo(0, pulseSize / 2);
+                    ctx.lineTo(-pulseSize / 2, 0);
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.fillStyle = 'rgba(234, 179, 8, 0.08)';
+                    ctx.fill();
+                    // Core point indicator
+                    ctx.fillStyle = '#eab308';
+                    ctx.fillRect(-2, -2, 4, 4);
+                } else {
+                    // Spike variant (cross-star)
+                    ctx.beginPath();
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (Math.PI / 4) * i;
+                        const len = i % 2 === 0 ? pulseSize / 2 : pulseSize / 4;
+                        const px = Math.cos(angle) * len;
+                        const py = Math.sin(angle) * len;
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+
+            isOutOfBounds() {
+                const padding = 100;
+                return (
+                    this.x < -padding ||
+                    this.x > V_WIDTH + padding ||
+                    this.y < -padding ||
+                    this.y > V_HEIGHT + padding
+                );
+            }
+        }
+
+        class Particle {
+            constructor(x, y, vx, vy, color, glowColor, size, maxLife) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.glowColor = glowColor;
+                this.size = size;
+                this.life = maxLife;
+                this.maxLife = maxLife;
+            }
+
+            update(delta) {
+                this.x += this.vx * (delta / 16.666);
+                this.y += this.vy * (delta / 16.666);
+                this.life -= (delta / 16.666);
+            }
+
+            draw() {
+                const alpha = Math.max(0, this.life / this.maxLife);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.glowColor;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function spawnObstacle() {
+            // Determine spawning wall boundary: 0:Top, 1:Right, 2:Bottom, 3:Left
+            const edge = Math.floor(Math.random() * 4);
+            let x, y;
+            const size = 18 + Math.random() * 20;
+
+            if (edge === 0) { // Top
+                x = Math.random() * V_WIDTH;
+                y = -size;
+            } else if (edge === 1) { // Right
+                x = V_WIDTH + size;
+                y = Math.random() * V_HEIGHT;
+            } else if (edge === 2) { // Bottom
+                x = Math.random() * V_WIDTH;
+                y = V_HEIGHT + size;
+            } else { // Left
+                x = -size;
+                y = Math.random() * V_HEIGHT;
+            }
+
+            // Target vector targeting near screen space
+            const targetX = V_WIDTH / 4 + Math.random() * (V_WIDTH / 2);
+            const targetY = V_HEIGHT / 4 + Math.random() * (V_HEIGHT / 2);
+            const dx = targetX - x;
+            const dy = targetY - y;
+            const dist = Math.hypot(dx, dy);
+
+            // Vector Speeds adjusted with level scalar
+            const baseSpeed = (2.2 + Math.random() * 2.8) * speedMultiplier;
+            const vx = (dx / dist) * baseSpeed;
+            const vy = (dy / dist) * baseSpeed;
+
+            // Randomize Obstacle Variant types
+            const chance = Math.random();
+            let type = 'BASIC';
+            let color = '#ff007f'; // Neon Hot Pink
+            let glow = 'rgba(255,0,127,0.7)';
+
+            if (chance > 0.85) {
+                type = 'CHASER'; // yellow chasers
+                color = '#eab308';
+                glow = 'rgba(234,179,8,0.7)';
+            } else if (chance > 0.65) {
+                type = 'SPIKE'; // purple high spikes
+                color = '#a855f7';
+                glow = 'rgba(168,85,247,0.7)';
+            }
+
+            obstacles.push(new Obstacle(type, x, y, size, vx, vy, color, glow));
+        }
+
+        function spawnAmbientGridParticles() {
+            // Spawn random digital stars in background loop
+            if (particles.length < 150 && Math.random() > 0.7) {
+                const px = Math.random() * V_WIDTH;
+                const py = Math.random() * V_HEIGHT;
+                particles.push(new Particle(
+                    px, py, 
+                    (Math.random() - 0.5) * 0.4, 
+                    (Math.random() - 0.5) * 0.4, 
+                    '#00f0ff', 'rgba(0,240,255,0.3)', 
+                    1 + Math.random() * 2, 
+                    120 + Math.random() * 100
+                ));
+            }
+        }
+
+        function startGame() {
+            // Initiate Synth system safely
+            SoundFX.init();
+            SoundFX.playLevelUp();
+
+            // Reset scores & level coefficients
+            score = 0;
+            timeSurvived = 0;
+            speedMultiplier = 1.0;
+            obstacleSpawnRate = 1200;
+            lastTimestamp = performance.now();
+            startTime = lastTimestamp;
+            soundTimer = 0;
+
+            // Align states
+            gameState = 'PLAYING';
+            warningActive = false;
+
+            // Reset coordinates
+            player.x = V_WIDTH / 2;
+            player.y = V_HEIGHT / 2;
+            player.vx = 0;
+            player.vy = 0;
+            player.trail = [];
+
+            obstacles = [];
+            particles = [];
+
+            // UI configurations
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('gameOverMenu').classList.add('hidden');
+            document.getElementById('pauseOverlay').classList.add('hidden');
+            document.getElementById('hudPanel').classList.remove('hidden');
+            document.getElementById('speedWarning').classList.add('hidden');
+
+            document.getElementById('hudScore').textContent = '00000';
+            document.getElementById('hudBest').textContent = Math.floor(highscore / 10).toString();
+            document.getElementById('hudLevel').textContent = `x1.0`;
+            document.getElementById('hudTimer').textContent = `SURVIVED: 0s`;
+
+            // Setup buttons
+            document.getElementById('pauseIcon').classList.remove('hidden');
+            document.getElementById('resumeIcon').classList.add('hidden');
+
+            // Set up background ambient grid particles
+            for (let i = 0; i < 40; i++) {
+                particles.push(new Particle(
+                    Math.random() * V_WIDTH,
+                    Math.random() * V_HEIGHT,
+                    (Math.random() - 0.5) * 0.2,
+                    (Math.random() - 0.5) * 0.2,
+                    '#00f0ff', 'rgba(0,240,255,0.3)',
+                    1 + Math.random() * 1.5,
+                    150
+                ));
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function togglePause() {
+            if (gameState !== 'PLAYING' && gameState !== 'PAUSED') return;
+
+            SoundFX.playBeep(440, 'triangle', 0.05, 0.1);
+
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                document.getElementById('pauseOverlay').classList.remove('hidden');
+                document.getElementById('pauseIcon').classList.add('hidden');
+                document.getElementById('resumeIcon').classList.remove('hidden');
+            } else {
+                gameState = 'PLAYING';
+                document.getElementById('pauseOverlay').classList.add('hidden');
+                document.getElementById('pauseIcon').classList.remove('hidden');
+                document.getElementById('resumeIcon').classList.add('hidden');
+                lastTimestamp = performance.now(); // Avoid huge delta leaps after sleep
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            
+            // Retro synth crash FX
+            SoundFX.playExplosion();
+
+            // Save High Score matrix entries
+            if (score > highscore) {
+                highscore = score;
+                localStorage.setItem('neon_dodge_highscore', highscore.toString());
+            }
+
+            // Spawn radial glowing explosion particles
+            for (let i = 0; i < 45; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 3 + Math.random() * 8;
+                particles.push(new Particle(
+                    player.x, player.y,
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed,
+                    '#00f0ff', 'rgba(0, 240, 255, 0.9)',
+                    2 + Math.random() * 5,
+                    PARTICLE_LIFETIME + Math.random() * 20
+                ));
+            }
+
+            // Over-render screen update layout
+            document.getElementById('hudPanel').classList.add('hidden');
+            document.getElementById('gameOverMenu').classList.remove('hidden');
+            document.getElementById('finalScore').textContent = score.toString();
+            document.getElementById('highScore').textContent = highscore.toString();
+        }
+
+        function showTerminalMenu() {
+            gameState = 'MENU';
+            document.getElementById('mainMenu').classList.remove('hidden');
+            document.getElementById('gameOverMenu').classList.add('hidden');
+            document.getElementById('hudPanel').classList.add('hidden');
+        }
+
+        function gameLoop(timestamp) {
+            if (gameState !== 'PLAYING') return;
+
+            const delta = Math.min(50, timestamp - lastTimestamp); // Cap physics skips
+            lastTimestamp = timestamp;
+
+            // Accumulate global survivability timer clock
+            timeSurvived += delta;
+            soundTimer += delta;
+
+            // Incremental tick score calculation
+            score = Math.floor(timeSurvived / 100);
+            document.getElementById('hudScore').textContent = score.toString().padStart(5, '0');
+            document.getElementById('hudTimer').textContent = `SURVIVED: ${Math.floor(timeSurvived / 1000)}s`;
+
+            // Ambient background tick noise (every 1 second)
+            if (soundTimer >= 1000) {
+                soundTimer -= 1000;
+                SoundFX.playBeep(880, 'sine', 0.02, 0.04);
+            }
+
+            // Progress-tier engine calculations (Speed-up sequence every 10 seconds)
+            const speedStage = Math.floor(timeSurvived / ACCELERATION_INTERVAL);
+            const targetMultiplier = 1.0 + (speedStage * 0.20); // 20% increases
+            
+            if (targetMultiplier > speedMultiplier) {
+                speedMultiplier = targetMultiplier;
+                obstacleSpawnRate = Math.max(350, 1200 - (speedStage * 120)); // Accelerate spawn
+                
+                SoundFX.playLevelUp();
+                triggerSpeedWarning();
+                
+                document.getElementById('hudLevel').textContent = `x${speedMultiplier.toFixed(1)}`;
+            }
+
+            // Tick Update Loops
+            updatePlayer(delta);
+            updateObstacles(delta, timestamp);
+            updateParticles(delta);
+
+            // Frame Draw Sequence
+            draw();
+
+            // Continuous animation request loop
+            requestAnimationFrame(gameLoop);
+        }
+
+        function triggerSpeedWarning() {
+            warningActive = true;
+            warningTimer = 120; // Alert active frames length
+            const el = document.getElementById('speedWarning');
+            el.classList.remove('hidden');
+        }
+
+        function updatePlayer(delta) {
+            // Apply joystick controls if mobile tracking is active
+            if (joystick.active) {
+                player.vx += joystick.vx * player.speed * 0.15;
+                player.vy += joystick.vy * player.speed * 0.15;
+            } else {
+                // Key state checks (support WASD & Arrow combinations)
+                let dx = 0;
+                let dy = 0;
+                if (keys.w || keys.ArrowUp) dy -= 1;
+                if (keys.s || keys.ArrowDown) dy += 1;
+                if (keys.a || keys.ArrowLeft) dx -= 1;
+                if (keys.d || keys.ArrowRight) dx += 1;
+
+                // Normalize velocity vectors on diagonal moves
+                if (dx !== 0 && dy !== 0) {
+                    dx *= 0.7071;
+                    dy *= 0.7071;
+                }
+
+                player.vx += dx * player.speed * 0.2;
+                player.vy += dy * player.speed * 0.2;
+            }
+
+            // Apply friction and position calculations
+            player.vx *= player.friction;
+            player.vy *= player.friction;
+            player.x += player.vx * (delta / 16.666);
+            player.y += player.vy * (delta / 16.666);
+
+            // Wall Collision Boundaries (Bound clamp within limits)
+            const halfSize = PLAYER_SIZE / 2;
+            if (player.x < halfSize) {
+                player.x = halfSize;
+                player.vx = 0;
+            }
+            if (player.x > V_WIDTH - halfSize) {
+                player.x = V_WIDTH - halfSize;
+                player.vx = 0;
+            }
+            if (player.y < halfSize) {
+                player.y = halfSize;
+                player.vy = 0;
+            }
+            if (player.y > V_HEIGHT - halfSize) {
+                player.y = V_HEIGHT - halfSize;
+                player.vy = 0;
+            }
+
+            // Store tail historical elements for neon motion blur trails
+            player.trail.push({ x: player.x, y: player.y });
+            if (player.trail.length > 8) {
+                player.trail.shift();
+            }
+
+            // Spawn ambient energy trails
+            if (Math.random() > 0.4) {
+                particles.push(new Particle(
+                    player.x + (Math.random() - 0.5) * 8,
+                    player.y + (Math.random() - 0.5) * 8,
+                    -player.vx * 0.2 + (Math.random() - 0.5) * 0.5,
+                    -player.vy * 0.2 + (Math.random() - 0.5) * 0.5,
+                    '#00f0ff', 'rgba(0, 240, 255, 0.6)',
+                    1.5 + Math.random() * 2,
+                    20 + Math.random() * 10
+                ));
+            }
+        }
+
+        function updateObstacles(delta, timestamp) {
+            // Periodically spawn new hazards
+            obstacleSpawnTimer += delta;
+            if (obstacleSpawnTimer >= obstacleSpawnRate) {
+                obstacleSpawnTimer = 0;
+                spawnObstacle();
+            }
+
+            // Update hazard coordinates & check for player overlaps
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.update(delta);
+
+                // Collision detection checks (AABB / Circular proximity logic combo)
+                const dx = player.x - obs.x;
+                const dy = player.y - obs.y;
+                const dist = Math.hypot(dx, dy);
+
+                // Combined safety margins (slightly smaller collision size than visuals for fair gameplay)
+                const safeZone = (PLAYER_SIZE * 0.4) + (obs.size * 0.35);
+                if (dist < safeZone) {
+                    triggerGameOver();
+                    break;
+                }
+
+                // Off-screen disposal cleanup
+                if (obs.isOutOfBounds()) {
+                    obstacles.splice(i, 1);
+                }
+            }
+        }
+
+        function updateParticles(delta) {
+            // Update ambient background star elements
+            spawnAmbientGridParticles();
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update(delta);
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Manage level acceleration display frames timer
+            if (warningActive) {
+                warningTimer -= (delta / 16.666);
+                if (warningTimer <= 0) {
+                    warningActive = false;
+                    document.getElementById('speedWarning').classList.add('hidden');
+                }
+            }
+        }
+
+        function draw() {
+            // Subtle clear screen opacity creates high-performance canvas motion blur
+            ctx.fillStyle = 'rgba(5, 5, 16, 0.22)';
+            ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+
+            // Draw electronic border grid lines
+            drawGrid();
+
+            // Render all active atmospheric star particles
+            for (const p of particles) {
+                p.draw();
+            }
+
+            // Draw all obstacles in buffer
+            for (const obs of obstacles) {
+                obs.draw();
+            }
+
+            // Draw player cyan trail path lines
+            if (player.trail.length > 1) {
+                ctx.save();
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = 'rgba(0, 240, 255, 0.12)';
+                ctx.beginPath();
+                ctx.moveTo(player.trail[0].x, player.trail[0].y);
+                for (let i = 1; i < player.trail.length; i++) {
+                    ctx.lineTo(player.trail[i].x, player.trail[i].y);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Draw player glowing cyan avatar element
+            ctx.save();
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#00f0ff';
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 4;
+            
+            // Centered draw player
+            const px = player.x;
+            const py = player.y;
+            const r = PLAYER_SIZE / 2;
+
+            ctx.fillRect(px - r, py - r, PLAYER_SIZE, PLAYER_SIZE);
+            ctx.strokeRect(px - r, py - r, PLAYER_SIZE, PLAYER_SIZE);
+            
+            // Digital crosshairs
+            ctx.fillStyle = '#00f0ff';
+            ctx.fillRect(px - 1, py - 1, 2, 2);
+            ctx.restore();
+        }
+
+        function drawGrid() {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.025)';
+            ctx.lineWidth = 1;
+            const spacing = 50;
+
+            // Vertical Lines
+            for (let x = 0; x < V_WIDTH; x += spacing) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, V_HEIGHT);
+                ctx.stroke();
+            }
+
+            // Horizontal Lines
+            for (let y = 0; y < V_HEIGHT; y += spacing) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(V_WIDTH, y);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // Initialize elements on load execution
+        window.onload = function() {
+            fitCanvasElement();
+            setupEventListeners();
+            
+            // First mock draw for canvas background representation behind menu
+            ctx.fillStyle = '#050510';
+            ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+            drawGrid();
+        };
+    </script>
+</body>
+</html>

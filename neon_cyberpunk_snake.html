@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CyberSnake // Neon Horizon</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Cyberpunk Aesthetic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --neon-pink: #ff007f;
+            --neon-cyan: #00f0ff;
+            --neon-green: #39ff14;
+            --neon-yellow: #ffe600;
+            --neon-purple: #9d00ff;
+            --dark-bg: #03030c;
+            --panel-bg: rgba(6, 6, 20, 0.85);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: #ffffff;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .cyber-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .mono-font {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        /* Neon Glow Effects */
+        .neon-border-pink {
+            border: 2px solid var(--neon-pink);
+            box-shadow: 0 0 10px var(--neon-pink), inset 0 0 5px rgba(255, 0, 127, 0.5);
+        }
+
+        .neon-border-cyan {
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan), inset 0 0 5px rgba(0, 240, 255, 0.5);
+        }
+
+        .neon-text-pink {
+            text-shadow: 0 0 5px rgba(255, 0, 127, 0.5), 0 0 10px var(--neon-pink);
+        }
+
+        .neon-text-cyan {
+            text-shadow: 0 0 5px rgba(0, 240, 255, 0.5), 0 0 10px var(--neon-cyan);
+        }
+
+        .neon-text-green {
+            text-shadow: 0 0 5px rgba(57, 255, 20, 0.5), 0 0 10px var(--neon-green);
+        }
+
+        .neon-text-yellow {
+            text-shadow: 0 0 5px rgba(255, 230, 0, 0.5), 0 0 10px var(--neon-yellow);
+        }
+
+        /* CRT Screen & Glitch Effects */
+        .crt::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 999;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+
+        .glitch-btn {
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .glitch-btn:active {
+            transform: scale(0.95);
+        }
+
+        .glitch-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 0, 127, 0.1);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .glitch-btn:hover::before {
+            opacity: 1;
+        }
+
+        /* Cyberpunk diagonal cuts & borders */
+        .cyber-corner {
+            clip-path: polygon(0 0, 95% 0, 100% 15px, 100% 100%, 5% 100%, 0% calc(100% - 15px));
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-cyan);
+            border-radius: 2px;
+        }
+
+        /* Shaking animation on hit/score */
+        @keyframes screen-shake {
+            0% { transform: translate(0, 0); }
+            10% { transform: translate(-4px, 4px); }
+            20% { transform: translate(4px, -4px); }
+            30% { transform: translate(-4px, -4px); }
+            40% { transform: translate(4px, 4px); }
+            50% { transform: translate(-2px, 2px); }
+            60% { transform: translate(2px, -2px); }
+            70% { transform: translate(-2px, -2px); }
+            80% { transform: translate(2px, 2px); }
+            90% { transform: translate(0, 0); }
+        }
+
+        .shake-effect {
+            animation: screen-shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* Grid Background overlay */
+        .cyber-grid {
+            background-image: 
+                linear-gradient(rgba(18, 16, 45, 0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(18, 16, 45, 0.4) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center;
+        }
+
+        /* Scanline scrolling effect */
+        @keyframes scanline-anim {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .scanline::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 240, 255, 0.15);
+            animation: scanline-anim 6s linear infinite;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col justify-between items-center relative select-none crt cyber-grid">
+
+    <!-- Background Animated Matrix Waves (Canvas Behind) -->
+    <canvas id="bgCanvas" class="absolute inset-0 w-full h-full z-0 pointer-events-none opacity-25"></canvas>
+
+    <!-- Top Dashboard Bar -->
+    <header class="w-full max-w-4xl px-4 py-3 mt-2 z-10 flex justify-between items-center">
+        <div class="flex flex-col">
+            <span class="cyber-font text-xs tracking-wider uppercase text-cyan-400 opacity-80">System Status</span>
+            <h1 class="cyber-font text-xl md:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-cyan-400 tracking-wider">
+                NEON_SNAKE.EXE
+            </h1>
+        </div>
+        
+        <!-- Live Counters -->
+        <div class="flex items-center space-x-4">
+            <div class="bg-slate-900/80 border border-cyan-500/30 px-3 py-1.5 rounded-md flex items-center gap-2">
+                <span class="mono-font text-xs text-cyan-400">HI-SCORE</span>
+                <span id="headerHighScore" class="mono-font text-lg font-bold text-white tracking-widest">00000</span>
+            </div>
+            <div class="bg-slate-900/80 border border-pink-500/30 px-3 py-1.5 rounded-md flex items-center gap-2">
+                <span class="mono-font text-xs text-pink-400">SCORE</span>
+                <span id="headerScore" class="mono-font text-lg font-bold text-white tracking-widest">00000</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Window Frame -->
+    <main class="w-full max-w-4xl px-4 flex-1 flex flex-col justify-center items-center relative z-10">
+        <!-- Interactive Interface Container wrapping game Canvas -->
+        <div id="gameFrame" class="relative w-full aspect-square md:max-h-[65vh] md:max-w-[65vh] bg-slate-950/95 neon-border-cyan rounded-lg overflow-hidden flex flex-col shadow-[0_0_30px_rgba(0,240,255,0.15)]">
+            
+            <!-- Active Powerup Display Indicators -->
+            <div id="powerupOverlay" class="absolute top-3 left-3 flex flex-col gap-1 z-30 pointer-events-none">
+                <!-- Slow Time Active Badge -->
+                <div id="badge-slow" class="hidden flex items-center gap-2 bg-black/80 border border-cyan-400/80 px-2.5 py-1 rounded text-xs cyber-font text-cyan-400">
+                    <span class="animate-pulse">🌀 TIME_SLOW</span>
+                    <div class="w-12 h-1.5 bg-cyan-950 rounded-full overflow-hidden">
+                        <div id="bar-slow" class="h-full bg-cyan-400 w-full transition-all duration-100"></div>
+                    </div>
+                </div>
+                <!-- Double Score Active Badge -->
+                <div id="badge-double" class="hidden flex items-center gap-2 bg-black/80 border border-yellow-400/80 px-2.5 py-1 rounded text-xs cyber-font text-yellow-400">
+                    <span class="animate-pulse">⚡ DOUBLE_PTS x2</span>
+                    <div class="w-12 h-1.5 bg-yellow-950 rounded-full overflow-hidden">
+                        <div id="bar-double" class="h-full bg-yellow-400 w-full transition-all duration-100"></div>
+                    </div>
+                </div>
+                <!-- Shield Active Badge -->
+                <div id="badge-shield" class="hidden flex items-center gap-2 bg-black/80 border border-pink-400/80 px-2.5 py-1 rounded text-xs cyber-font text-pink-400">
+                    <span class="animate-pulse">🛡️ SYS_SHIELD</span>
+                    <div class="w-12 h-1.5 bg-pink-950 rounded-full overflow-hidden">
+                        <div id="bar-shield" class="h-full bg-pink-400 w-full transition-all duration-100"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- In-game Pause/Speed info (Top-Right) -->
+            <div class="absolute top-3 right-3 flex items-center gap-2 z-30 pointer-events-none">
+                <div class="bg-black/80 px-2 py-1 rounded border border-slate-700 text-xs mono-font text-slate-300">
+                    SPEED: <span id="speedValue" class="text-green-400">1x</span>
+                </div>
+            </div>
+
+            <!-- Canvas Object -->
+            <canvas id="gameCanvas" class="w-full h-full object-contain aspect-square cursor-crosshair"></canvas>
+
+            <!-- ================= OVERLAYS (Absolutely positioned) ================= -->
+
+            <!-- Loading System screen -->
+            <div id="loadingScreen" class="absolute inset-0 bg-[#03030c] z-50 flex flex-col justify-center items-center px-6">
+                <div class="text-center max-w-md w-full">
+                    <h2 class="cyber-font text-2xl font-black text-cyan-400 tracking-widest mb-6 animate-pulse">BOOT_SEQUENCE.SYS</h2>
+                    <div class="w-full bg-slate-900 border border-cyan-500/30 rounded-full h-4 p-0.5 overflow-hidden mb-3">
+                        <div id="loaderBar" class="bg-gradient-to-r from-pink-500 to-cyan-400 h-full w-0 rounded-full transition-all duration-100"></div>
+                    </div>
+                    <div class="mono-font text-xs text-emerald-400 flex justify-between">
+                        <span id="loaderStatus">MOUNTING AUDIO_SYNTH...</span>
+                        <span id="loaderPercent">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Menu overlay -->
+            <div id="mainMenu" class="absolute inset-0 bg-slate-950/90 flex flex-col justify-center items-center px-6 py-8 z-40">
+                <div class="text-center w-full max-w-sm flex flex-col gap-6">
+                    <div class="space-y-1">
+                        <p class="cyber-font text-xs tracking-[0.3em] text-pink-500 font-bold uppercase">CYBERPUNK RETRO ARCADE</p>
+                        <h2 class="cyber-font text-3xl md:text-4xl font-extrabold tracking-wider neon-text-cyan leading-tight">NEON HORIZON</h2>
+                        <div class="h-0.5 w-24 bg-cyan-400 mx-auto mt-2"></div>
+                    </div>
+
+                    <div class="flex flex-col gap-3 mt-4">
+                        <button id="btnPlay" class="glitch-btn cyber-corner bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-3.5 px-6 cyber-font text-sm uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(236,72,153,0.4)]">
+                            Initiate Core
+                        </button>
+                        <button id="btnSettings" class="glitch-btn cyber-corner bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/40 font-semibold py-2.5 px-6 cyber-font text-xs uppercase tracking-widest transition-all">
+                            Config System
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800 text-left space-y-1.5 mt-2">
+                        <p class="mono-font text-[10px] text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-1">Powerup Manual</p>
+                        <div class="flex items-center gap-2 text-xs mono-font text-slate-300">
+                            <span class="text-cyan-400">🌀 Cyan Pill</span> <span>Slows speed frequency</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs mono-font text-slate-300">
+                            <span class="text-yellow-400">⚡ Gold Core</span> <span>Multiplies points (x2)</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs mono-font text-slate-300">
+                            <span class="text-pink-400">🛡️ Pink Nodes</span> <span>Shields from 1 collision</span>
+                        </div>
+                    </div>
+
+                    <!-- Added attribution -->
+                    <div class="text-[10px] text-slate-500 font-mono tracking-tight text-center mt-2 opacity-70">
+                        Engineered by Minteez & Gemini AI. © 2026. All data streams reserved.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pause menu overlay -->
+            <div id="pauseMenu" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col justify-center items-center px-6 z-40">
+                <div class="text-center space-y-6 max-w-xs w-full">
+                    <h3 class="cyber-font text-2xl font-black neon-text-pink tracking-widest">SYSTEM_PAUSED</h3>
+                    <div class="flex flex-col gap-3">
+                        <button id="btnResume" class="glitch-btn cyber-corner bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-6 cyber-font text-xs uppercase tracking-widest transition-all">
+                            Resume Interface
+                        </button>
+                        <button id="btnRestartPause" class="glitch-btn cyber-corner bg-slate-900 hover:bg-slate-800 text-pink-400 border border-pink-500/40 font-bold py-2.5 px-6 cyber-font text-xs uppercase tracking-widest transition-all">
+                            Cold Reboot
+                        </button>
+                        <button id="btnMenuPause" class="glitch-btn cyber-corner bg-slate-950 hover:bg-slate-900 text-slate-400 border border-slate-800 font-bold py-2 px-6 cyber-font text-[10px] uppercase tracking-widest transition-all">
+                            Return to Terminals
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Menu overlay -->
+            <div id="settingsMenu" class="hidden absolute inset-0 bg-slate-950/95 flex flex-col justify-center items-center px-6 z-45">
+                <div class="max-w-sm w-full space-y-6">
+                    <div class="text-center">
+                        <h3 class="cyber-font text-xl font-bold text-cyan-400 tracking-wider">SYSTEM CONFIGURATION</h3>
+                        <p class="mono-font text-xs text-slate-500">Modify global audio and input variables</p>
+                        <div class="h-0.5 w-16 bg-pink-500 mx-auto mt-2"></div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Sound Effects Toggle -->
+                        <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                            <span class="cyber-font text-xs text-slate-300">Sound Effects (SFX)</span>
+                            <button id="toggleSFX" class="mono-font text-xs font-bold bg-cyan-950 text-cyan-400 border border-cyan-500 px-3 py-1 rounded hover:bg-cyan-900 transition-all">
+                                ENABLED
+                            </button>
+                        </div>
+                        <!-- Synth Music Loop Toggle -->
+                        <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                            <span class="cyber-font text-xs text-slate-300">Retro Synth Loop</span>
+                            <button id="toggleMusic" class="mono-font text-xs font-bold bg-pink-950 text-pink-400 border border-pink-500 px-3 py-1 rounded hover:bg-pink-900 transition-all">
+                                ENABLED
+                            </button>
+                        </div>
+                        <!-- Keyboard Guide details -->
+                        <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-800 space-y-1 text-xs mono-font text-slate-400">
+                            <p class="text-slate-300 text-center uppercase tracking-wider font-bold mb-1">Grid Controller Bindings</p>
+                            <p class="flex justify-between"><span>MOVE UP</span> <span class="text-cyan-400">W / Arrow Up</span></p>
+                            <p class="flex justify-between"><span>MOVE DOWN</span> <span class="text-cyan-400">S / Arrow Down</span></p>
+                            <p class="flex justify-between"><span>MOVE LEFT</span> <span class="text-cyan-400">A / Arrow Left</span></p>
+                            <p class="flex justify-between"><span>MOVE RIGHT</span> <span class="text-cyan-400">D / Arrow Right</span></p>
+                            <p class="flex justify-between"><span>PAUSE INSTANCE</span> <span class="text-pink-400">ESC / SPACE</span></p>
+                        </div>
+                    </div>
+
+                    <button id="btnSaveSettings" class="glitch-btn cyber-corner w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 px-6 cyber-font text-xs uppercase tracking-widest transition-all">
+                        Apply & Save Config
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Over overlay -->
+            <div id="gameOverScreen" class="hidden absolute inset-0 bg-slate-950/90 flex flex-col justify-center items-center px-6 z-40">
+                <div class="text-center space-y-6 max-w-sm w-full">
+                    <div class="space-y-2">
+                        <p class="mono-font text-xs text-pink-500 tracking-widest animate-pulse font-bold">FATAL ERROR // TERMINATED</p>
+                        <h3 class="cyber-font text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-pink-500 tracking-wide">CORE_CRASHED</h3>
+                        <p id="gameOverReason" class="mono-font text-xs text-slate-400 px-4">Snake segment structural breakdown detected on system boundary collision.</p>
+                    </div>
+
+                    <!-- Scores Panel -->
+                    <div class="bg-slate-900/80 p-4 rounded-lg border border-red-500/30 flex justify-around items-center">
+                        <div class="text-center">
+                            <p class="mono-font text-[10px] text-slate-400 tracking-wider">FINAL SCORE</p>
+                            <p id="finalScore" class="mono-font text-2xl font-bold text-white tracking-widest mt-1">00000</p>
+                        </div>
+                        <div class="h-8 w-[1px] bg-slate-800"></div>
+                        <div class="text-center">
+                            <p class="mono-font text-[10px] text-slate-400 tracking-wider">HIGH SCORE</p>
+                            <p id="finalHighScore" class="mono-font text-2xl font-bold text-cyan-400 tracking-widest mt-1">00000</p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2.5">
+                        <button id="btnRestart" class="glitch-btn cyber-corner bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-3.5 px-6 cyber-font text-xs uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(236,72,153,0.3)]">
+                            Load Core Backup (Retry)
+                        </button>
+                        <button id="btnMainMenu" class="glitch-btn cyber-corner bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-semibold py-2.5 px-6 cyber-font text-xs uppercase tracking-widest transition-all">
+                            Terminal Matrix
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Virtual Mobile Controller Pad Overlay (shows automatically or when touch elements detected) -->
+    <section id="mobileController" class="w-full max-w-md px-4 pb-4 mt-2 z-10 flex flex-col items-center">
+        <!-- Interactive Directional Controls Grid Layout -->
+        <div class="grid grid-cols-3 gap-2 w-48 aspect-square relative bg-slate-900/30 p-2 rounded-2xl border border-slate-800/40 backdrop-blur-xs">
+            <!-- Center dummy or trigger button -->
+            <div class="col-start-2 col-end-3 flex justify-center items-center">
+                <button id="mBtn-Up" class="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-950/90 active:bg-cyan-500/20 active:border-cyan-400 border border-slate-800 text-slate-300 active:text-cyan-400 text-xl font-bold shadow-[0_4px_10px_rgba(0,0,0,0.4)] hover:border-slate-700 transition-all">
+                    ▲
+                </button>
+            </div>
+            
+            <div class="col-start-1 col-end-2 row-start-2 flex justify-center items-center">
+                <button id="mBtn-Left" class="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-950/90 active:bg-cyan-500/20 active:border-cyan-400 border border-slate-800 text-slate-300 active:text-cyan-400 text-xl font-bold shadow-[0_4px_10px_rgba(0,0,0,0.4)] hover:border-slate-700 transition-all">
+                    ◀
+                </button>
+            </div>
+            
+            <div class="col-start-2 col-end-3 row-start-2 flex justify-center items-center">
+                <!-- Action / Pause Center Button -->
+                <button id="mBtn-Pause" class="w-12 h-12 rounded-full flex items-center justify-center bg-slate-950/90 active:bg-pink-500/20 active:border-pink-400 border border-slate-800 text-xs text-pink-500 font-black tracking-tighter shadow-inner transition-all">
+                    PAUSE
+                </button>
+            </div>
+            
+            <div class="col-start-3 col-end-4 row-start-2 flex justify-center items-center">
+                <button id="mBtn-Right" class="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-950/90 active:bg-cyan-500/20 active:border-cyan-400 border border-slate-800 text-slate-300 active:text-cyan-400 text-xl font-bold shadow-[0_4px_10px_rgba(0,0,0,0.4)] hover:border-slate-700 transition-all">
+                    ▶
+                </button>
+            </div>
+            
+            <div class="col-start-2 col-end-3 row-start-3 flex justify-center items-center">
+                <button id="mBtn-Down" class="w-14 h-14 rounded-xl flex items-center justify-center bg-slate-950/90 active:bg-cyan-500/20 active:border-cyan-400 border border-slate-800 text-slate-300 active:text-cyan-400 text-xl font-bold shadow-[0_4px_10px_rgba(0,0,0,0.4)] hover:border-slate-700 transition-all">
+                    ▼
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Bar -->
+    <footer class="w-full max-w-4xl px-4 py-2 mt-auto z-10 text-center flex flex-col md:flex-row justify-between items-center text-[10px] mono-font text-slate-500 tracking-wider gap-1.5 pb-4">
+        <span>SNAKE ARCHITECTURE_v4.2.1 // BUILT FOR HIGH-FPS RUNTIME</span>
+        <span class="text-slate-400 animate-pulse">SYSTEM_ONLINE // TOUCH & ARROW/WASD CONTROLS SUPPORTED</span>
+    </footer>
+
+    <script>
+        /**
+         * ==========================================
+         *  PROURAL SOUND SYNTHESISER (Web Audio API)
+         * ==========================================
+         */
+        class SoundSynth {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+                this.musicEnabled = true;
+                this.musicInterval = null;
+                this.tempo = 140; // BPM
+                this.stepCount = 0;
+            }
+
+            init() {
+                if (this.ctx) return;
+                try {
+                    // Create Audio Context with fallback
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContextClass();
+                } catch (e) {
+                    console.error("Failed to build AudioContext:", e);
+                }
+            }
+
+            resume() {
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // Synth Sound generator helper
+            playTone(frequency, duration, type = 'sine', volume = 0.1, sweep = false, sweepEndFreq = 100) {
+                if (!this.enabled || !this.ctx) return;
+                this.resume();
+
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gainNode = this.ctx.createGain();
+
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(frequency, this.ctx.currentTime);
+                    if (sweep) {
+                        osc.frequency.exponentialRampToValueAtTime(sweepEndFreq, this.ctx.currentTime + duration);
+                    }
+
+                    gainNode.gain.setValueAtTime(volume, this.ctx.currentTime);
+                    // Smooth release to prevent clicks
+                    gainNode.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+
+                    osc.connect(gainNode);
+                    gainNode.connect(this.ctx.destination);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (err) {
+                    console.error("Oscillator play tone failed:", err);
+                }
+            }
+
+            // Custom SFX templates
+            playEat() {
+                // Futuristic double pitch increase synthesizer sound
+                this.playTone(523.25, 0.08, 'square', 0.06); // C5
+                setTimeout(() => {
+                    this.playTone(659.25, 0.12, 'square', 0.06); // E5
+                }, 80);
+            }
+
+            playPowerup() {
+                // Rising synth chord
+                const notes = [261.63, 329.63, 392.00, 523.25]; // C chord
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        this.playTone(freq, 0.15, 'triangle', 0.08, true, freq * 1.5);
+                    }, idx * 60);
+                });
+            }
+
+            playSpeedUp() {
+                this.playTone(150, 0.4, 'sawtooth', 0.07, true, 400);
+            }
+
+            playShieldBreak() {
+                this.playTone(800, 0.3, 'sawtooth', 0.12, true, 100);
+            }
+
+            playGameOver() {
+                // Tragic pitch drop synth
+                this.playTone(300, 0.5, 'sawtooth', 0.12, true, 50);
+                setTimeout(() => {
+                    this.playTone(180, 0.8, 'sawtooth', 0.12, true, 30);
+                }, 400);
+            }
+
+            playClick() {
+                this.playTone(400, 0.03, 'sine', 0.08);
+            }
+
+            // Rhythmic loop sequence for cyberpunk style
+            startMusicLoop() {
+                if (this.musicInterval) return;
+                this.init();
+                const stepTime = (60 / this.tempo) * 1000 / 2; // Eighth note interval
+
+                this.musicInterval = setInterval(() => {
+                    if (!this.musicEnabled || !this.ctx || this.ctx.state === 'suspended') return;
+
+                    try {
+                        const step = this.stepCount % 16;
+                        this.stepCount++;
+
+                        // Basic rhythmic bass notes
+                        if (step % 4 === 0) {
+                            // Heavy bass beat kick analog
+                            this.playTone(60, 0.15, 'sine', 0.12, true, 30);
+                        }
+                        
+                        // Cyberpunk synth arpeggio
+                        if (step === 2 || step === 10) {
+                            this.playTone(120, 0.08, 'sawtooth', 0.02);
+                        } else if (step === 6 || step === 14) {
+                            this.playTone(180, 0.08, 'sawtooth', 0.02);
+                        } else if (step === 7 || step === 15) {
+                            this.playTone(240, 0.08, 'sawtooth', 0.02);
+                        }
+                    } catch (e) {}
+                }, stepTime);
+            }
+
+            stopMusicLoop() {
+                if (this.musicInterval) {
+                    clearInterval(this.musicInterval);
+                    this.musicInterval = null;
+                }
+            }
+        }
+
+        // Initialize Global sound engine
+        const sfx = new SoundSynth();
+
+        /**
+         * ==========================================
+         *       PARTICLES & VISUAL trail ENGINE
+         * ==========================================
+         */
+        class ParticleEngine {
+            constructor() {
+                this.particles = [];
+            }
+
+            spawnExplosion(x, y, color, count = 15) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 1 + Math.random() * 5;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        size: 2 + Math.random() * 4,
+                        color: color,
+                        alpha: 1.0,
+                        decay: 0.02 + Math.random() * 0.03
+                    });
+                }
+            }
+
+            spawnRings(x, y, color) {
+                // Shockwave rings
+                this.particles.push({
+                    type: 'ring',
+                    x: x,
+                    y: y,
+                    radius: 2,
+                    maxRadius: 28,
+                    speed: 1.5,
+                    color: color,
+                    alpha: 1.0,
+                    decay: 0.04
+                });
+            }
+
+            update() {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    if (p.type === 'ring') {
+                        p.radius += p.speed;
+                        p.alpha -= p.decay;
+                    } else {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        // Slowly brake speed
+                        p.vx *= 0.96;
+                        p.vy *= 0.96;
+                        p.alpha -= p.decay;
+                    }
+
+                    if (p.alpha <= 0) {
+                        this.particles.splice(i, 1);
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                this.particles.forEach(p => {
+                    ctx.globalAlpha = p.alpha;
+                    if (p.type === 'ring') {
+                        ctx.strokeStyle = p.color;
+                        ctx.lineWidth = 2.5;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                        ctx.stroke();
+                    } else {
+                        ctx.fillStyle = p.color;
+                        ctx.shadowBlur = p.size * 2;
+                        ctx.shadowColor = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+                ctx.restore();
+            }
+        }
+
+        /**
+         * ==========================================
+         *               CORE GAME LOGIC
+         * ==========================================
+         */
+
+        // Canvas Config & Grid coordinates mapping
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Fixed logic grid sizes
+        const GRID_COLUMNS = 20;
+        const GRID_ROWS = 20;
+
+        let scale = 1; // dynamically configured inside resizeCanvas
+
+        const GAME_STATE = {
+            LOADING: 'LOADING',
+            MENU: 'MENU',
+            PLAYING: 'PLAYING',
+            PAUSED: 'PAUSED',
+            GAMEOVER: 'GAMEOVER',
+            SETTINGS: 'SETTINGS'
+        };
+
+        // System Configuration variables & state
+        let currentScreen = GAME_STATE.LOADING;
+        let score = 0;
+        let highScore = 0;
+        let speedMultiplier = 1.0;
+
+        // Snake logic
+        let snake = [];
+        let direction = { x: 1, y: 0 };
+        let nextDirection = { x: 1, y: 0 };
+        
+        // Logical movement step timing
+        let baseTickRate = 180; // milliseconds per grid step
+        let gameTimer = 0;
+        let speedUpCounter = 0; // tracking food consumed until speed increase
+
+        // Game components / lists
+        let food = { x: -1, y: -1, type: 'normal' };
+        let powerup = null; // { x, y, type: 'slow' | 'double' | 'shield', timer }
+        
+        // Active powerup systems duration tracks (in logical ticks)
+        let powerupsActive = {
+            slow: 0,
+            double: 0,
+            shield: 0
+        };
+        const POWERUP_DURATION = 80; // duration of active state in frames/ticks
+
+        // Particles reference
+        const particles = new ParticleEngine();
+
+        // Screen Shake management
+        let shakeIntensity = 0;
+
+        // Custom cyber-grid background renderer
+        const bgCanvas = document.getElementById("bgCanvas");
+        const bgCtx = bgCanvas.getContext("2d");
+        let bgStars = [];
+
+        function initBackground() {
+            bgStars = [];
+            for (let i = 0; i < 40; i++) {
+                bgStars.push({
+                    x: Math.random() * bgCanvas.width,
+                    y: Math.random() * bgCanvas.height,
+                    size: Math.random() * 2 + 1,
+                    speed: 0.1 + Math.random() * 0.4,
+                    color: Math.random() > 0.5 ? '#ff007f' : '#00f0ff'
+                });
+            }
+        }
+
+        function updateBackground() {
+            bgStars.forEach(star => {
+                star.y += star.speed;
+                if (star.y > bgCanvas.height) {
+                    star.y = 0;
+                    star.x = Math.random() * bgCanvas.width;
+                }
+            });
+        }
+
+        function drawBackground() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            // Draw slow-moving neon particles
+            bgStars.forEach(star => {
+                bgCtx.fillStyle = star.color;
+                bgCtx.shadowBlur = 4;
+                bgCtx.shadowColor = star.color;
+                bgCtx.beginPath();
+                bgCtx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                bgCtx.fill();
+            });
+        }
+
+        // Handle Canvas sizing scaling dynamically for crisp pixels
+        function resizeCanvas() {
+            const containerWidth = canvas.parentElement.clientWidth;
+            const containerHeight = canvas.parentElement.clientHeight;
+            const size = Math.min(containerWidth, containerHeight);
+            
+            canvas.width = size;
+            canvas.height = size;
+            scale = size / GRID_COLUMNS;
+
+            // Background canvas matches viewport bounds
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+            initBackground();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        /**
+         * ==========================================
+         *          INTERFACE CONTROLLERS
+         * ==========================================
+         */
+        const elements = {
+            loadingScreen: document.getElementById("loadingScreen"),
+            loaderBar: document.getElementById("loaderBar"),
+            loaderPercent: document.getElementById("loaderPercent"),
+            loaderStatus: document.getElementById("loaderStatus"),
+            
+            mainMenu: document.getElementById("mainMenu"),
+            pauseMenu: document.getElementById("pauseMenu"),
+            settingsMenu: document.getElementById("settingsMenu"),
+            gameOverScreen: document.getElementById("gameOverScreen"),
+            
+            btnPlay: document.getElementById("btnPlay"),
+            btnSettings: document.getElementById("btnSettings"),
+            btnResume: document.getElementById("btnResume"),
+            btnRestartPause: document.getElementById("btnRestartPause"),
+            btnMenuPause: document.getElementById("btnMenuPause"),
+            btnSaveSettings: document.getElementById("btnSaveSettings"),
+            btnRestart: document.getElementById("btnRestart"),
+            btnMainMenu: document.getElementById("btnMainMenu"),
+            
+            toggleSFX: document.getElementById("toggleSFX"),
+            toggleMusic: document.getElementById("toggleMusic"),
+            
+            headerScore: document.getElementById("headerScore"),
+            headerHighScore: document.getElementById("headerHighScore"),
+            finalScore: document.getElementById("finalScore"),
+            finalHighScore: document.getElementById("finalHighScore"),
+            gameOverReason: document.getElementById("gameOverReason"),
+            speedValue: document.getElementById("speedValue"),
+            
+            // Powerup UI badges
+            badgeSlow: document.getElementById("badge-slow"),
+            badgeDouble: document.getElementById("badge-double"),
+            badgeShield: document.getElementById("badge-shield"),
+            barSlow: document.getElementById("bar-slow"),
+            barDouble: document.getElementById("bar-double"),
+            barShield: document.getElementById("bar-shield"),
+            
+            gameFrame: document.getElementById("gameFrame")
+        };
+
+        // Initialize local storage highscores & sound toggles
+        function loadSystemSettings() {
+            const savedHighScore = localStorage.getItem("cybersnake_highscore");
+            if (savedHighScore) {
+                highScore = parseInt(savedHighScore, 10);
+                updateScoreUI();
+            }
+
+            const savedSFX = localStorage.getItem("cybersnake_sfx_enabled");
+            if (savedSFX !== null) {
+                sfx.enabled = savedSFX === "true";
+            }
+            const savedMusic = localStorage.getItem("cybersnake_music_enabled");
+            if (savedMusic !== null) {
+                sfx.musicEnabled = savedMusic === "true";
+            }
+            updateSettingsUI();
+        }
+
+        function updateSettingsUI() {
+            elements.toggleSFX.textContent = sfx.enabled ? "ENABLED" : "DISABLED";
+            elements.toggleSFX.className = sfx.enabled 
+                ? "mono-font text-xs font-bold bg-cyan-950 text-cyan-400 border border-cyan-500 px-3 py-1 rounded hover:bg-cyan-900 transition-all"
+                : "mono-font text-xs font-bold bg-slate-900 text-slate-500 border border-slate-700 px-3 py-1 rounded hover:bg-slate-800 transition-all";
+
+            elements.toggleMusic.textContent = sfx.musicEnabled ? "ENABLED" : "DISABLED";
+            elements.toggleMusic.className = sfx.musicEnabled 
+                ? "mono-font text-xs font-bold bg-pink-950 text-pink-400 border border-pink-500 px-3 py-1 rounded hover:bg-pink-900 transition-all"
+                : "mono-font text-xs font-bold bg-slate-900 text-slate-500 border border-slate-700 px-3 py-1 rounded hover:bg-slate-800 transition-all";
+        }
+
+        function triggerScreenShake(amt = 10) {
+            shakeIntensity = amt;
+            elements.gameFrame.classList.add("shake-effect");
+            setTimeout(() => {
+                elements.gameFrame.classList.remove("shake-effect");
+            }, 300);
+        }
+
+        function switchScreen(target) {
+            currentScreen = target;
+            
+            // Hide all overlays initially
+            elements.mainMenu.classList.add("hidden");
+            elements.pauseMenu.classList.add("hidden");
+            elements.settingsMenu.classList.add("hidden");
+            elements.gameOverScreen.classList.add("hidden");
+
+            if (target === GAME_STATE.MENU) {
+                elements.mainMenu.classList.remove("hidden");
+                sfx.startMusicLoop();
+            } else if (target === GAME_STATE.PAUSED) {
+                elements.pauseMenu.classList.remove("hidden");
+            } else if (target === GAME_STATE.SETTINGS) {
+                elements.settingsMenu.classList.remove("hidden");
+            } else if (target === GAME_STATE.GAMEOVER) {
+                elements.gameOverScreen.classList.remove("hidden");
+                elements.finalScore.textContent = score.toString().padStart(5, '0');
+                elements.finalHighScore.textContent = highScore.toString().padStart(5, '0');
+            }
+        }
+
+        // Mock Loading progress loop
+        function runBootSequence() {
+            let progress = 0;
+            const steps = [
+                { limit: 20, txt: "BOOTING_KERNEL.SYS..." },
+                { limit: 45, txt: "CONNECTING WEBAUDIO_CHANNELS..." },
+                { limit: 70, txt: "STABILIZING FPS_LOCK (60HZ)..." },
+                { limit: 90, txt: "PRE-ALLOCATING PARTICLE_ARRAY..." },
+                { limit: 100, txt: "GRID_READY // PRESS START" }
+            ];
+
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 5) + 2;
+                if (progress > 100) progress = 100;
+
+                elements.loaderBar.style.width = progress + "%";
+                elements.loaderPercent.textContent = progress + "%";
+
+                const step = steps.find(s => progress <= s.limit) || steps[steps.length - 1];
+                elements.loaderStatus.textContent = step.txt;
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        elements.loadingScreen.classList.add("opacity-0");
+                        setTimeout(() => {
+                            elements.loadingScreen.classList.add("hidden");
+                        }, 500);
+                        switchScreen(GAME_STATE.MENU);
+                    }, 500);
+                }
+            }, 50);
+        }
+
+        /**
+         * ==========================================
+         *     GRID MOVEMENT & STEER LOGIC
+         * ==========================================
+         */
+        function changeDirection(dx, dy) {
+            // Prevent 180 degree turns into immediate death
+            if (dx === -direction.x && dy === -direction.y) return;
+            nextDirection = { x: dx, y: dy };
+        }
+
+        // Keyboard bindings mapping
+        window.addEventListener('keydown', e => {
+            // Stop viewport scrolling with arrows/spacebar
+            if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+                e.preventDefault();
+            }
+
+            if (currentScreen === GAME_STATE.PLAYING) {
+                switch (e.code) {
+                    case "ArrowUp":
+                    case "KeyW":
+                        changeDirection(0, -1);
+                        break;
+                    case "ArrowDown":
+                    case "KeyS":
+                        changeDirection(0, 1);
+                        break;
+                    case "ArrowLeft":
+                    case "KeyA":
+                        changeDirection(-1, 0);
+                        break;
+                    case "ArrowRight":
+                    case "KeyD":
+                        changeDirection(1, 0);
+                        break;
+                    case "Space":
+                    case "Escape":
+                        sfx.playClick();
+                        switchScreen(GAME_STATE.PAUSED);
+                        break;
+                }
+            } else if (currentScreen === GAME_STATE.PAUSED) {
+                if (e.code === "Space" || e.code === "Escape") {
+                    sfx.playClick();
+                    switchScreen(GAME_STATE.PLAYING);
+                }
+            }
+        });
+
+        // Setup Virtual Mobile Controls Button listeners
+        document.getElementById("mBtn-Up").addEventListener("touchstart", (e) => { e.preventDefault(); sfx.playClick(); changeDirection(0, -1); });
+        document.getElementById("mBtn-Left").addEventListener("touchstart", (e) => { e.preventDefault(); sfx.playClick(); changeDirection(-1, 0); });
+        document.getElementById("mBtn-Right").addEventListener("touchstart", (e) => { e.preventDefault(); sfx.playClick(); changeDirection(1, 0); });
+        document.getElementById("mBtn-Down").addEventListener("touchstart", (e) => { e.preventDefault(); sfx.playClick(); changeDirection(0, 1); });
+        document.getElementById("mBtn-Pause").addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            sfx.playClick();
+            if (currentScreen === GAME_STATE.PLAYING) {
+                switchScreen(GAME_STATE.PAUSED);
+            } else if (currentScreen === GAME_STATE.PAUSED) {
+                switchScreen(GAME_STATE.PLAYING);
+            }
+        });
+
+        // Reconnect touch inputs fallback for swipe mechanics inside canvas
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        canvas.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].clientX;
+            touchStartY = e.changedTouches[0].clientY;
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', e => {
+            if (currentScreen !== GAME_STATE.PLAYING) return;
+            const diffX = e.changedTouches[0].clientX - touchStartX;
+            const diffY = e.changedTouches[0].clientY - touchStartY;
+
+            // Determine if horizontal or vertical swipe had bigger distance
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (Math.abs(diffX) > 30) { // Threshold
+                    changeDirection(diffX > 0 ? 1 : -1, 0);
+                }
+            } else {
+                if (Math.abs(diffY) > 30) {
+                    changeDirection(0, diffY > 0 ? 1 : -1);
+                }
+            }
+        }, { passive: true });
+
+
+        /**
+         * ==========================================
+         *      GAMEPLAY ENGINE SYSTEMS & TICK
+         * ==========================================
+         */
+        function spawnFood() {
+            let possibleCoords = [];
+            // Gather all unoccupied cells
+            for (let x = 0; x < GRID_COLUMNS; x++) {
+                for (let y = 0; y < GRID_ROWS; y++) {
+                    const isOccupiedBySnake = snake.some(segment => segment.x === x && segment.y === y);
+                    const isOccupiedByPowerup = powerup && powerup.x === x && powerup.y === y;
+                    
+                    if (!isOccupiedBySnake && !isOccupiedByPowerup) {
+                        possibleCoords.push({ x, y });
+                    }
+                }
+            }
+
+            if (possibleCoords.length === 0) return; // Grid fully filled (Winner!)
+
+            const choice = possibleCoords[Math.floor(Math.random() * possibleCoords.length)];
+            
+            // Generate special power-up chance (15%)
+            if (Math.random() < 0.15 && !powerup) {
+                const types = ['slow', 'double', 'shield'];
+                const selectedType = types[Math.floor(Math.random() * types.length)];
+                powerup = {
+                    x: choice.x,
+                    y: choice.y,
+                    type: selectedType,
+                    timer: 100 // moves away or disappears if not gathered
+                };
+            } else {
+                // Spawn normal glow food
+                food = {
+                    x: choice.x,
+                    y: choice.y,
+                    type: 'normal'
+                };
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            speedMultiplier = 1.0;
+            speedUpCounter = 0;
+            updateScoreUI();
+            
+            // Default active status
+            powerupsActive = { slow: 0, double: 0, shield: 0 };
+            updatePowerupUI();
+
+            // Set Initial Snake Body Position in Center-Left
+            snake = [
+                { x: 8, y: 10 },
+                { x: 7, y: 10 },
+                { x: 6, y: 10 }
+            ];
+
+            direction = { x: 1, y: 0 };
+            nextDirection = { x: 1, y: 0 };
+            
+            food = { x: -1, y: -1, type: 'normal' };
+            powerup = null;
+            spawnFood();
+            
+            gameTimer = 0;
+        }
+
+        function updateScoreUI() {
+            elements.headerScore.textContent = score.toString().padStart(5, '0');
+            elements.headerHighScore.textContent = highScore.toString().padStart(5, '0');
+            elements.speedValue.textContent = speedMultiplier.toFixed(2) + "x";
+        }
+
+        function updatePowerupUI() {
+            // Control visibility of power-up durations in CSS
+            if (powerupsActive.slow > 0) {
+                elements.badgeSlow.classList.remove("hidden");
+                elements.barSlow.style.width = (powerupsActive.slow / POWERUP_DURATION * 100) + "%";
+            } else {
+                elements.badgeSlow.classList.add("hidden");
+            }
+
+            if (powerupsActive.double > 0) {
+                elements.badgeDouble.classList.remove("hidden");
+                elements.barDouble.style.width = (powerupsActive.double / POWERUP_DURATION * 100) + "%";
+            } else {
+                elements.badgeDouble.classList.add("hidden");
+            }
+
+            if (powerupsActive.shield > 0) {
+                elements.badgeShield.classList.remove("hidden");
+                elements.barShield.style.width = (powerupsActive.shield / POWERUP_DURATION * 100) + "%";
+            } else {
+                elements.badgeShield.classList.add("hidden");
+            }
+        }
+
+        /**
+         * Update logical tick grid state loop
+         */
+        function gameTick() {
+            // Adjust step timing based on difficulty and slow power-up state
+            let actualSpeedMult = speedMultiplier;
+            if (powerupsActive.slow > 0) {
+                actualSpeedMult *= 0.5; // slow down snake update rate by half
+            }
+
+            const currentTickRate = baseTickRate / actualSpeedMult;
+            
+            // Advance simulation clock
+            const elapsed = 1000 / 60; // Approximate elapsed ms per frame
+            gameTimer += elapsed;
+
+            if (gameTimer >= currentTickRate) {
+                gameTimer = 0;
+                
+                // Set direction lock
+                direction = nextDirection;
+
+                // Target grid coordinates
+                const head = snake[0];
+                const nextX = head.x + direction.x;
+                const nextY = head.y + direction.y;
+
+                // Decrement active power-up trackers
+                for (const key in powerupsActive) {
+                    if (powerupsActive[key] > 0) {
+                        powerupsActive[key]--;
+                    }
+                }
+                updatePowerupUI();
+
+                // Handle system border wrap-around/collision check
+                if (nextX < 0 || nextX >= GRID_COLUMNS || nextY < 0 || nextY >= GRID_ROWS) {
+                    if (powerupsActive.shield > 0) {
+                        // Absorb collision damage!
+                        powerupsActive.shield = 0;
+                        updatePowerupUI();
+                        sfx.playShieldBreak();
+                        triggerScreenShake(12);
+                        // Turn away randomly or stop to prevent double crash immediately
+                        handleAutoTurn();
+                        return;
+                    } else {
+                        endGame("Snake terminal components shattered upon wall grid boundaries.");
+                        return;
+                    }
+                }
+
+                // Self collision check (ignoring the tail end tip because it steps away simultaneously)
+                const selfCollisionIndex = snake.slice(0, -1).findIndex(segment => segment.x === nextX && segment.y === nextY);
+                if (selfCollisionIndex !== -1) {
+                    if (powerupsActive.shield > 0) {
+                        // Break shielding safely
+                        powerupsActive.shield = 0;
+                        updatePowerupUI();
+                        sfx.playShieldBreak();
+                        triggerScreenShake(12);
+                        handleAutoTurn();
+                        return;
+                    } else {
+                        endGame("Self-collision detected. AI structural feedback crash.");
+                        return;
+                    }
+                }
+
+                // Add next snake segment target
+                const newHead = { x: nextX, y: nextY };
+                snake.unshift(newHead);
+
+                // Handle Powerup despawn timers
+                if (powerup) {
+                    powerup.timer--;
+                    if (powerup.timer <= 0) {
+                        powerup = null;
+                    }
+                }
+
+                // Check normal food collection
+                if (nextX === food.x && nextY === food.y) {
+                    collectFood();
+                } else if (powerup && nextX === powerup.x && nextY === powerup.y) {
+                    collectPowerup();
+                } else {
+                    // Pull forward tail block
+                    snake.pop();
+                }
+            }
+        }
+
+        // Help players recover after losing shield by auto steering safely
+        function handleAutoTurn() {
+            // Turn parallel to current axis
+            const currentHead = snake[0];
+            const leftX = currentHead.x - 1;
+            const rightX = currentHead.x + 1;
+            const upY = currentHead.y - 1;
+            const downY = currentHead.y + 1;
+
+            if (direction.x !== 0) {
+                // Move vertical if free
+                if (upY >= 0 && !snake.some(s => s.x === currentHead.x && s.y === upY)) {
+                    nextDirection = { x: 0, y: -1 };
+                } else if (downY < GRID_ROWS && !snake.some(s => s.x === currentHead.x && s.y === downY)) {
+                    nextDirection = { x: 0, y: 1 };
+                }
+            } else {
+                // Move horizontal if free
+                if (leftX >= 0 && !snake.some(s => s.x === leftX && s.y === currentHead.y)) {
+                    nextDirection = { x: -1, y: 0 };
+                } else if (rightX < GRID_COLUMNS && !snake.some(s => s.x === rightX && s.y === currentHead.y)) {
+                    nextDirection = { x: 1, y: 0 };
+                }
+            }
+        }
+
+        function collectFood() {
+            let pts = 10;
+            if (powerupsActive.double > 0) {
+                pts *= 2;
+            }
+            score += pts;
+            
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("cybersnake_highscore", highScore.toString());
+            }
+
+            // Visual ring boom at center of eaten food
+            const centerX = (food.x + 0.5) * scale;
+            const centerY = (food.y + 0.5) * scale;
+            particles.spawnExplosion(centerX, centerY, '#ff007f');
+            particles.spawnRings(centerX, centerY, '#ff007f');
+
+            triggerScreenShake(6);
+            sfx.playEat();
+            
+            // Advance Speed multiplier increments every 5 food tokens
+            speedUpCounter++;
+            if (speedUpCounter >= 5) {
+                speedUpCounter = 0;
+                speedMultiplier += 0.12;
+                sfx.playSpeedUp();
+                // Visual shockwave on upgrade speed scale
+                particles.spawnRings(canvas.width / 2, canvas.height / 2, '#39ff14');
+            }
+
+            updateScoreUI();
+            spawnFood();
+        }
+
+        function collectPowerup() {
+            if (!powerup) return;
+
+            // Trigger corresponding active status duration
+            powerupsActive[powerup.type] = POWERUP_DURATION;
+            updatePowerupUI();
+
+            const pX = (powerup.x + 0.5) * scale;
+            const pY = (powerup.y + 0.5) * scale;
+            
+            let pColor = '#00f0ff';
+            if (powerup.type === 'double') pColor = '#ffe600';
+            if (powerup.type === 'shield') pColor = '#ff007f';
+
+            particles.spawnExplosion(pX, pY, pColor, 20);
+            particles.spawnRings(pX, pY, pColor);
+            
+            sfx.playPowerup();
+            triggerScreenShake(8);
+
+            powerup = null;
+            // Draw regular food again if missing
+            if (food.x === -1) spawnFood();
+        }
+
+        function endGame(reason) {
+            triggerScreenShake(18);
+            sfx.playGameOver();
+            elements.gameOverReason.textContent = reason;
+            switchScreen(GAME_STATE.GAMEOVER);
+        }
+
+        /**
+         * ==========================================
+         *         CANVAS RENDER DRAW LOOPS
+         * ==========================================
+         */
+        function drawGridLayer() {
+            ctx.save();
+            ctx.strokeStyle = "rgba(0, 240, 255, 0.05)";
+            ctx.lineWidth = 1;
+            
+            // Verticals
+            for (let i = 0; i <= GRID_COLUMNS; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * scale, 0);
+                ctx.lineTo(i * scale, canvas.height);
+                ctx.stroke();
+            }
+
+            // Horizontals
+            for (let i = 0; i <= GRID_ROWS; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, i * scale);
+                ctx.lineTo(canvas.width, i * scale);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawSnake() {
+            if (snake.length === 0) return;
+
+            ctx.save();
+            
+            // Loop through body components
+            for (let i = snake.length - 1; i >= 0; i--) {
+                const segment = snake[i];
+                const x = segment.x * scale;
+                const y = segment.y * scale;
+                
+                // Head design
+                if (i === 0) {
+                    // Outer head capsule
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = "var(--neon-cyan)";
+                    ctx.fillStyle = "#ffffff";
+                    
+                    ctx.beginPath();
+                    // Custom curved cyberpunk visor-head shape
+                    ctx.arc(x + scale/2, y + scale/2, scale/2 - 1, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Inner neon design core
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = "var(--neon-cyan)";
+                    ctx.beginPath();
+                    ctx.arc(x + scale/2, y + scale/2, scale/3.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Glow Shield ring overlay if shield power-up is active
+                    if (powerupsActive.shield > 0) {
+                        ctx.strokeStyle = "var(--neon-pink)";
+                        ctx.lineWidth = 3;
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = "var(--neon-pink)";
+                        ctx.beginPath();
+                        ctx.arc(x + scale/2, y + scale/2, scale * 1.1, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+
+                    // Add cute cyberpunk pilot visor strip
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+                    if (direction.x > 0) {
+                        ctx.fillRect(x + scale/2, y + scale/4, scale/3, scale/2);
+                    } else if (direction.x < 0) {
+                        ctx.fillRect(x + scale/6, y + scale/4, scale/3, scale/2);
+                    } else if (direction.y > 0) {
+                        ctx.fillRect(x + scale/4, y + scale/2, scale/2, scale/3);
+                    } else if (direction.y < 0) {
+                        ctx.fillRect(x + scale/4, y + scale/6, scale/2, scale/3);
+                    }
+
+                } else {
+                    // Body trail sections
+                    const ratio = i / snake.length; // 0 to 1 color scale gradient
+                    
+                    // Rainbow blend based on currently collected powerup status
+                    let segmentColor = "rgba(0, 240, 255, " + (1 - ratio * 0.7) + ")";
+                    if (powerupsActive.double > 0) {
+                        segmentColor = "rgba(255, 230, 0, " + (1 - ratio * 0.7) + ")";
+                    } else if (powerupsActive.slow > 0) {
+                        segmentColor = "rgba(157, 0, 255, " + (1 - ratio * 0.7) + ")";
+                    }
+
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = segmentColor;
+                    ctx.fillStyle = segmentColor;
+
+                    // Draw sleek rounded body components
+                    ctx.beginPath();
+                    const padding = 2 + (ratio * 3); // gets thinner towards tail end
+                    ctx.arc(
+                        x + scale/2, 
+                        y + scale/2, 
+                        Math.max(1, scale/2 - padding), 
+                        0, 
+                        Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+            }
+            ctx.restore();
+        }
+
+        function drawFood() {
+            if (food.x === -1) return;
+
+            const x = food.x * scale;
+            const y = food.y * scale;
+            
+            ctx.save();
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = "var(--neon-pink)";
+            ctx.fillStyle = "var(--neon-pink)";
+            
+            // Draw stylized neon bio-organic food cube/star
+            ctx.beginPath();
+            ctx.arc(x + scale/2, y + scale/2, scale/3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inner core
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(x + scale/2, y + scale/2, scale/6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawPowerup() {
+            if (!powerup) return;
+
+            const x = powerup.x * scale;
+            const y = powerup.y * scale;
+
+            ctx.save();
+            let pColor = "var(--neon-cyan)";
+            if (powerup.type === 'double') pColor = "var(--neon-yellow)";
+            if (powerup.type === 'shield') pColor = "var(--neon-pink)";
+
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = pColor;
+            ctx.strokeStyle = pColor;
+            ctx.lineWidth = 2;
+
+            // Draw a spinning outer ring
+            const angle = (Date.now() / 150) % (Math.PI * 2);
+            ctx.beginPath();
+            ctx.arc(x + scale/2, y + scale/2, scale/2 - 2, angle, angle + Math.PI * 1.5);
+            ctx.stroke();
+
+            // Draw center icon shape
+            ctx.fillStyle = pColor;
+            ctx.beginPath();
+            ctx.arc(x + scale/2, y + scale/2, scale/5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        /**
+         * ==========================================
+         *         ANIMATION & APPLICATION LOOPS
+         * ==========================================
+         */
+        function gameLoop() {
+            // Screen shake offsets
+            let shakeX = 0;
+            let shakeY = 0;
+            if (shakeIntensity > 0) {
+                shakeX = (Math.random() - 0.5) * shakeIntensity;
+                shakeY = (Math.random() - 0.5) * shakeIntensity;
+                shakeIntensity *= 0.85; // smooth damping
+                if (shakeIntensity < 0.1) shakeIntensity = 0;
+            }
+
+            // Clear Screen
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            ctx.translate(shakeX, shakeY);
+
+            // Execute logic tick frame (only when game state matches actively playing)
+            if (currentScreen === GAME_STATE.PLAYING) {
+                gameTick();
+            }
+
+            // Draw Assets
+            drawGridLayer();
+            drawFood();
+            drawPowerup();
+            drawSnake();
+            
+            // Draw visual explosions particles
+            particles.update();
+            particles.draw(ctx);
+
+            ctx.restore();
+
+            // Background canvas render updates
+            updateBackground();
+            drawBackground();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        /**
+         * ==========================================
+         *         EVENT LISTENER TRIGGERS
+         * ==========================================
+         */
+
+        // Button Clicks
+        elements.btnPlay.addEventListener("click", () => {
+            sfx.init();
+            sfx.playClick();
+            resetGame();
+            switchScreen(GAME_STATE.PLAYING);
+        });
+
+        elements.btnSettings.addEventListener("click", () => {
+            sfx.init();
+            sfx.playClick();
+            switchScreen(GAME_STATE.SETTINGS);
+        });
+
+        elements.btnResume.addEventListener("click", () => {
+            sfx.playClick();
+            switchScreen(GAME_STATE.PLAYING);
+        });
+
+        elements.btnRestartPause.addEventListener("click", () => {
+            sfx.playClick();
+            resetGame();
+            switchScreen(GAME_STATE.PLAYING);
+        });
+
+        elements.btnMenuPause.addEventListener("click", () => {
+            sfx.playClick();
+            switchScreen(GAME_STATE.MENU);
+        });
+
+        elements.btnSaveSettings.addEventListener("click", () => {
+            sfx.playClick();
+            switchScreen(GAME_STATE.MENU);
+        });
+
+        elements.btnRestart.addEventListener("click", () => {
+            sfx.playClick();
+            resetGame();
+            switchScreen(GAME_STATE.PLAYING);
+        });
+
+        elements.btnMainMenu.addEventListener("click", () => {
+            sfx.playClick();
+            switchScreen(GAME_STATE.MENU);
+        });
+
+        // Toggle Audio controls inside settings
+        elements.toggleSFX.addEventListener("click", () => {
+            sfx.enabled = !sfx.enabled;
+            localStorage.setItem("cybersnake_sfx_enabled", sfx.enabled.toString());
+            sfx.playClick();
+            updateSettingsUI();
+        });
+
+        elements.toggleMusic.addEventListener("click", () => {
+            sfx.musicEnabled = !sfx.musicEnabled;
+            localStorage.setItem("cybersnake_music_enabled", sfx.musicEnabled.toString());
+            sfx.playClick();
+            updateSettingsUI();
+            if (sfx.musicEnabled) {
+                sfx.startMusicLoop();
+            } else {
+                sfx.stopMusicLoop();
+            }
+        });
+
+        // Initialize boot sequence & canvas size config
+        window.onload = function() {
+            resizeCanvas();
+            loadSystemSettings();
+            runBootSequence();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>

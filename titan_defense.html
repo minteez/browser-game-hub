@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Titan Defense - Elite Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background: #020617; font-family: 'Orbitron', sans-serif; }
+        canvas { display: block; touch-action: none; cursor: crosshair; }
+        .ui-panel { pointer-events: auto; }
+        #launch-screen { transition: opacity 0.5s ease-in-out; }
+        .tower-btn.active { border: 2px solid white; box-shadow: 0 0 15px rgba(255,255,255,0.5); }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+    </style>
+</head>
+<body class="font-orbitron">
+
+    <div id="launch-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 text-white p-6 text-center">
+        <h1 class="text-7xl font-black mb-8 text-blue-500 tracking-tighter drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]">TITAN DEFENSE</h1>
+        <button id="start-btn" class="px-12 py-6 bg-blue-600 hover:bg-blue-500 rounded-lg text-3xl font-bold shadow-[0_0_30px_-5px_rgba(37,99,235,0.5)] transition-all hover:scale-105 border-2 border-blue-400">LAUNCH GAME</button>
+        <footer class="absolute bottom-8 text-slate-500 text-xs font-light">
+            Engineered by Minteez & Gemini AI. © 2026. All data streams reserved.
+        </footer>
+    </div>
+
+    <div id="ui" class="absolute inset-0 z-10 pointer-events-none hidden flex flex-col justify-between p-6">
+        <div class="flex justify-between items-start">
+            <div class="bg-slate-900/90 text-white p-4 rounded-xl border border-slate-700 shadow-xl w-64 ui-panel">
+                <div class="text-xs text-slate-400 font-bold uppercase tracking-widest">COMMAND CENTER</div>
+                <div class="text-xl font-bold">Gold: <span id="goldVal" class="text-yellow-400">200</span></div>
+                <div class="text-xl font-bold">Wave: <span id="waveVal">1</span></div>
+                <div class="text-xl font-bold">Health: <span id="healthVal" class="text-red-400">100</span></div>
+            </div>
+        </div>
+
+        <div class="flex gap-4 self-center pb-10 ui-panel">
+            <button id="btn-basic" onclick="setBuildMode('basic')" class="tower-btn p-4 bg-blue-600 hover:bg-blue-500 rounded-xl w-24 h-24 text-white font-bold shadow-lg hover:scale-105 transition-all flex flex-col items-center justify-center text-xs">Basic<br><span class="font-normal mt-1">50 Gold</span></button>
+            <button id="btn-sniper" onclick="setBuildMode('sniper')" class="tower-btn p-4 bg-red-600 hover:bg-red-500 rounded-xl w-24 h-24 text-white font-bold shadow-lg hover:scale-105 transition-all flex flex-col items-center justify-center text-xs">Sniper<br><span class="font-normal mt-1">150 Gold</span></button>
+            <button id="btn-splash" onclick="setBuildMode('splash')" class="tower-btn p-4 bg-yellow-600 hover:bg-yellow-500 rounded-xl w-24 h-24 text-white font-bold shadow-lg hover:scale-105 transition-all flex flex-col items-center justify-center text-xs">Splash<br><span class="font-normal mt-1">200 Gold</span></button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Music state
+        let musicGainNode = null;
+        let isPlaying = false;
+
+        const PATH = [{x: 0, y: 300}, {x: 200, y: 300}, {x: 200, y: 100}, {x: 600, y: 100}, {x: 600, y: 500}, {x: 1000, y: 500}, {x: 1000, y: 300}, {x: 1400, y: 300}];
+        
+        let state = {
+            running: false, gold: 200, wave: 1, health: 100,
+            towers: [], enemies: [], particles: [], floatingTexts: [],
+            buildMode: null, lastSpawn: 0, mouseX: 0, mouseY: 0
+        };
+
+        function playSound(type) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime); 
+            
+            if(type === 'shoot') { osc.type = 'square'; osc.frequency.value = 440; gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1); } 
+            else if(type === 'hit') { osc.type = 'sawtooth'; osc.frequency.value = 150; gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05); } 
+            else if(type === 'build') { osc.type = 'triangle'; osc.frequency.value = 600; osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.2); }
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function playMusic() {
+            if(musicGainNode) return;
+            musicGainNode = audioCtx.createGain();
+            musicGainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            musicGainNode.connect(audioCtx.destination);
+
+            setInterval(() => {
+                if(!state.running) return;
+                const osc = audioCtx.createOscillator();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(110, audioCtx.currentTime);
+                osc.connect(musicGainNode);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            }, 500);
+        }
+
+        class Tower {
+            constructor(x, y, type) { 
+                this.x = x; this.y = y; this.type = type; 
+                this.range = type === 'sniper' ? 350 : (type === 'splash' ? 120 : 180); 
+                this.damage = type === 'basic' ? 15 : (type === 'sniper' ? 70 : 25); 
+                this.cooldown = 0; this.maxCooldown = type === 'sniper' ? 90 : 30;
+            }
+            update() {
+                if (this.cooldown > 0) this.cooldown--;
+                else {
+                    const targets = state.enemies.filter(e => Math.hypot(e.x - this.x, e.y - this.y) < this.range);
+                    if (targets.length > 0) {
+                        const target = targets[0];
+                        if (this.type === 'splash') {
+                            state.enemies.forEach(e => { if(Math.hypot(e.x - target.x, e.y - target.y) < 80) e.hp -= this.damage; });
+                            spawnParticles(target.x, target.y, '#eab308', 15);
+                        } else {
+                            target.hp -= this.damage;
+                            spawnParticles(target.x, target.y, '#fff', 5);
+                        }
+                        this.cooldown = this.maxCooldown; playSound('shoot');
+                    }
+                }
+            }
+            draw() {
+                ctx.fillStyle = this.type === 'basic' ? '#2563eb' : (this.type === 'sniper' ? '#dc2626' : '#ca8a04');
+                ctx.beginPath(); ctx.arc(this.x, this.y, 20, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
+            }
+        }
+
+        function spawnParticles(x, y, color, count) {
+            for(let i=0; i<count; i++) {
+                state.particles.push({x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 1.0, color});
+            }
+        }
+
+        function update() {
+            if(!state.running) return;
+            
+            if (Date.now() - state.lastSpawn > Math.max(500, 2000 - state.wave * 100)) {
+                state.enemies.push({x: PATH[0].x, y: PATH[0].y, hp: 50 + (state.wave * 20), maxHp: 50 + (state.wave * 20), speed: 1.5 + (state.wave * 0.1), pathIdx: 0});
+                state.lastSpawn = Date.now();
+            }
+
+            state.enemies.forEach((e, i) => {
+                const target = PATH[e.pathIdx + 1];
+                if (!target) { state.enemies.splice(i, 1); state.health -= 10; return; }
+                const dx = target.x - e.x; const dy = target.y - e.y; const dist = Math.hypot(dx, dy);
+                if (dist < 5) e.pathIdx++; else { e.x += (dx / dist) * e.speed; e.y += (dy / dist) * e.speed; }
+                if (e.hp <= 0) {
+                    state.enemies.splice(i, 1); state.gold += 20;
+                    state.floatingTexts.push({x: e.x, y: e.y, text: '+20 Gold', life: 60});
+                    spawnParticles(e.x, e.y, '#facc15', 10); playSound('hit');
+                }
+            });
+
+            state.towers.forEach(t => t.update());
+            state.particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.05; if(p.life <= 0) state.particles.splice(i, 1); });
+            state.floatingTexts.forEach((f, i) => { f.y -= 1; f.life--; if(f.life <= 0) state.floatingTexts.splice(i, 1); });
+            
+            document.getElementById('goldVal').innerText = Math.floor(state.gold);
+            document.getElementById('healthVal').innerText = Math.max(0, state.health);
+            document.getElementById('waveVal').innerText = state.wave;
+
+            if(state.health <= 0) { state.running = false; }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 40; ctx.beginPath();
+            PATH.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)); ctx.stroke();
+            
+            state.towers.forEach(t => t.draw());
+            
+            if (state.buildMode) {
+                const range = state.buildMode === 'sniper' ? 350 : (state.buildMode === 'splash' ? 120 : 180);
+                ctx.beginPath(); ctx.arc(state.mouseX, state.mouseY, range, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.stroke();
+            }
+
+            state.enemies.forEach(e => {
+                ctx.fillStyle = 'white'; ctx.fillRect(e.x - 10, e.y - 10, 20, 20);
+                ctx.fillStyle = 'red'; ctx.fillRect(e.x - 10, e.y - 15, 20, 4);
+                ctx.fillStyle = '#22c55e'; ctx.fillRect(e.x - 10, e.y - 15, (e.hp / e.maxHp) * 20, 4);
+            });
+
+            state.particles.forEach(p => { ctx.fillStyle = p.color; ctx.globalAlpha = p.life; ctx.fillRect(p.x, p.y, 4, 4); });
+            ctx.globalAlpha = 1.0;
+            
+            state.floatingTexts.forEach(f => { ctx.fillStyle = '#facc15'; ctx.font = 'bold 16px Orbitron'; ctx.fillText(f.text, f.x, f.y); });
+
+            update();
+            requestAnimationFrame(draw);
+        }
+
+        window.setBuildMode = (type) => {
+            state.buildMode = type;
+            document.querySelectorAll('.tower-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${type}`).classList.add('active');
+        };
+
+        canvas.addEventListener('mousemove', (e) => { state.mouseX = e.clientX; state.mouseY = e.clientY; });
+        canvas.addEventListener('click', (e) => {
+            if (state.buildMode) {
+                const costs = { basic: 50, sniper: 150, splash: 200 };
+                if (state.gold >= costs[state.buildMode]) {
+                    state.towers.push(new Tower(e.clientX, e.clientY, state.buildMode));
+                    state.gold -= costs[state.buildMode];
+                    playSound('build');
+                }
+            }
+        });
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            document.getElementById('launch-screen').style.opacity = '0';
+            setTimeout(() => document.getElementById('launch-screen').classList.add('hidden'), 500);
+            document.getElementById('ui').classList.remove('hidden');
+            state.running = true;
+            playMusic();
+        });
+
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+        window.dispatchEvent(new Event('resize'));
+        draw();
+    </script>
+</body>
+</html>

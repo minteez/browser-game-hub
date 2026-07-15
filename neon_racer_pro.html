@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Racer Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #050505; font-family: 'Inter', sans-serif; touch-action: none; }
+        #gameCanvas { display: block; width: 100vw; height: 100vh; }
+        .menu-screen { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(5,5,5,0.9); color: white; z-index: 10; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="hud" class="hidden absolute top-4 left-4 right-4 flex justify-between text-white font-bold text-lg pointer-events-none">
+    <div class="bg-black/40 backdrop-blur-md px-4 py-2 rounded-lg border border-cyan-500/50">Coins: <span id="coinCount">0</span></div>
+    <div class="flex gap-2">
+        <div class="bg-black/40 backdrop-blur-md px-4 py-2 rounded-lg border border-purple-500/50">Survival: <span id="timerDisplay">0.0</span>s</div>
+        <div class="bg-black/40 backdrop-blur-md px-4 py-2 rounded-lg border border-yellow-500/50">Best: <span id="bestTimeDisplay">0.0</span>s</div>
+    </div>
+</div>
+
+<div id="startScreen" class="menu-screen">
+    <h1 class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-8 tracking-widest drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">NEON RACER</h1>
+    <button id="startButton" class="px-10 py-4 bg-cyan-600 hover:bg-cyan-500 rounded-full text-2xl font-bold transition-all hover:scale-105 shadow-[0_0_25px_rgba(8,145,178,0.6)] text-white">START ENGINE</button>
+    <div class="mt-8 text-xs text-gray-400 opacity-60">
+        Engineered by Minteez & Gemini AI. © 2026. All data streams reserved.
+    </div>
+</div>
+
+<div id="gameOverScreen" class="menu-screen hidden">
+    <h2 class="text-5xl font-bold mb-4 text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">CRASHED!</h2>
+    <p id="finalTime" class="mb-2 text-xl text-white"></p>
+    <p id="highScoreText" class="mb-8 text-xl text-yellow-400 font-bold"></p>
+    <button id="retryButton" class="px-10 py-4 bg-red-600 hover:bg-red-500 rounded-full text-2xl font-bold transition-all hover:scale-105">RETRY</button>
+</div>
+
+<script>
+    class SoundManager {
+        constructor() {
+            this.ctx = null;
+            this.isPlaying = false;
+        }
+        init() {
+            if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        playMusicLoop() {
+            if (!this.ctx || this.isPlaying) return;
+            this.isPlaying = true;
+            const playNote = (freq, time, duration, vol) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(freq, time);
+                gain.gain.setValueAtTime(vol, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(time);
+                osc.stop(time + duration);
+            };
+            const loop = () => {
+                if (!this.isPlaying) return;
+                const now = this.ctx.currentTime;
+                const melody = [110, 130.8, 164.8, 130.8, 146.8, 164.8, 196.0, 164.8];
+                melody.forEach((f, i) => playNote(f, now + i * 0.25, 0.2, 0.4));
+                setTimeout(loop, 2000);
+            };
+            loop();
+        }
+        stopMusic() {
+            this.isPlaying = false;
+        }
+        playGameOverSound() {
+            if (!this.ctx) return;
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(100, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.5);
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.5);
+        }
+        playCoinSound() {
+            if (!this.ctx) return;
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        }
+    }
+
+    const state = {
+        active: false,
+        coins: parseInt(localStorage.getItem('nr_coins') || 0),
+        bestTime: parseFloat(localStorage.getItem('nr_best_time') || 0),
+        startTime: 0,
+        speed: 0.003, // Starting extremely slow
+        x: 0.5,
+        obstacles: [],
+        roadOffset: 0,
+        frame: 0
+    };
+
+    class Game {
+        constructor() {
+            this.canvas = document.getElementById('gameCanvas');
+            this.ctx = this.canvas.getContext('2d');
+            this.sound = new SoundManager();
+            window.addEventListener('resize', () => this.resize());
+            window.addEventListener('mousemove', (e) => { state.x = e.clientX / window.innerWidth; });
+            window.addEventListener('touchmove', (e) => { state.x = e.touches[0].clientX / window.innerWidth; }, {passive: false});
+            document.getElementById('startButton').addEventListener('click', () => this.start());
+            document.getElementById('retryButton').addEventListener('click', () => this.start());
+            this.resize();
+            requestAnimationFrame((t) => this.loop(t));
+        }
+        resize() {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+        }
+        start() {
+            this.sound.init();
+            this.sound.isPlaying = false; 
+            this.sound.playMusicLoop();
+            state.active = true;
+            state.speed = 0.003; 
+            state.obstacles = [];
+            state.startTime = Date.now();
+            state.coins = 0;
+            document.getElementById('coinCount').innerText = '0';
+            document.getElementById('bestTimeDisplay').innerText = state.bestTime.toFixed(1);
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+        }
+
+        drawCar(x, y, color, isPlayer) {
+            this.ctx.fillStyle = color;
+            this.ctx.shadowBlur = 15;
+            this.ctx.shadowColor = color;
+            this.ctx.beginPath();
+            this.ctx.roundRect(x - 22, y - 35, 44, 70, 8);
+            this.ctx.fill();
+            this.ctx.fillStyle = '#000';
+            this.ctx.fillRect(x - 18, y - 25, 36, 20); 
+            this.ctx.fillStyle = '#333';
+            this.ctx.fillRect(x - 30, y - 20, 8, 15);
+            this.ctx.fillRect(x + 22, y - 20, 8, 15);
+            this.ctx.fillRect(x - 30, y + 15, 8, 15);
+            this.ctx.fillRect(x + 22, y + 15, 8, 15);
+            if (!isPlayer) {
+                this.ctx.fillStyle = '#ff0000';
+                this.ctx.fillRect(x - 18, y + 30, 10, 5);
+                this.ctx.fillRect(x + 8, y + 30, 10, 5);
+            } else {
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.fillRect(x - 18, y - 35, 10, 5);
+                this.ctx.fillRect(x + 8, y - 35, 10, 5);
+            }
+            this.ctx.shadowBlur = 0;
+        }
+
+        drawCoin(x, y) {
+            this.ctx.shadowBlur = 20;
+            this.ctx.shadowColor = '#fbbf24';
+            this.ctx.fillStyle = '#fbbf24';
+            this.ctx.beginPath();
+            const angle = state.frame * 0.1;
+            const w = Math.abs(Math.sin(angle)) * 10 + 12; 
+            this.ctx.ellipse(x, y, w, w, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.shadowBlur = 0;
+        }
+
+        drawSpeedometer() {
+            const x = this.canvas.width - 120;
+            const y = this.canvas.height - 100;
+            const radius = 70;
+            
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, radius, Math.PI, 0);
+            this.ctx.strokeStyle = '#333';
+            this.ctx.lineWidth = 12;
+            this.ctx.stroke();
+
+            this.ctx.fillStyle = '#aaa';
+            this.ctx.font = 'bold 12px Inter';
+            for (let i = 0; i <= 6; i++) {
+                const angle = Math.PI + (i / 6) * Math.PI;
+                const tx = x + Math.cos(angle) * (radius - 20);
+                const ty = y + Math.sin(angle) * (radius - 20);
+                this.ctx.fillText((i * 30).toString(), tx - 8, ty + 5);
+            }
+
+            const maxSpeedLimit = 0.10; 
+            const speedKmH = Math.min((state.speed / maxSpeedLimit) * 180, 180);
+            const angle = Math.PI + (speedKmH / 180) * Math.PI;
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, y);
+            this.ctx.lineTo(x + Math.cos(angle) * (radius - 15), y + Math.sin(angle) * (radius - 15));
+            this.ctx.strokeStyle = '#ef4444';
+            this.ctx.lineWidth = 4;
+            this.ctx.stroke();
+            
+            this.ctx.fillStyle = '#fff';
+            this.ctx.font = 'bold 14px Inter';
+            this.ctx.fillText('KM/H', x - 20, y - 25);
+        }
+
+        update() {
+            if (!state.active) return;
+            state.frame++;
+            // Very gentle acceleration
+            state.speed = Math.min(state.speed + 0.000002, 0.10); 
+            state.roadOffset = (state.roadOffset + state.speed * 800) % 100;
+            
+            const lastObs = state.obstacles[state.obstacles.length - 1];
+            // Ensure gap between obstacles (min y distance)
+            if ((!lastObs || lastObs.y > 0.35) && Math.random() < 0.015) {
+                state.obstacles.push({ x: Math.random() * 0.8 + 0.1, y: -0.2, type: Math.random() > 0.8 ? 'coin' : 'enemy' });
+            }
+
+            state.obstacles.forEach(o => {
+                o.y += (state.speed * 4);
+                const playerX = state.x * this.canvas.width;
+                const playerY = this.canvas.height * 0.8;
+                const obsX = o.x * this.canvas.width;
+                const obsY = o.y * this.canvas.height;
+                
+                if (Math.abs(playerX - obsX) < 45 && Math.abs(playerY - obsY) < 60) {
+                    if (o.type === 'coin') {
+                        state.coins++;
+                        o.collected = true;
+                        this.sound.playCoinSound();
+                        document.getElementById('coinCount').innerText = state.coins;
+                        localStorage.setItem('nr_coins', state.coins);
+                    } else {
+                        this.gameOver();
+                    }
+                }
+            });
+            state.obstacles = state.obstacles.filter(o => o.y < 1.2 && !o.collected);
+            document.getElementById('timerDisplay').innerText = ((Date.now() - state.startTime) / 1000).toFixed(1);
+        }
+
+        gameOver() {
+            this.sound.stopMusic();
+            this.sound.playGameOverSound();
+            state.active = false;
+            const time = (Date.now() - state.startTime) / 1000;
+            if (time > state.bestTime) { 
+                state.bestTime = time; 
+                localStorage.setItem('nr_best_time', time); 
+                document.getElementById('bestTimeDisplay').innerText = time.toFixed(1);
+            }
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+            document.getElementById('finalTime').innerText = `Survived: ${time.toFixed(1)}s`;
+            document.getElementById('highScoreText').innerText = `Best: ${state.bestTime.toFixed(1)}s`;
+        }
+
+        draw() {
+            this.ctx.fillStyle = '#050505';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.strokeStyle = '#222';
+            this.ctx.lineWidth = 10;
+            for(let i = 0; i < 4; i++) {
+                const x = (this.canvas.width / 4) * (i + 1);
+                this.ctx.beginPath();
+                this.ctx.setLineDash([40, 40]);
+                this.ctx.lineDashOffset = -state.roadOffset;
+                this.ctx.moveTo(x, 0);
+                this.ctx.lineTo(x, this.canvas.height);
+                this.ctx.stroke();
+            }
+
+            state.obstacles.forEach(o => {
+                if (o.type === 'coin') this.drawCoin(o.x * this.canvas.width, o.y * this.canvas.height);
+                else this.drawCar(o.x * this.canvas.width, o.y * this.canvas.height, '#ef4444', false);
+            });
+            
+            this.drawCar(state.x * this.canvas.width, this.canvas.height * 0.8, '#06b6d4', true);
+            this.drawSpeedometer();
+        }
+        loop(time) {
+            this.update();
+            this.draw();
+            requestAnimationFrame((t) => this.loop(t));
+        }
+    }
+    new Game();
+</script>
+</body>
+</html>

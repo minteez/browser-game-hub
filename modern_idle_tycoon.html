@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Cyber-Clicker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #050505; color: #e2e8f0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .gradient-text { background: linear-gradient(90deg, #22d3ee, #e879f9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .neon-border { border: 1px solid rgba(34, 211, 238, 0.3); box-shadow: 0 0 10px rgba(34, 211, 238, 0.1); }
+        .business-card { transition: all 0.2s ease; border: 1px solid #1e293b; background: #0f172a; }
+        .business-card:hover { border-color: #22d3ee; transform: scale(1.01); }
+        .click-pulse { animation: pulse-glow 0.3s ease-out; }
+        @keyframes pulse-glow { 0% { box-shadow: 0 0 0px #22d3ee; } 50% { box-shadow: 0 0 25px #22d3ee; } 100% { box-shadow: 0 0 0px #22d3ee; } }
+        canvas { position: fixed; top: 0; left: 0; z-index: -1; opacity: 0.2; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-[100]">
+        <h1 class="text-6xl font-bold gradient-text mb-8">QUANTUM CORE</h1>
+        <button id="startGameBtn" class="px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-xl transition-all hover:scale-105 active:scale-95 neon-border">
+            START GAME
+        </button>
+        <p class="mt-8 text-slate-500 text-sm">Engineered by Minteez & Gemini AI. © 2026. All data streams reserved.</p>
+    </div>
+
+    <canvas id="bgCanvas"></canvas>
+
+    <!-- Header Section -->
+    <header class="p-6 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold gradient-text">QUANTUM CORE</h1>
+                <p class="text-xs text-slate-500 tracking-widest uppercase">Harvesting Data Streams...</p>
+            </div>
+            <div class="text-right">
+                <div id="moneyDisplay" class="text-3xl font-mono font-bold text-white">$0</div>
+                <div id="incomeDisplay" class="text-sm text-cyan-400 font-mono">+$0/s</div>
+                <div id="cpmDisplay" class="text-xs text-purple-400 font-mono uppercase">0 CPM</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
+        <!-- Sidebar: Interaction -->
+        <div class="lg:col-span-1 flex flex-col space-y-6">
+            <div class="flex flex-col items-center justify-center p-8 bg-slate-900/50 rounded-2xl neon-border">
+                <button id="mainClicker" class="w-56 h-56 rounded-full bg-slate-800 border-4 border-cyan-500/50 flex items-center justify-center transition-all active:scale-95 hover:border-cyan-400 relative group overflow-hidden">
+                    <div class="absolute inset-0 bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-colors"></div>
+                    <span class="text-6xl z-10 select-none">💾</span>
+                </button>
+                <div class="mt-6 text-center">
+                    <p class="text-slate-400 text-sm uppercase">Total Data Harvested</p>
+                    <p id="totalEarnings" class="text-2xl font-mono text-white">0</p>
+                </div>
+            </div>
+
+            <!-- Achievements -->
+            <div class="bg-slate-900/50 p-6 rounded-2xl neon-border">
+                <h3 class="text-cyan-400 text-sm font-bold uppercase mb-4">Achievements</h3>
+                <div id="achievementsList" class="grid grid-cols-4 gap-2">
+                    <!-- JS Injected -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop Section -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-semibold text-white uppercase tracking-widest">Investments</h2>
+                <button id="prestigeBtn" class="bg-purple-900/50 border border-purple-500 hover:bg-purple-600 px-4 py-2 rounded-lg text-xs font-bold transition-all text-purple-200">
+                    PRESTIGE (Multiplier: <span id="multVal">1.0</span>x)
+                </button>
+            </div>
+            <div id="businessList" class="grid grid-cols-1 gap-4">
+                <!-- JS Injected -->
+    <footer class="p-4 text-center text-slate-600 text-xs border-t border-slate-800">
+        Engineered by Minteez & Gemini AI. © 2026. All data streams reserved.
+    </footer>
+
+    <script>
+        const state = {
+            money: 0,
+            totalEarnings: 0,
+            multiplier: 1.0,
+            clickTimestamps: [], // Track click times for CPM
+            businesses: [
+                { id: 0, name: 'Neural Link', cost: 15, income: 1, count: 0 },
+                { id: 1, name: 'Cyber-Café', cost: 100, income: 5, count: 0 },
+                { id: 2, name: 'AI Data Center', cost: 1000, income: 25, count: 0 },
+                { id: 3, name: 'Nanobot Swarm', cost: 7500, income: 120, count: 0 },
+                { id: 4, name: 'Space Mining Rig', cost: 50000, income: 600, count: 0 },
+                { id: 5, name: 'Quantum Lab', cost: 250000, income: 3000, count: 0 },
+                { id: 6, name: 'Dark Web Node', cost: 1000000, income: 15000, count: 0 },
+                { id: 7, name: 'AI Overlord', cost: 5000000, income: 75000, count: 0 }
+            ]
+        };
+
+        const moneyDisplay = document.getElementById('moneyDisplay');
+        const incomeDisplay = document.getElementById('incomeDisplay');
+        const totalEarningsDisplay = document.getElementById('totalEarnings');
+        const businessList = document.getElementById('businessList');
+        const prestigeBtn = document.getElementById('prestigeBtn');
+
+        function prestige() {
+            if (state.totalEarnings < 1000000) return; // Example requirement for prestige
+            state.money = 0;
+            state.totalEarnings = 0;
+            state.multiplier += 0.5;
+            state.businesses.forEach(b => {
+                b.count = 0;
+                b.cost = b.cost / Math.pow(1.15, b.count); // Simplified reset
+            });
+            updateStats();
+            renderBusinesses();
+            saveGame();
+            alert("Prestige complete! Multiplier increased.");
+        }
+
+        function updateStats() {
+            moneyDisplay.textContent = `$${Math.floor(state.money).toLocaleString()}`;
+            totalEarningsDisplay.textContent = Math.floor(state.totalEarnings).toLocaleString();
+            document.getElementById('multVal').textContent = state.multiplier.toFixed(1);
+            
+            const income = state.businesses.reduce((sum, b) => sum + (b.count * b.income * state.multiplier), 0);
+            incomeDisplay.textContent = `+$${income.toFixed(1)}/s`;
+
+            // Calculate CPM: clicks in last 10 seconds * 6 (to get per minute)
+            const now = Date.now();
+            const windowMs = 10000;
+            state.clickTimestamps = state.clickTimestamps.filter(t => now - t < windowMs);
+            const cpm = (state.clickTimestamps.length / (windowMs / 1000)) * 60;
+            document.getElementById('cpmDisplay').textContent = `${Math.floor(cpm)} CPM`;
+
+            // Update button states efficiently without re-rendering HTML
+            state.businesses.forEach((b, idx) => {
+                const btn = document.getElementById(`btn-${idx}`);
+                if (btn) {
+                    const canAfford = state.money >= b.cost;
+                    btn.disabled = !canAfford;
+                    btn.className = canAfford ? 
+                        'bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded-lg font-bold transition-colors text-white' : 
+                        'bg-slate-800 text-slate-500 px-4 py-2 rounded-lg font-bold cursor-not-allowed';
+                }
+            });
+        }
+
+        function renderBusinesses() {
+            businessList.innerHTML = '';
+            state.businesses.forEach(b => {
+                const card = document.createElement('div');
+                card.className = 'business-card p-4 rounded-xl flex justify-between items-center';
+                card.innerHTML = `
+                    <div>
+                        <h3 class="font-bold text-white">${b.name}</h3>
+                        <p class="text-xs text-slate-400">Owned: ${b.count} | +$${(b.income * state.multiplier).toFixed(1)}/s</p>
+                    </div>
+                    <button id="btn-${b.id}" class="bg-cyan-600 px-4 py-2 rounded-lg font-bold">
+                        Buy ($${Math.floor(b.cost)})
+                    </button>
+                `;
+                businessList.appendChild(card);
+                
+                // Use event listener instead of inline onclick for stability
+                document.getElementById(`btn-${b.id}`).addEventListener('click', () => buyBusiness(b.id));
+            });
+        }
+
+        function buyBusiness(id) {
+            const b = state.businesses[id];
+            if (state.money >= b.cost) {
+                state.money -= b.cost;
+                b.count++;
+                b.cost *= 1.15; 
+                renderBusinesses();
+                saveGame();
+            }
+        }
+
+        document.getElementById('mainClicker').addEventListener('click', () => {
+            state.money += 1 * state.multiplier;
+            state.totalEarnings += 1 * state.multiplier;
+            
+            // Log click for CPM calculation
+            state.clickTimestamps.push(Date.now());
+            
+            const btn = document.getElementById('mainClicker');
+            btn.classList.add('click-pulse');
+            setTimeout(() => btn.classList.remove('click-pulse'), 300);
+            updateStats();
+        });
+
+        prestigeBtn.addEventListener('click', prestige);
+
+        // Particle system for aesthetics
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.onresize = resize;
+        resize();
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#22d3ee';
+            particles.forEach((p, i) => { 
+                p.y -= 0.5; 
+                ctx.fillRect(p.x, p.y, 2, 2); 
+                if (p.y < 0) particles.splice(i, 1);
+            });
+            if (Math.random() > 0.95) particles.push({ x: Math.random() * canvas.width, y: canvas.height });
+            requestAnimationFrame(animate);
+        }
+
+        // Core Game Loop
+        setInterval(() => {
+            const income = state.businesses.reduce((sum, b) => sum + (b.count * b.income * state.multiplier), 0);
+            state.money += income / 10;
+            state.totalEarnings += income / 10;
+            updateStats();
+        }, 100);
+
+        function saveGame() { localStorage.setItem('tycoonSave', JSON.stringify(state)); }
+        function loadGame() {
+            const saved = localStorage.getItem('tycoonSave');
+            if (saved) Object.assign(state, JSON.parse(saved));
+            renderBusinesses();
+        }
+
+        // Initialize on button click
+        document.getElementById('startGameBtn').addEventListener('click', () => {
+            document.getElementById('startScreen').classList.add('hidden');
+            loadGame();
+            animate();
+        });
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+      <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -46,8 +46,8 @@
     <!-- Main Container holding game and interfaces -->
     <div class="relative w-full h-full max-w-4xl max-h-[900px] md:rounded-2xl md:border md:border-slate-800 overflow-hidden shadow-2xl bg-[#03030c] flex flex-col items-center justify-center">
         
-        <!-- Background Canvas -->
-        <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-0 block"></canvas>
+        <!-- Background Canvas - Removed absolute positioning to center via Flexbox -->
+        <canvas id="gameCanvas" class="relative z-0 block"></canvas>
 
         <!-- Dynamic Game HUD (Visible during gameplay) -->
         <div id="gameHud" class="absolute top-0 left-0 w-full p-4 flex flex-col justify-between z-10 pointer-events-none hidden">
@@ -881,8 +881,8 @@
                 this.vy = vy;
                 this.isEnemy = isEnemy;
                 this.color = color;
-                this.radius = 3;
-                this.length = 14;
+                this.width = 6;
+                this.height = 14;
             }
 
             update() {
@@ -1044,6 +1044,13 @@
         let targetEnemiesForWave = 5;
         let activeInputMode = 'keyboard'; // or 'mouse'
 
+        // NEW: Health regeneration interval
+        setInterval(() => {
+            if (gameActive && !isPaused && !isGameOver && player.health < player.maxHealth) {
+                player.health = Math.min(player.maxHealth, player.health + (player.maxHealth * 0.05));
+            }
+        }, 1000);
+
         // Keyboard tracking map
         const keys = {};
 
@@ -1052,16 +1059,18 @@
         const ctx = canvas.getContext('2d');
 
         function resizeCanvas() {
-            // Adaptive scaling logic handles full-screen sizing context dynamically
             const container = canvas.parentElement;
             const containerWidth = container.clientWidth;
             const containerHeight = container.clientHeight;
 
-            // Enforce aspect ratio scale calculations
+            // Maintain Aspect Ratio while filling as much space as possible
             const scale = Math.min(containerWidth / CANVAS_WIDTH, containerHeight / CANVAS_HEIGHT);
+            
+            // Set styles for visual resizing
             canvas.style.width = `${CANVAS_WIDTH * scale}px`;
             canvas.style.height = `${CANVAS_HEIGHT * scale}px`;
             
+            // Set resolution
             canvas.width = CANVAS_WIDTH;
             canvas.height = CANVAS_HEIGHT;
         }
@@ -1070,18 +1079,7 @@
         window.addEventListener('resize', resizeCanvas);
         window.addEventListener('orientationchange', resizeCanvas);
 
-        // Core Input Listeners for Keyboard
-        window.addEventListener('keydown', (e) => {
-            keys[e.code] = true;
-            if (e.code === 'Escape' || e.code === 'KeyP') {
-                triggerPauseToggle();
-            }
-        });
-        window.addEventListener('keyup', (e) => {
-            keys[e.code] = false;
-        });
-
-        // Pointer/Touch coordinates
+        // Helper to translate client coordinates to canvas space
         function getCanvasPointerCoords(clientX, clientY) {
             const rect = canvas.getBoundingClientRect();
             const scaleX = CANVAS_WIDTH / rect.width;
@@ -1092,55 +1090,62 @@
             };
         }
 
-        // Canvas pointer interactions
-        canvas.addEventListener('mousemove', (e) => {
-            if (!gameActive || isPaused || isGameOver) return;
-            const coords = getCanvasPointerCoords(e.clientX, e.clientY);
-            player.targetX = coords.x;
-            player.targetY = coords.y;
-        });
-
-        canvas.addEventListener('mousedown', (e) => {
-            if (!gameActive || isPaused || isGameOver) return;
-            if (e.button === 0) {
-                keys['ShootActive'] = true;
+        // Core Input Listeners
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Escape' || e.code === 'KeyP') {
+                triggerPauseToggle();
             }
+            activeInputMode = 'keyboard';
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
         });
 
-        canvas.addEventListener('mouseup', () => {
-            keys['ShootActive'] = false;
-        });
-
-        // Touch Control handling (Mobile Optimized drag movements)
-        canvas.addEventListener('touchstart', (e) => {
+        // Unified Pointer Handling (Mouse & Touch)
+        function handlePointerMove(e) {
             if (!gameActive || isPaused || isGameOver) return;
-            const touch = e.touches[0];
-            const coords = getCanvasPointerCoords(touch.clientX, touch.clientY);
+            activeInputMode = 'mouse';
+            
+            // Normalize event source
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const coords = getCanvasPointerCoords(clientX, clientY);
             player.targetX = coords.x;
             player.targetY = coords.y;
-            // Always treat touch holding as manual continuous trigger
+        }
+
+        canvas.addEventListener('pointermove', handlePointerMove);
+        canvas.addEventListener('pointerdown', (e) => {
+            if (!gameActive || isPaused || isGameOver) return;
+            activeInputMode = 'mouse';
             keys['ShootActive'] = true;
-        }, { passive: true });
+            handlePointerMove(e);
+        });
 
-        canvas.addEventListener('touchmove', (e) => {
-            if (!gameActive || isPaused || isGameOver) return;
-            const touch = e.touches[0];
-            const coords = getCanvasPointerCoords(touch.clientX, touch.clientY);
-            player.targetX = coords.x;
-            player.targetY = coords.y;
-        }, { passive: true });
-
-        canvas.addEventListener('touchend', () => {
+        canvas.addEventListener('pointerup', () => {
             keys['ShootActive'] = false;
         });
+        canvas.addEventListener('pointerleave', () => {
+            keys['ShootActive'] = false;
+        });
+
+        // Prevent default touch interactions
+        canvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+        canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
 
         // High precision collision detection helper
         function isColliding(rect1, rect2) {
-            return rect1.x - rect1.width/2 < rect2.x + rect2.width/2 &&
-                   rect1.x + rect1.width/2 > rect2.x - rect2.width/2 &&
-                   rect1.y - rect1.height/2 < rect2.y + rect2.height/2 &&
-                   rect1.y + rect1.height/2 > rect2.y - rect2.height/2;
+            // Increased hitbox padding for lasers (x1.5 width/height)
+            const padW = rect1.width * 0.5;
+            const padH = rect1.height * 0.5;
+            
+            return rect1.x - rect1.width/2 - padW < rect2.x + rect2.width/2 &&
+                   rect1.x + rect1.width/2 + padW > rect2.x - rect2.width/2 &&
+                   rect1.y - rect1.height/2 - padH < rect2.y + rect2.height/2 &&
+                   rect1.y + rect1.height/2 + padH > rect2.y - rect2.height/2;
         }
 
         // Spawn a blast shockwave animation at specific positions
@@ -1170,11 +1175,11 @@
                 if (keys['ArrowLeft'] || keys['KeyA']) player.x -= CONFIG.playerSpeed;
                 if (keys['ArrowRight'] || keys['KeyD']) player.x += CONFIG.playerSpeed;
             } else {
-                // Smooth pointer chasing filter loop
+                // Tighter chasing in pointer mode for "drag by hand" feel
                 const dx = player.targetX - player.x;
                 const dy = player.targetY - player.y;
-                player.x += dx * 0.15;
-                player.y += dy * 0.15;
+                player.x += dx * 0.3; // Increased chase factor
+                player.y += dy * 0.3;
             }
 
             // Lock ship to display margins

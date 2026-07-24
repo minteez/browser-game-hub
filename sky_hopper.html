@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z541FH0N0L"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Z541FH0N0L');
+</script> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sky Hopper</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050510;
+            font-family: 'Orbitron', sans-serif;
+            touch-action: none; /* Prevent scroll on touch */
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            text-align: center;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+            font-size: 24px;
+            font-weight: 700;
+            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .screen {
+            background: rgba(5, 5, 16, 0.85);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid #0ff;
+            box-shadow: 0 0 20px #0ff, inset 0 0 20px #0ff;
+            pointer-events: auto;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            color: #fff;
+            text-shadow: 0 0 10px #f0f, 0 0 20px #f0f, 0 0 40px #f0f;
+            letter-spacing: 2px;
+        }
+
+        p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: #b3e5fc;
+        }
+
+        .score-display {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
+        }
+
+        button {
+            background: transparent;
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            padding: 15px 40px;
+            border: 2px solid #f0f;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 15px #f0f, inset 0 0 10px #f0f;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            outline: none;
+            position: relative;
+            z-index: 100;
+            pointer-events: auto;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:hover {
+            background: #f0f;
+            color: #000;
+            box-shadow: 0 0 25px #f0f, inset 0 0 20px #f0f;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .credits {
+            margin-top: 25px;
+            font-size: 10px;
+            color: #88c0d0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+            text-shadow: 0 0 5px rgba(136, 192, 208, 0.5);
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 600px) {
+            h1 { font-size: 32px; }
+            .screen { padding: 25px; width: 90%; }
+            #hud { font-size: 18px; padding: 0 15px; }
+            button { font-size: 16px; padding: 12px 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud">
+        <div id="scoreText">Score: 0</div>
+        <div id="highScoreText">High: 0</div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="ui-layer">
+        <div class="screen">
+            <h1>SKY HOPPER</h1>
+            <p>Tap, Click, or Press Space to Boost</p>
+            <button id="startBtn">Launch</button>
+            <div class="credits">Engineered by Minteez & Gemini AI. &copy; 2026. All data streams reserved.</div>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="ui-layer hidden">
+        <div class="screen">
+            <h1 style="color: #ff3366; text-shadow: 0 0 10px #ff3366, 0 0 20px #ff3366;">SYSTEM FAILURE</h1>
+            <div class="score-display">Score: <span id="finalScore">0</span></div>
+            <div class="score-display" style="font-size: 20px; color: #f0f; text-shadow: 0 0 10px #f0f;">Best: <span id="finalHighScore">0</span></div>
+            <p style="margin-top: 15px;">Avoid the energy gates.</p>
+            <button id="restartBtn">Reboot</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // UI Elements
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const scoreText = document.getElementById('scoreText');
+        const highScoreText = document.getElementById('highScoreText');
+        const finalScoreText = document.getElementById('finalScore');
+        const finalHighScoreText = document.getElementById('finalHighScore');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // Game State
+        let frames = 0;
+        let score = 0;
+        let highScore = localStorage.getItem('skyHopperHighScore') || 0;
+        let gameState = 'START'; // START, PLAYING, GAMEOVER
+        let gameSpeed = 3;
+        let baseSpeed = 3;
+        let gameOverTimeout;
+
+        // Entities Arrays
+        let obstacles = [];
+        let particles = [];
+        let stars = [];
+        let planets = [];
+
+        // --- Audio System (Tone.js) ---
+        let audioInitialized = false;
+        let bgmSynth, jumpSynth, scoreSynth, crashSynth, bgmLoop;
+        let noteStep = 0;
+        const bgmNotes = ["C3", "Eb3", "G3", "F3", "C3", "Eb3", "Bb2", "G2"];
+
+        function initAudioSystem() {
+            if (audioInitialized) return;
+            
+            // Background Music Synth (Spacey Arpeggio)
+            bgmSynth = new Tone.FMSynth({
+                harmonicity: 1.5,
+                modulationIndex: 2,
+                oscillator: { type: "sawtooth" },
+                envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 0.5 },
+                modulation: { type: "square" }
+            }).toDestination();
+            bgmSynth.volume.value = -18;
+
+            // Jump Sound
+            jumpSynth = new Tone.Synth({
+                oscillator: { type: "triangle" },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 }
+            }).toDestination();
+            jumpSynth.volume.value = -10;
+
+            // Score Point Sound
+            scoreSynth = new Tone.Synth({
+                oscillator: { type: "sine" },
+                envelope: { attack: 0.01, decay: 0.4, sustain: 0, release: 0.1 }
+            }).toDestination();
+            scoreSynth.volume.value = -8;
+
+            // Explosion/Crash Sound
+            crashSynth = new Tone.NoiseSynth({
+                noise: { type: "pink" },
+                envelope: { attack: 0.01, decay: 0.8, sustain: 0, release: 1 }
+            }).toDestination();
+            crashSynth.volume.value = -2;
+
+            // Create the BGM sequence loop
+            bgmLoop = new Tone.Loop((time) => {
+                bgmSynth.triggerAttackRelease(bgmNotes[noteStep % bgmNotes.length], "8n", time);
+                noteStep++;
+            }, "8n");
+            
+            audioInitialized = true;
+        }
+
+        async function startAudio() {
+            if (!audioInitialized) {
+                initAudioSystem();
+            }
+            // Tone.start() must be triggered directly by a user gesture
+            if (Tone.context.state !== 'running') {
+                await Tone.start();
+            }
+        }
+
+        function stopAudio() {
+            if (audioInitialized) {
+                bgmLoop.stop();
+                Tone.Transport.stop();
+            }
+        }
+
+        // Update High Score Display initially
+        highScoreText.innerText = `High: ${highScore}`;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Prevent ReferenceError by checking if classes have been initialized yet
+            if (stars.length > 0) {
+                initBackground(); // Recreate stars on window resize
+            }
+        }
+        window.addEventListener('resize', resize);
+        resize(); // Initial call
+
+        class Player {
+            constructor() {
+                this.width = 34;
+                this.height = 44;
+                this.x = canvas.width * 0.2;
+                this.y = canvas.height / 2;
+                this.velocity = 0;
+                this.gravity = 0.4; // Base gravity
+                this.jumpStrength = 7.5;
+                this.rotation = 0;
+                this.hitboxMargin = 6; // For forgiving collisions
+            }
+
+            jump() {
+                if (gameState !== 'PLAYING') return;
+                this.velocity = -this.jumpStrength;
+                createThrustParticles(this.x, this.y + this.height / 2);
+                if (audioInitialized) jumpSynth.triggerAttackRelease("E4", "16n");
+            }
+
+            update() {
+                this.velocity += this.gravity;
+                this.y += this.velocity;
+
+                // Dynamic rotation based on velocity
+                this.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, (this.velocity * 0.1)));
+
+                // Floor / Ceiling collisions
+                if (this.y + this.height / 2 >= canvas.height) {
+                    this.y = canvas.height - this.height / 2;
+                    gameOver();
+                }
+                if (this.y - this.height / 2 <= 0) {
+                    this.y = this.height / 2;
+                    this.velocity = 0; // Bonk head
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                // Astronaut Art
+                
+                // Backpack
+                ctx.fillStyle = '#aaaaaa';
+                ctx.beginPath();
+                ctx.roundRect(-22, -10, 10, 26, 4);
+                ctx.fill();
+
+                // Main Suit (Body)
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.roundRect(-15, -22, 30, 44, 12);
+                ctx.fill();
+
+                // Suit Accents (Lines)
+                ctx.strokeStyle = '#cccccc';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-10, 0);
+                ctx.lineTo(10, 0);
+                ctx.stroke();
+
+                // Visor / Helmet Window
+                ctx.fillStyle = '#00ffff';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#00ffff';
+                ctx.beginPath();
+                ctx.roundRect(-5, -15, 22, 16, 6);
+                ctx.fill();
+                ctx.shadowBlur = 0; // Reset
+
+                // Visor Reflection
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.beginPath();
+                ctx.ellipse(2, -10, 6, 3, Math.PI / 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Small thruster at bottom
+                ctx.fillStyle = '#333';
+                ctx.fillRect(-8, 20, 16, 6);
+
+                ctx.restore();
+            }
+        }
+
+        const astronaut = new Player();
+
+        class Obstacle {
+            constructor() {
+                this.x = canvas.width;
+                this.width = 60;
+                // Gap size decreases slightly as score increases, minimum 130
+                this.gap = Math.max(130, 220 - (score * 2)); 
+                
+                // Keep gap within screen bounds comfortably
+                const minHeight = 50;
+                const maxPos = canvas.height - minHeight - this.gap;
+                this.topHeight = Math.floor(Math.random() * (maxPos - minHeight + 1) + minHeight);
+                
+                this.bottomY = this.topHeight + this.gap;
+                this.passed = false;
+                
+                // Random color for variation
+                const colors = ['#00ffff', '#ff00ff', '#00ff00', '#ffaa00'];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            update() {
+                this.x -= gameSpeed;
+
+                // Score Check
+                if (!this.passed && astronaut.x > this.x + this.width) {
+                    score++;
+                    scoreText.innerText = `Score: ${score}`;
+                    this.passed = true;
+                    if (audioInitialized) scoreSynth.triggerAttackRelease("C6", "16n");
+                    // Increase speed slightly every 5 points
+                    if (score % 5 === 0) {
+                        gameSpeed += 0.2;
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.fillStyle = '#111';
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 4;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+
+                // Top Gate
+                ctx.fillRect(this.x, 0, this.width, this.topHeight);
+                ctx.strokeRect(this.x, 0, this.width, this.topHeight);
+                // Top Gate Energy Emitter
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - 5, this.topHeight - 10, this.width + 10, 10);
+
+                // Bottom Gate
+                ctx.fillStyle = '#111';
+                ctx.fillRect(this.x, this.bottomY, this.width, canvas.height - this.bottomY);
+                ctx.strokeRect(this.x, this.bottomY, this.width, canvas.height - this.bottomY);
+                // Bottom Gate Energy Emitter
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - 5, this.bottomY, this.width + 10, 10);
+
+                ctx.restore();
+            }
+
+            // AABB Collision Detection
+            checkCollision(player) {
+                // Shrink player hitbox slightly for fair gameplay
+                const px = player.x - player.width / 2 + player.hitboxMargin;
+                const py = player.y - player.height / 2 + player.hitboxMargin;
+                const pw = player.width - player.hitboxMargin * 2;
+                const ph = player.height - player.hitboxMargin * 2;
+
+                // Check Top Obstacle
+                if (px < this.x + this.width &&
+                    px + pw > this.x &&
+                    py < this.topHeight) {
+                    return true;
+                }
+                
+                // Check Bottom Obstacle
+                if (px < this.x + this.width &&
+                    px + pw > this.x &&
+                    py + ph > this.bottomY) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        class Particle {
+            constructor(x, y, isExplosion = false) {
+                this.x = x;
+                this.y = y;
+                this.isExplosion = isExplosion;
+                
+                if (isExplosion) {
+                    this.vx = (Math.random() - 0.5) * 10;
+                    this.vy = (Math.random() - 0.5) * 10;
+                    this.life = 1.0;
+                    this.decay = Math.random() * 0.02 + 0.02;
+                    this.size = Math.random() * 5 + 2;
+                    this.color = Math.random() > 0.5 ? '#fff' : '#0ff';
+                } else {
+                    // Thrust particles
+                    this.vx = (Math.random() - 0.5) * 2 - gameSpeed * 0.5; // Move left slightly with speed
+                    this.vy = Math.random() * 3 + 2; // Move mostly down
+                    this.life = 1.0;
+                    this.decay = Math.random() * 0.05 + 0.03;
+                    this.size = Math.random() * 4 + 1;
+                    const colors = ['#ffaa00', '#ff3300', '#ffff00'];
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                }
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+                
+                if (this.isExplosion) {
+                    this.vy += 0.1; // gravity for explosion parts
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Star {
+            constructor() {
+                this.reset();
+                this.x = Math.random() * canvas.width; // Initial random placement
+            }
+            reset() {
+                this.x = canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speed = (Math.random() * 0.5 + 0.1) * gameSpeed;
+                this.alpha = Math.random() * 0.8 + 0.2;
+            }
+            update() {
+                this.x -= this.speed;
+                if (this.x < 0) this.reset();
+            }
+            draw() {
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class Planet {
+            constructor() {
+                this.reset();
+                this.x = Math.random() * canvas.width;
+            }
+            reset() {
+                this.x = canvas.width + 100;
+                this.y = Math.random() * canvas.height;
+                this.radius = Math.random() * 40 + 20;
+                this.speed = (Math.random() * 0.2 + 0.05) * gameSpeed; // Very slow
+                this.color = `hsl(${Math.random() * 360}, 60%, 40%)`;
+                this.hasRing = Math.random() > 0.7;
+                this.ringAngle = Math.random() * Math.PI;
+            }
+            update() {
+                this.x -= this.speed;
+                if (this.x < -100) this.reset();
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                // Ring Back
+                if (this.hasRing) {
+                    ctx.rotate(this.ringAngle);
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, this.radius * 2, this.radius * 0.4, 0, Math.PI, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = 6;
+                    ctx.stroke();
+                    ctx.rotate(-this.ringAngle);
+                }
+
+                // Planet Body
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Shadow
+                const gradient = ctx.createRadialGradient(-this.radius*0.3, -this.radius*0.3, 0, 0, 0, this.radius);
+                gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                gradient.addColorStop(1, 'rgba(0,0,0,0.7)');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+
+                // Ring Front
+                if (this.hasRing) {
+                    ctx.rotate(this.ringAngle);
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, this.radius * 2, this.radius * 0.4, 0, 0, Math.PI);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.lineWidth = 6;
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        function createThrustParticles(x, y) {
+            for (let i = 0; i < 5; i++) {
+                particles.push(new Particle(x, y + 10, false));
+            }
+        }
+
+        function createExplosion(x, y) {
+            for (let i = 0; i < 40; i++) {
+                particles.push(new Particle(x, y, true));
+            }
+        }
+
+        function initBackground() {
+            stars = [];
+            planets = [];
+            for (let i = 0; i < 150; i++) stars.push(new Star());
+            for (let i = 0; i < 3; i++) planets.push(new Planet());
+        }
+
+        function resetGame() {
+            if (gameState === 'PLAYING') return; // Prevent double-triggering reset
+            
+            clearTimeout(gameOverTimeout);
+            
+            // Unfocus buttons to prevent the Spacebar from clicking them inadvertently
+            if (document.activeElement && document.activeElement.blur) {
+                document.activeElement.blur();
+            }
+
+            astronaut.y = canvas.height / 2;
+            astronaut.velocity = 0;
+            astronaut.rotation = 0;
+            obstacles = [];
+            particles = [];
+            score = 0;
+            frames = 0;
+            gameSpeed = baseSpeed;
+            scoreText.innerText = `Score: ${score}`;
+            highScoreText.innerText = `High: ${highScore}`;
+            gameState = 'PLAYING';
+            
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            
+            // Resume music if it was stopped
+            if (audioInitialized) {
+                Tone.Transport.start();
+                bgmLoop.start(0);
+            }
+            
+            // Give initial boost
+            astronaut.jump();
+        }
+
+        function gameOver() {
+            if (gameState === 'GAMEOVER') return;
+            gameState = 'GAMEOVER';
+            
+            createExplosion(astronaut.x, astronaut.y);
+            
+            // Play crash sound and stop music
+            if (audioInitialized) {
+                crashSynth.triggerAttackRelease("2n");
+                stopAudio();
+            }
+            
+            // Update High Score
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('skyHopperHighScore', highScore);
+            }
+            
+            clearTimeout(gameOverTimeout);
+
+            // Show Game Over UI
+            gameOverTimeout = setTimeout(() => {
+                finalScoreText.innerText = score;
+                finalHighScoreText.innerText = highScore;
+                gameOverScreen.classList.remove('hidden');
+            }, 500); // slight delay to see explosion
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Parallax Background
+            planets.forEach(p => { if (gameState === 'PLAYING') p.update(); p.draw(); });
+            stars.forEach(s => { if (gameState === 'PLAYING') s.update(); s.draw(); });
+
+            if (gameState === 'PLAYING') {
+                // Handle Obstacles
+                if (frames % Math.max(60, 120 - Math.floor(score * 1.5)) === 0) {
+                    obstacles.push(new Obstacle());
+                }
+
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    obstacles[i].update();
+                    obstacles[i].draw();
+
+                    if (obstacles[i].checkCollision(astronaut)) {
+                        gameOver();
+                    }
+
+                    // Remove off-screen obstacles
+                    if (obstacles[i].x + obstacles[i].width < 0) {
+                        obstacles.splice(i, 1);
+                    }
+                }
+
+                // Update Player
+                astronaut.update();
+                astronaut.draw();
+                
+                frames++;
+            } else if (gameState === 'GAMEOVER') {
+                // Keep drawing obstacles, but static
+                obstacles.forEach(o => o.draw());
+            }
+
+            // Particles Update & Draw
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // Render astronaut on START screen as preview
+            if (gameState === 'START') {
+                astronaut.y = canvas.height / 2 + Math.sin(Date.now() * 0.003) * 15; // Hover effect
+                astronaut.draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Mouse / Touch Input
+        function handleInput(e) {
+            // Prevent default behavior to stop double firing on touch/mouse combinations and prevent scrolling
+            if (e.type === 'touchstart') e.preventDefault();
+            
+            // Ensure audio engine starts on first interaction (fire and forget to prevent hanging)
+            startAudio().catch(err => console.warn("Audio Context Warning:", err));
+            
+            if (gameState === 'PLAYING') {
+                astronaut.jump();
+            } else if (gameState === 'START') {
+                resetGame();
+            }
+        }
+
+        window.addEventListener('mousedown', (e) => {
+            // Don't trigger if clicking a button
+            if(e.target.tagName !== 'BUTTON') handleInput(e);
+        });
+        
+        window.addEventListener('touchstart', (e) => {
+            if(e.target.tagName !== 'BUTTON') handleInput(e);
+        }, { passive: false });
+
+        // Keyboard Input
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault(); // Prevent page scroll
+                
+                startAudio().catch(err => console.warn("Audio Context Warning:", err)); // ensure audio starts
+                
+                if (gameState === 'PLAYING') {
+                    astronaut.jump();
+                } else if (gameState === 'START') {
+                    resetGame();
+                } else if (gameState === 'GAMEOVER' && !gameOverScreen.classList.contains('hidden')) {
+                     resetGame(); // allow space to restart if menu is fully visible
+                }
+            }
+        });
+
+        // Button Event Listeners
+        startBtn.addEventListener('click', () => {
+            startAudio().catch(err => console.warn("Audio Context Warning:", err));
+            resetGame();
+        });
+        restartBtn.addEventListener('click', () => {
+            startAudio().catch(err => console.warn("Audio Context Warning:", err));
+            resetGame();
+        });
+
+        window.onload = () => {
+            initBackground();
+            animate();
+        };
+
+    </script>
+</body>
+</html>

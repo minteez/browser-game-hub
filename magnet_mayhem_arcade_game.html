@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z541FH0N0L"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Z541FH0N0L');
+</script> 
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Magnet Mayhem — Cyber Magnetic Arcade</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #030712;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #f3f4f6;
+    }
+
+    #gameCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 1;
+    }
+
+    /* UI Overlay Containers */
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    /* Glassmorphism Panels */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(56, 189, 248, 0.1);
+      color: #f8fafc;
+    }
+
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease-in-out;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+      animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlide {
+      from { transform: translateY(20px) scale(0.96); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    /* Buttons & Controls */
+    .btn {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      border: 1px solid #38bdf8;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.6);
+      background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+      border-color: #64748b;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
+      border-color: #fb7185;
+      box-shadow: 0 4px 14px rgba(225, 29, 72, 0.4);
+    }
+
+    .btn-polarity {
+      background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+      border-color: #a78bfa;
+    }
+
+    /* Typography */
+    h1, h2, h3 {
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(to right, #38bdf8, #f43f5e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* HUD Styling */
+    .hud-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .stat-badge {
+      padding: 8px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      color: #94a3b8;
+      letter-spacing: 1px;
+    }
+
+    .stat-value {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+
+    .polarity-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      padding: 8px 20px;
+      border-radius: 9999px;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .polarity-pos {
+      background: rgba(37, 99, 235, 0.3);
+      border: 2px solid #3b82f6;
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+      color: #60a5fa;
+    }
+
+    .polarity-neg {
+      background: rgba(225, 29, 72, 0.3);
+      border: 2px solid #f43f5e;
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.6);
+      color: #fda4af;
+    }
+
+    /* Mobile Controls */
+    .touch-controls {
+      display: none;
+      width: 100%;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-bottom: 10px;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+      .touch-controls {
+        display: flex;
+      }
+    }
+
+    .joystick-zone {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      position: relative;
+      touch-action: none;
+    }
+
+    .joystick-knob {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.6);
+      border: 2px solid #38bdf8;
+      position: absolute;
+      top: 40px;
+      left: 40px;
+      pointer-events: none;
+      box-shadow: 0 0 12px #38bdf8;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 16px;
+    }
+
+    .btn-circle {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      padding: 0;
+    }
+
+    /* Copyright & Branding Footer */
+    .credits-text {
+      font-size: 0.75rem;
+      color: #64748b;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    /* Floating Combo & Text Notification */
+    #notificationArea {
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 15;
+    }
+
+    .floating-text {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #facc15;
+      text-shadow: 0 0 12px rgba(250, 204, 21, 0.8);
+      animation: floatUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) FORWARDS;
+    }
+
+    @keyframes floatUp {
+      0% { opacity: 0; transform: translateY(20px) scale(0.7); }
+      20% { opacity: 1; transform: translateY(0) scale(1.1); }
+      80% { opacity: 1; transform: translateY(-30px) scale(1); }
+      100% { opacity: 0; transform: translateY(-50px) scale(0.9); }
+    }
+
+    /* Scrollbar Styling for Modals */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #0284c7;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Game Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <div class="ui-layer">
+    <!-- Top HUD Bar -->
+    <div id="hud" class="hud-top interactive" style="display: none;">
+      <div class="glass-panel stat-badge">
+        <span class="stat-label">Score</span>
+        <span id="hudScore" class="stat-value">0</span>
+      </div>
+
+      <div class="glass-panel stat-badge">
+        <span class="stat-label">Level</span>
+        <span id="hudLevel" class="stat-value">1</span>
+      </div>
+
+      <div id="polarityBadge" class="polarity-indicator polarity-pos">
+        <span id="polaritySymbol" style="font-size: 1.4rem;">+</span>
+        <span id="polarityText">POSITIVE</span>
+      </div>
+
+      <div class="glass-panel stat-badge">
+        <span class="stat-label">Lives</span>
+        <span id="hudLives" class="stat-value">❤️❤️❤️</span>
+      </div>
+
+      <button id="btnPause" class="btn btn-secondary" style="padding: 8px 16px;">⏸️</button>
+    </div>
+
+    <!-- Floating Combo Text Area -->
+    <div id="notificationArea"></div>
+
+    <!-- Touch Mobile Controls -->
+    <div id="touchControls" class="touch-controls interactive">
+      <div id="joystickZone" class="joystick-zone">
+        <div id="joystickKnob" class="joystick-knob"></div>
+      </div>
+      <div class="action-buttons">
+        <button id="btnTouchDash" class="btn btn-circle btn-secondary">⚡</button>
+        <button id="btnTouchPolarity" class="btn btn-circle btn-polarity">🧲</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- TITLE MENU MODAL -->
+  <div id="menuTitle" class="modal-overlay active">
+    <div class="glass-panel modal-card" style="text-align: center;">
+      <h1>MAGNET MAYHEM</h1>
+      <p style="color: #94a3b8; margin-top: -10px;">Cybernetic Magnetic Arcade Action</p>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+        <button id="btnStartGame" class="btn">🚀 Start Mission</button>
+        <button id="btnSelectMode" class="btn btn-secondary">🎮 Select Mode</button>
+        <button id="btnTutorial" class="btn btn-secondary">📖 How to Play</button>
+        <button id="btnAchievements" class="btn btn-secondary">🏆 Achievements</button>
+        <button id="btnStats" class="btn btn-secondary">📊 Statistics</button>
+        <button id="btnSettings" class="btn btn-secondary">⚙️ Settings</button>
+        <button id="btnCredits" class="btn btn-secondary">ℹ️ Credits</button>
+      </div>
+
+      <div class="credits-text">
+        Engineered by Minteez and Gemini AI<br>
+        Copyright © 2026. All Rights Reserved.
+      </div>
+    </div>
+  </div>
+
+  <!-- MODE SELECT MODAL -->
+  <div id="menuMode" class="modal-overlay">
+    <div class="glass-panel modal-card">
+      <h2 style="color: #38bdf8;">Select Game Mode</h2>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button class="btn mode-option" data-mode="CLASSIC">⚡ Classic Mode (Progressive Levels & Bosses)</button>
+        <button class="btn mode-option btn-secondary" data-mode="ENDLESS">♾️ Endless Survival (Infinite Traps)</button>
+        <button class="btn mode-option btn-secondary" data-mode="TIME_ATTACK">⏱️ Time Attack (Collect Fast!)</button>
+        <button class="btn mode-option btn-secondary" data-mode="ZEN">🧘 Zen Mode (No Hazards, Pure Magnetism)</button>
+        <button class="btn mode-option btn-secondary" data-mode="HARDCORE">🔥 Hardcore (1 Life, Maximum Mayhem)</button>
+      </div>
+      <button class="btn btn-secondary btnBackToTitle" style="margin-top: 10px;">Back</button>
+    </div>
+  </div>
+
+  <!-- TUTORIAL MODAL -->
+  <div id="menuTutorial" class="modal-overlay">
+    <div class="glass-panel modal-card">
+      <h2 style="color: #38bdf8;">How To Play</h2>
+      <div style="line-height: 1.6; color: #cbd5e1; display: flex; flex-direction: column; gap: 12px;">
+        <p><strong>🎯 Objective:</strong> Survive magnetic obstacle courses, collect Glowing Energy Cores, avoid deadly traps/enemies, and defeat giant Bosses!</p>
+        <p><strong>🧲 Magnetism Laws:</strong></p>
+        <ul style="padding-left: 20px;">
+          <li><span style="color: #60a5fa;">SAME Polarity (+ / + or - / -)</span> ➔ <strong>REPEL</strong> (Pushes you away)</li>
+          <li><span style="color: #fda4af;">OPPOSITE Polarity (+ / -)</span> ➔ <strong>ATTRACT</strong> (Pulls you closer)</li>
+        </ul>
+        <p><strong>⌨️ Keyboard Controls:</strong></p>
+        <ul style="padding-left: 20px;">
+          <li>Move: <strong>Arrow Keys / WASD</strong></li>
+          <li>Switch Polarity (+ / -): <strong>SPACEBAR</strong></li>
+          <li>Dash Burst: <strong>SHIFT</strong></li>
+          <li>Pause: <strong>ESC</strong></li>
+        </ul>
+        <p><strong>📱 Mobile Controls:</strong> Use the virtual Joystick to steer and on-screen buttons to Switch Polarity & Dash.</p>
+      </div>
+      <button class="btn btn-secondary btnBackToTitle">Got It!</button>
+    </div>
+  </div>
+
+  <!-- ACHIEVEMENTS MODAL -->
+  <div id="menuAchievements" class="modal-overlay">
+    <div class="glass-panel modal-card">
+      <h2 style="color: #facc15;">Achievements</h2>
+      <div id="achievementsList" style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto;">
+        <!-- Dynamically Populated -->
+      </div>
+      <button class="btn btn-secondary btnBackToTitle">Back</button>
+    </div>
+  </div>
+
+  <!-- STATS MODAL -->
+  <div id="menuStats" class="modal-overlay">
+    <div class="glass-panel modal-card">
+      <h2 style="color: #38bdf8;">Mission Statistics</h2>
+      <div id="statsList" style="display: flex; flex-direction: column; gap: 8px; color: #cbd5e1;">
+        <!-- Dynamically Populated -->
+      </div>
+      <button class="btn btn-secondary btnBackToTitle">Back</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="menuSettings" class="modal-overlay">
+    <div class="glass-panel modal-card">
+      <h2 style="color: #38bdf8;">Settings</h2>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <label style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Sound Effects (SFX)</span>
+          <input type="checkbox" id="settingSFX" checked style="transform: scale(1.4);">
+        </label>
+        <label style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Background Music</span>
+          <input type="checkbox" id="settingMusic" checked style="transform: scale(1.4);">
+        </label>
+        <label style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Colorblind Mode (High Contrast Shapes)</span>
+          <input type="checkbox" id="settingColorblind" style="transform: scale(1.4);">
+        </label>
+        <label style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Reduced Motion & Particles</span>
+          <input type="checkbox" id="settingReducedMotion" style="transform: scale(1.4);">
+        </label>
+      </div>
+      <button class="btn btn-secondary btnBackToTitle">Save & Back</button>
+    </div>
+  </div>
+
+  <!-- PAUSE MODAL -->
+  <div id="menuPause" class="modal-overlay">
+    <div class="glass-panel modal-card" style="text-align: center;">
+      <h2>Game Paused</h2>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+        <button id="btnResume" class="btn">▶️ Resume</button>
+        <button id="btnRestart" class="btn btn-secondary">🔄 Restart Level</button>
+        <button id="btnQuitToTitle" class="btn btn-danger">🏠 Quit to Main Menu</button>
+      </div>
+      <div class="credits-text">
+        Engineered by Minteez and Gemini AI<br>
+        Copyright © 2026. All Rights Reserved.
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME OVER MODAL -->
+  <div id="menuGameOver" class="modal-overlay">
+    <div class="glass-panel modal-card" style="text-align: center;">
+      <h1 id="gameOverTitle" style="background: linear-gradient(to right, #ef4444, #f97316); -webkit-background-clip: text;">MISSION FAILED</h1>
+      <p id="gameOverReason" style="color: #cbd5e1;">Your core energy was depleted!</p>
+
+      <div class="glass-panel" style="padding: 16px; margin: 15px 0;">
+        <p style="font-size: 0.9rem; color: #94a3b8;">Final Score</p>
+        <p id="finalScore" style="font-size: 2.2rem; font-weight: 900; color: #38bdf8;">0</p>
+        <p id="finalHighScore" style="font-size: 0.85rem; color: #facc15; margin-top: 4px;">High Score: 0</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button id="btnRetry" class="btn">🔄 Try Again</button>
+        <button class="btn btn-secondary btnBackToTitle">Main Menu</button>
+      </div>
+
+      <div class="credits-text">
+        Engineered by Minteez and Gemini AI<br>
+        Copyright © 2026. All Rights Reserved.
+      </div>
+    </div>
+  </div>
+
+  <!-- CREDITS MODAL -->
+  <div id="menuCredits" class="modal-overlay">
+    <div class="glass-panel modal-card" style="text-align: center;">
+      <h2 style="color: #38bdf8;">Credits</h2>
+      <p style="margin-top: 10px; color: #e2e8f0; font-size: 1.1rem; font-weight: 700;">MAGNET MAYHEM</p>
+      <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px;">Next-Gen HTML5 Canvas Arcade Experience</p>
+      <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; line-height: 1.6; color: #cbd5e1;">
+        <p><strong>Lead Engineering & Design:</strong><br>Minteez & Gemini AI</p>
+        <p style="margin-top: 10px;"><strong>Audio & Visual Engine:</strong><br>Procedural Web Audio API & HTML5 Canvas</p>
+      </div>
+      <p class="credits-text" style="font-size: 0.85rem; margin-top: 15px;">
+        Engineered by Minteez and Gemini AI<br>
+        Copyright © 2026. All Rights Reserved.
+      </p>
+      <button class="btn btn-secondary btnBackToTitle" style="margin-top: 15px;">Close</button>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT GAME LOGIC -->
+  <script>
+    class SoundManager {
+      constructor() {
+        this.ctx = null;
+        this.sfxEnabled = true;
+        this.musicEnabled = true;
+        this.bgmTimer = null;
+        this.bgmStep = 0;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playTone(freq, type, duration, startVol = 0.3, endVol = 0.01) {
+        if (!this.sfxEnabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(startVol, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(endVol, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+
+      playPolarityFlip(isPositive) {
+        if (!this.sfxEnabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          const startFreq = isPositive ? 220 : 660;
+          const endFreq = isPositive ? 660 : 220;
+          osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(endFreq, this.ctx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.15);
+        } catch (e) {}
+      }
+
+      playCollect() {
+        this.playTone(880, 'sine', 0.12, 0.3);
+        setTimeout(() => this.playTone(1320, 'sine', 0.15, 0.3), 60);
+      }
+
+      playHit() {
+        if (!this.sfxEnabled || !this.ctx) return;
+        try {
+          const bufferSize = this.ctx.sampleRate * 0.2;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+          noise.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start();
+        } catch (e) {}
+      }
+
+      playDash() {
+        if (!this.sfxEnabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.12);
+          gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.12);
+        } catch (e) {}
+      }
+
+      startBGM() {
+        if (this.bgmTimer) return;
+        const notes = [110, 130.81, 146.83, 164.81, 196.00];
+        this.bgmTimer = setInterval(() => {
+          if (!this.musicEnabled || !this.ctx) return;
+          const freq = notes[this.bgmStep % notes.length];
+          this.playTone(freq, 'sawtooth', 0.18, 0.05, 0.001);
+          this.bgmStep++;
+        }, 220);
+      }
+
+      stopBGM() {
+        if (this.bgmTimer) {
+          clearInterval(this.bgmTimer);
+          this.bgmTimer = null;
+        }
+      }
+    }
+
+    const sound = new SoundManager();
+
+    const GAME_STATES = {
+      TITLE: 'TITLE',
+      PLAYING: 'PLAYING',
+      PAUSED: 'PAUSED',
+      GAME_OVER: 'GAME_OVER'
+    };
+
+    let currentState = GAME_STATES.TITLE;
+    let selectedMode = 'CLASSIC'; // CLASSIC, ENDLESS, TIME_ATTACK, ZEN, HARDCORE
+
+    // Settings
+    const settings = {
+      sfx: true,
+      music: true,
+      colorblind: false,
+      reducedMotion: false
+    };
+
+    // Achievements Data Definition
+    const ACHIEVEMENTS = [
+      { id: 'first_flip', name: 'Polarity Pioneer', desc: 'Switch polarity for the first time', unlocked: false },
+      { id: 'core_10', name: 'Core Collector', desc: 'Collect 10 Energy Cores in a single run', unlocked: false },
+      { id: 'combo_5', name: 'Magnetic Genius', desc: 'Achieve a 5x Combo multiplier', unlocked: false },
+      { id: 'boss_1', name: 'Titan Slayer', desc: 'Defeat your first Boss Reactor', unlocked: false },
+      { id: 'survive_60', name: 'Unstoppable Force', desc: 'Survive for 60 seconds', unlocked: false }
+    ];
+
+    // Stats
+    const stats = {
+      gamesPlayed: 0,
+      highScore: 0,
+      totalCores: 0,
+      bossesDefeated: 0,
+      maxCombo: 0,
+      totalPlaytime: 0
+    };
+
+    function loadSavedData() {
+      try {
+        const savedStats = localStorage.getItem('mm_stats');
+        if (savedStats) Object.assign(stats, JSON.parse(savedStats));
+
+        const savedAch = localStorage.getItem('mm_achievements');
+        if (savedAch) {
+          const list = JSON.parse(savedAch);
+          list.forEach(a => {
+            const item = ACHIEVEMENTS.find(x => x.id === a.id);
+            if (item) item.unlocked = a.unlocked;
+          });
+        }
+      } catch (e) {}
+    }
+
+    function saveData() {
+      try {
+        localStorage.setItem('mm_stats', JSON.stringify(stats));
+        localStorage.setItem('mm_achievements', JSON.stringify(ACHIEVEMENTS.map(a => ({ id: a.id, unlocked: a.unlocked }))));
+      } catch (e) {}
+    }
+
+    function triggerAchievement(id) {
+      const ach = ACHIEVEMENTS.find(a => a.id === id);
+      if (ach && !ach.unlocked) {
+        ach.unlocked = true;
+        showNotification(`🏆 Achievement Unlocked: ${ach.name}!`);
+        saveData();
+      }
+    }
+
+    function showNotification(text) {
+      const area = document.getElementById('notificationArea');
+      const el = document.createElement('div');
+      el.className = 'floating-text';
+      el.innerText = text;
+      area.appendChild(el);
+      setTimeout(() => el.remove(), 1200);
+    }
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Input States
+    const keys = {};
+    const joystick = { x: 0, y: 0, active: false };
+
+    // Player Object
+    const player = {
+      x: 0,
+      y: 0,
+      radius: 18,
+      vx: 0,
+      vy: 0,
+      speed: 450,
+      polarity: 1, // +1 for Positive (Blue), -1 for Negative (Red)
+      lives: 3,
+      score: 0,
+      combo: 0,
+      comboTimer: 0,
+      dashCooldown: 0,
+      isDashing: 0,
+      invulnerableTimer: 0,
+      trail: []
+    };
+
+    // Level & Game Entities Storage
+    let currentLevel = 1;
+    let levelTimer = 0;
+    let nodes = [];
+    let hazards = [];
+    let collectibles = [];
+    let enemies = [];
+    let particles = [];
+    let boss = null;
+
+    function initLevel(levelNum) {
+      currentLevel = levelNum;
+      nodes = [];
+      hazards = [];
+      collectibles = [];
+      enemies = [];
+
+      player.x = canvas.width / 2;
+      player.y = canvas.height / 2;
+      player.vx = 0;
+      player.vy = 0;
+
+      // Spawn Magnetic Nodes (+ and -)
+      const nodeCount = Math.min(4 + levelNum, 12);
+      for (let i = 0; i < nodeCount; i++) {
+        nodes.push({
+          x: Math.random() * (canvas.width - 200) + 100,
+          y: Math.random() * (canvas.height - 200) + 100,
+          radius: 25 + Math.random() * 15,
+          polarity: Math.random() > 0.5 ? 1 : -1,
+          strength: 120000
+        });
+      }
+
+      // Spawn Energy Core Collectibles
+      const coreCount = Math.min(5 + levelNum * 2, 18);
+      for (let i = 0; i < coreCount; i++) {
+        collectibles.push({
+          x: Math.random() * (canvas.width - 160) + 80,
+          y: Math.random() * (canvas.height - 160) + 80,
+          radius: 10,
+          type: 'CORE',
+          pulse: Math.random() * Math.PI * 2
+        });
+      }
+
+      // Spawn Hazards (unless in ZEN mode)
+      if (selectedMode !== 'ZEN') {
+        const hazardCount = Math.min(2 + Math.floor(levelNum * 1.5), 10);
+        for (let i = 0; i < hazardCount; i++) {
+          hazards.push({
+            x: Math.random() * (canvas.width - 200) + 100,
+            y: Math.random() * (canvas.height - 200) + 100,
+            radius: 20,
+            vx: (Math.random() - 0.5) * 120,
+            vy: (Math.random() - 0.5) * 120,
+            angle: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 3
+          });
+        }
+      }
+
+      // Boss Spawn every 5 levels in Classic Mode
+      if (selectedMode === 'CLASSIC' && levelNum % 5 === 0) {
+        boss = {
+          x: canvas.width / 2,
+          y: 150,
+          radius: 60,
+          hp: 100 + levelNum * 20,
+          maxHp: 100 + levelNum * 20,
+          polarity: 1,
+          phaseTimer: 0
+        };
+        showNotification('⚠️ WARNING: BOSS REACTOR DETECTED!');
+      } else {
+        boss = null;
+      }
+    }
+
+    function updatePlayer(dt) {
+      // Input Vector calculation
+      let dx = 0;
+      let dy = 0;
+
+      if (keys['ArrowLeft'] || keys['KeyA']) dx -= 1;
+      if (keys['ArrowRight'] || keys['KeyD']) dx += 1;
+      if (keys['ArrowUp'] || keys['KeyW']) dy -= 1;
+      if (keys['ArrowDown'] || keys['KeyS']) dy += 1;
+
+      if (joystick.active) {
+        dx = joystick.x;
+        dy = joystick.y;
+      }
+
+      // Normalize vector
+      const len = Math.hypot(dx, dy);
+      if (len > 0) {
+        dx /= len;
+        dy /= len;
+      }
+
+      // Movement Acceleration
+      const accel = player.speed * dt;
+      player.vx += dx * accel;
+      player.vy += dy * accel;
+
+      // Friction
+      player.vx *= 0.92;
+      player.vy *= 0.92;
+
+      // Apply Magnetic Forces from Nodes
+      nodes.forEach(node => {
+        const dist = Math.hypot(node.x - player.x, node.y - player.y);
+        if (dist > 10 && dist < 350) {
+          const force = (node.strength / (dist * dist)) * dt;
+          const angle = Math.atan2(node.y - player.y, node.x - player.x);
+
+          // Same polarity = Repel (-1), Opposite polarity = Attract (+1)
+          const factor = (player.polarity === node.polarity) ? -1 : 1;
+
+          player.vx += Math.cos(angle) * force * factor;
+          player.vy += Math.sin(angle) * force * factor;
+        }
+      });
+
+      // Update position
+      player.x += player.vx * dt;
+      player.y += player.vy * dt;
+
+      // Arena Boundary Collisions
+      const margin = player.radius + 10;
+      if (player.x < margin) { player.x = margin; player.vx *= -0.5; }
+      if (player.x > canvas.width - margin) { player.x = canvas.width - margin; player.vx *= -0.5; }
+      if (player.y < margin) { player.y = margin; player.vy *= -0.5; }
+      if (player.y > canvas.height - margin) { player.y = canvas.height - margin; player.vy *= -0.5; }
+
+      // Timers Update
+      if (player.dashCooldown > 0) player.dashCooldown -= dt;
+      if (player.isDashing > 0) player.isDashing -= dt;
+      if (player.invulnerableTimer > 0) player.invulnerableTimer -= dt;
+
+      // Particle Trail
+      if (!settings.reducedMotion && (Math.hypot(player.vx, player.vy) > 20)) {
+        player.trail.push({ x: player.x, y: player.y, alpha: 1.0 });
+      }
+      player.trail.forEach(t => t.alpha -= dt * 3);
+      player.trail = player.trail.filter(t => t.alpha > 0);
+    }
+
+    function togglePolarity() {
+      player.polarity *= -1;
+      sound.playPolarityFlip(player.polarity === 1);
+      triggerAchievement('first_flip');
+
+      // Create Polar Shockwave Particles
+      for (let i = 0; i < 16; i++) {
+        const angle = (Math.PI * 2 / 16) * i;
+        particles.push({
+          x: player.x,
+          y: player.y,
+          vx: Math.cos(angle) * 180,
+          vy: Math.sin(angle) * 180,
+          color: player.polarity === 1 ? '#3b82f6' : '#f43f5e',
+          life: 0.4
+        });
+      }
+
+      updateHUD();
+    }
+
+    function triggerDash() {
+      if (player.dashCooldown <= 0) {
+        player.dashCooldown = 1.2;
+        player.isDashing = 0.25;
+        player.invulnerableTimer = 0.3;
+        player.vx *= 2.5;
+        player.vy *= 2.5;
+        sound.playDash();
+      }
+    }
+
+    function updateGameLogic(dt) {
+      if (currentState !== GAME_STATES.PLAYING) return;
+
+      levelTimer += dt;
+      updatePlayer(dt);
+
+      // Collectibles Interaction
+      collectibles.forEach((item, index) => {
+        item.pulse += dt * 4;
+        const dist = Math.hypot(item.x - player.x, item.y - player.y);
+
+        // Magnet attraction effect when close
+        if (dist < 120) {
+          item.x += (player.x - item.x) * dt * 4;
+          item.y += (player.y - item.y) * dt * 4;
+        }
+
+        if (dist < player.radius + item.radius) {
+          collectibles.splice(index, 1);
+          sound.playCollect();
+
+          player.score += 100 * (1 + player.combo * 0.2);
+          player.combo++;
+          player.comboTimer = 2.5;
+
+          stats.totalCores++;
+          if (stats.totalCores >= 10) triggerAchievement('core_10');
+          if (player.combo >= 5) triggerAchievement('combo_5');
+
+          showNotification(`+${Math.floor(100 * (1 + player.combo * 0.2))}`);
+          updateHUD();
+        }
+      });
+
+      // Combo Decay
+      if (player.comboTimer > 0) {
+        player.comboTimer -= dt;
+        if (player.comboTimer <= 0) player.combo = 0;
+      }
+
+      // Hazards Collision
+      if (selectedMode !== 'ZEN' && player.invulnerableTimer <= 0) {
+        hazards.forEach(hazard => {
+          hazard.x += hazard.vx * dt;
+          hazard.y += hazard.vy * dt;
+          hazard.angle += hazard.rotSpeed * dt;
+
+          // Bounce off screen boundaries
+          if (hazard.x < 30 || hazard.x > canvas.width - 30) hazard.vx *= -1;
+          if (hazard.y < 30 || hazard.y > canvas.height - 30) hazard.vy *= -1;
+
+          const dist = Math.hypot(hazard.x - player.x, hazard.y - player.y);
+          if (dist < player.radius + hazard.radius) {
+            handlePlayerHit();
+          }
+        });
+      }
+
+      // Boss Logic
+      if (boss) {
+        boss.phaseTimer += dt;
+        boss.polarity = Math.sin(boss.phaseTimer) > 0 ? 1 : -1;
+
+        // Damage Boss with opposite polarity collision while dashing
+        const dist = Math.hypot(boss.x - player.x, boss.y - player.y);
+        if (dist < player.radius + boss.radius) {
+          if (player.isDashing > 0 && player.polarity !== boss.polarity) {
+            boss.hp -= 25;
+            sound.playHit();
+            showNotification('CRITICAL HIT!');
+            if (boss.hp <= 0) {
+              triggerAchievement('boss_1');
+              stats.bossesDefeated++;
+              player.score += 5000;
+              boss = null;
+              showNotification('🎉 BOSS DEFEATED!');
+            }
+          } else if (player.invulnerableTimer <= 0) {
+            handlePlayerHit();
+          }
+        }
+      }
+
+      // Next level check (when all collectibles collected)
+      if (collectibles.length === 0 && !boss) {
+        initLevel(currentLevel + 1);
+        showNotification(`LEVEL ${currentLevel}`);
+        updateHUD();
+      }
+
+      // Update Particles
+      particles.forEach((p, idx) => {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+        if (p.life <= 0) particles.splice(idx, 1);
+      });
+
+      // Survive time achievement
+      if (levelTimer >= 60) triggerAchievement('survive_60');
+    }
+
+    function handlePlayerHit() {
+      player.lives--;
+      player.invulnerableTimer = 1.5;
+      sound.playHit();
+
+      // Screen Flash / Spark Explosion
+      for (let i = 0; i < 20; i++) {
+        particles.push({
+          x: player.x,
+          y: player.y,
+          vx: (Math.random() - 0.5) * 300,
+          vy: (Math.random() - 0.5) * 300,
+          color: '#ef4444',
+          life: 0.5
+        });
+      }
+
+      updateHUD();
+
+      if (player.lives <= 0) {
+        gameOver();
+      }
+    }
+
+    function render() {
+      // Clear Screen with Cyber Grid Gradient Background
+      ctx.fillStyle = '#030712';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw Grid Overlay
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
+      ctx.lineWidth = 1;
+      const gridSize = 40;
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+
+      // Render Magnetic Nodes (+ / -)
+      nodes.forEach(node => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        const color = node.polarity === 1 ? '#3b82f6' : '#f43f5e';
+        ctx.fillStyle = color + '22';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.fill();
+        ctx.stroke();
+
+        // Symbol Render
+        ctx.fillStyle = color;
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const symbol = settings.colorblind ? (node.polarity === 1 ? '▲' : '■') : (node.polarity === 1 ? '+' : '−');
+        ctx.fillText(symbol, node.x, node.y);
+        ctx.restore();
+      });
+
+      // Render Hazards
+      hazards.forEach(h => {
+        ctx.save();
+        ctx.translate(h.x, h.y);
+        ctx.rotate(h.angle);
+        ctx.strokeStyle = '#e11d48';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(-h.radius, -h.radius, h.radius * 2, h.radius * 2);
+        ctx.restore();
+      });
+
+      // Render Collectibles (Energy Cores)
+      collectibles.forEach(item => {
+        ctx.save();
+        ctx.beginPath();
+        const r = item.radius + Math.sin(item.pulse) * 2;
+        ctx.arc(item.x, item.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#facc15';
+        ctx.shadowColor = '#facc15';
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Render Boss Reactor
+      if (boss) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(boss.x, boss.y, boss.radius, 0, Math.PI * 2);
+        ctx.fillStyle = boss.polarity === 1 ? 'rgba(59, 130, 246, 0.3)' : 'rgba(244, 63, 94, 0.3)';
+        ctx.strokeStyle = boss.polarity === 1 ? '#3b82f6' : '#f43f5e';
+        ctx.lineWidth = 6;
+        ctx.fill();
+        ctx.stroke();
+
+        // Boss Health Bar
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(boss.x - 50, boss.y - boss.radius - 20, 100, 8);
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(boss.x - 50, boss.y - boss.radius - 20, (boss.hp / boss.maxHp) * 100, 8);
+        ctx.restore();
+      }
+
+      // Render Particles
+      particles.forEach(p => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Render Player Particle Trail
+      player.trail.forEach(t => {
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, player.radius * 0.6, 0, Math.PI * 2);
+        ctx.fillStyle = player.polarity === 1 ? `rgba(59, 130, 246, ${t.alpha * 0.4})` : `rgba(244, 63, 94, ${t.alpha * 0.4})`;
+        ctx.fill();
+      });
+
+      // Render Player Orb
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+
+      const pColor = player.polarity === 1 ? '#3b82f6' : '#f43f5e';
+      ctx.fillStyle = pColor;
+      ctx.shadowColor = pColor;
+      ctx.shadowBlur = player.isDashing > 0 ? 25 : 12;
+      ctx.fill();
+
+      // Inner Core Glow
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      // Symbol
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const pSymbol = settings.colorblind ? (player.polarity === 1 ? '▲' : '■') : (player.polarity === 1 ? '+' : '−');
+      ctx.fillText(pSymbol, player.x, player.y);
+
+      ctx.restore();
+    }
+
+    let lastTime = performance.now();
+    function gameLoop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      updateGameLogic(dt);
+      render();
+
+      requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+
+    function updateHUD() {
+      document.getElementById('hudScore').innerText = Math.floor(player.score);
+      document.getElementById('hudLevel').innerText = currentLevel;
+
+      let hearts = '';
+      for (let i = 0; i < player.lives; i++) hearts += '❤️';
+      document.getElementById('hudLives').innerText = hearts || '💀';
+
+      const badge = document.getElementById('polarityBadge');
+      const symbol = document.getElementById('polaritySymbol');
+      const text = document.getElementById('polarityText');
+
+      if (player.polarity === 1) {
+        badge.className = 'polarity-indicator polarity-pos';
+        symbol.innerText = settings.colorblind ? '▲' : '+';
+        text.innerText = 'POSITIVE';
+      } else {
+        badge.className = 'polarity-indicator polarity-neg';
+        symbol.innerText = settings.colorblind ? '■' : '−';
+        text.innerText = 'NEGATIVE';
+      }
+    }
+
+    function startGame() {
+      sound.init();
+      sound.startBGM();
+
+      player.score = 0;
+      player.lives = selectedMode === 'HARDCORE' ? 1 : 3;
+      player.polarity = 1;
+
+      initLevel(1);
+      updateHUD();
+
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+      document.getElementById('hud').style.display = 'flex';
+      currentState = GAME_STATES.PLAYING;
+
+      stats.gamesPlayed++;
+      saveData();
+    }
+
+    function gameOver() {
+      currentState = GAME_STATES.GAME_OVER;
+      sound.stopBGM();
+
+      if (player.score > stats.highScore) {
+        stats.highScore = Math.floor(player.score);
+      }
+      saveData();
+
+      document.getElementById('finalScore').innerText = Math.floor(player.score);
+      document.getElementById('finalHighScore').innerText = `High Score: ${stats.highScore}`;
+      document.getElementById('hud').style.display = 'none';
+      document.getElementById('menuGameOver').classList.add('active');
+    }
+
+    // Keyboard Listeners
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      if (e.code === 'Space') togglePolarity();
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') triggerDash();
+      if (e.code === 'Escape' && currentState === GAME_STATES.PLAYING) {
+        currentState = GAME_STATES.PAUSED;
+        document.getElementById('menuPause').classList.add('active');
+      }
+    });
+
+    window.addEventListener('keyup', e => {
+      keys[e.code] = false;
+    });
+
+    // Touch Controls setup
+    const joystickZone = document.getElementById('joystickZone');
+    const joystickKnob = document.getElementById('joystickKnob');
+
+    joystickZone.addEventListener('touchstart', e => {
+      joystick.active = true;
+      handleTouch(e.touches[0]);
+    });
+
+    joystickZone.addEventListener('touchmove', e => {
+      if (joystick.active) handleTouch(e.touches[0]);
+    });
+
+    joystickZone.addEventListener('touchend', () => {
+      joystick.active = false;
+      joystick.x = 0;
+      joystick.y = 0;
+      joystickKnob.style.transform = 'translate(0px, 0px)';
+    });
+
+    function handleTouch(touch) {
+      const rect = joystickZone.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const dx = touch.clientX - centerX;
+      const dy = touch.clientY - centerY;
+      const dist = Math.hypot(dx, dy);
+      const maxRadius = rect.width / 2;
+
+      const normX = dx / (dist || 1);
+      const normY = dy / (dist || 1);
+      const moveDist = Math.min(dist, maxRadius);
+
+      joystick.x = normX * (moveDist / maxRadius);
+      joystick.y = normY * (moveDist / maxRadius);
+
+      joystickKnob.style.transform = `translate(${joystick.x * 30}px, ${joystick.y * 30}px)`;
+    }
+
+    document.getElementById('btnTouchPolarity').addEventListener('click', togglePolarity);
+    document.getElementById('btnTouchDash').addEventListener('click', triggerDash);
+
+    document.getElementById('btnStartGame').addEventListener('click', startGame);
+
+    document.getElementById('btnSelectMode').addEventListener('click', () => {
+      document.getElementById('menuTitle').classList.remove('active');
+      document.getElementById('menuMode').classList.add('active');
+    });
+
+    document.querySelectorAll('.mode-option').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        selectedMode = e.target.getAttribute('data-mode');
+        showNotification(`Mode: ${selectedMode}`);
+        document.getElementById('menuMode').classList.remove('active');
+        document.getElementById('menuTitle').classList.add('active');
+      });
+    });
+
+    document.getElementById('btnTutorial').addEventListener('click', () => {
+      document.getElementById('menuTitle').classList.remove('active');
+      document.getElementById('menuTutorial').classList.add('active');
+    });
+
+    document.getElementById('btnAchievements').addEventListener('click', () => {
+      const list = document.getElementById('achievementsList');
+      list.innerHTML = ACHIEVEMENTS.map(a => `
+        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-weight: bold; color: ${a.unlocked ? '#facc15' : '#64748b'};">${a.unlocked ? '🏆' : '🔒'} ${a.name}</div>
+            <div style="font-size: 0.8rem; color: #94a3b8;">${a.desc}</div>
+          </div>
+          <span style="font-size: 0.75rem; color: ${a.unlocked ? '#22c55e' : '#ef4444'};">${a.unlocked ? 'UNLOCKED' : 'LOCKED'}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('menuTitle').classList.remove('active');
+      document.getElementById('menuAchievements').classList.add('active');
+    });
+
+    document.getElementById('btnStats').addEventListener('click', () => {
+      const list = document.getElementById('statsList');
+      list.innerHTML = `
+        <p>🎮 Games Played: <strong>${stats.gamesPlayed}</strong></p>
+        <p>🏆 High Score: <strong>${stats.highScore}</strong></p>
+        <p>⚡ Energy Cores Collected: <strong>${stats.totalCores}</strong></p>
+        <p>🤖 Bosses Defeated: <strong>${stats.bossesDefeated}</strong></p>
+      `;
+      document.getElementById('menuTitle').classList.remove('active');
+      document.getElementById('menuStats').classList.add('active');
+    });
+
+    document.getElementById('btnSettings').addEventListener('click', () => {
+      document.getElementById('menuTitle').classList.remove('active');
+      document.getElementById('menuSettings').classList.add('active');
+    });
+
+    document.getElementById('btnCredits').addEventListener('click', () => {
+      document.getElementById('menuTitle').classList.remove('active');
+      document.getElementById('menuCredits').classList.add('active');
+    });
+
+    document.querySelectorAll('.btnBackToTitle').forEach(b => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+        document.getElementById('menuTitle').classList.add('active');
+      });
+    });
+
+    document.getElementById('btnPause').addEventListener('click', () => {
+      currentState = GAME_STATES.PAUSED;
+      document.getElementById('menuPause').classList.add('active');
+    });
+
+    document.getElementById('btnResume').addEventListener('click', () => {
+      document.getElementById('menuPause').classList.remove('active');
+      currentState = GAME_STATES.PLAYING;
+    });
+
+    document.getElementById('btnRestart').addEventListener('click', () => {
+      document.getElementById('menuPause').classList.remove('active');
+      startGame();
+    });
+
+    document.getElementById('btnQuitToTitle').addEventListener('click', () => {
+      currentState = GAME_STATES.TITLE;
+      sound.stopBGM();
+      document.getElementById('menuPause').classList.remove('active');
+      document.getElementById('hud').style.display = 'none';
+      document.getElementById('menuTitle').classList.add('active');
+    });
+
+    document.getElementById('btnRetry').addEventListener('click', () => {
+      document.getElementById('menuGameOver').classList.remove('active');
+      startGame();
+    });
+
+    // Settings Toggle Handlers
+    document.getElementById('settingSFX').addEventListener('change', e => sound.sfxEnabled = e.target.checked);
+    document.getElementById('settingMusic').addEventListener('change', e => {
+      sound.musicEnabled = e.target.checked;
+      if (!sound.musicEnabled) sound.stopBGM();
+      else if (currentState === GAME_STATES.PLAYING) sound.startBGM();
+    });
+    document.getElementById('settingColorblind').addEventListener('change', e => settings.colorblind = e.target.checked);
+    document.getElementById('settingReducedMotion').addEventListener('change', e => settings.reducedMotion = e.target.checked);
+
+    // Initial Data Load
+    loadSavedData();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ice Cream Stacker</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a1025;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #2b1055;
+        }
+
+        /* Overlay Styles */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px;
+            z-index: 10;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        /* HUD elements */
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        .hud-card {
+            background: rgba(25, 15, 40, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 10px 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .hud-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ff9ebb;
+            font-weight: 700;
+        }
+
+        .hud-value {
+            font-size: 24px;
+            font-weight: 900;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .combo-badge {
+            background: linear-gradient(135deg, #ff4081, #ff9100);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 800;
+            color: #fff;
+            box-shadow: 0 0 12px rgba(255, 64, 129, 0.6);
+            animation: pulse 0.6s infinite alternate;
+            display: inline-block;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.08); }
+        }
+
+        .hud-center-notifications {
+            position: absolute;
+            top: 25%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            width: 100%;
+        }
+
+        .floating-banner {
+            font-size: 38px;
+            font-weight: 900;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.7), 0 0 20px rgba(255, 215, 0, 0.8);
+            color: #fff200;
+            animation: popUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            font-family: 'Impact', sans-serif;
+        }
+
+        @keyframes popUp {
+            0% { opacity: 0; transform: scale(0.3) translateY(20px); }
+            50% { opacity: 1; transform: scale(1.1) translateY(-10px); }
+            100% { opacity: 0; transform: scale(1) translateY(-40px); }
+        }
+
+        /* Wind indicator */
+        .wind-gauge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .wind-arrow {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 10, 25, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: linear-gradient(145deg, #2a163d, #1a0c28);
+            border: 3px solid #ff65a3;
+            border-radius: 24px;
+            padding: 28px;
+            width: 100%;
+            max-width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 101, 163, 0.3);
+            text-align: center;
+            position: relative;
+            color: #fff;
+        }
+
+        .modal-title {
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ff758c, #ff7eb3, #ffcc00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Buttons */
+        .btn {
+            background: linear-gradient(135deg, #ff4081, #ff80ab);
+            border: none;
+            color: white;
+            padding: 12px 28px;
+            font-size: 18px;
+            font-weight: 800;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(255, 64, 129, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.4);
+            transition: all 0.15s ease;
+            margin: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 8px 25px rgba(255, 64, 129, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .btn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #4a2c7a, #321c56);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #ffb300, #ff8f00);
+            box-shadow: 0 6px 20px rgba(255, 179, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.5);
+            color: #2a1000;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 12px;
+        }
+
+        .grid-select {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .mode-card {
+            background: rgba(255, 255, 255, 0.06);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .mode-card:hover, .mode-card.selected {
+            background: rgba(255, 101, 163, 0.2);
+            border-color: #ff65a3;
+            transform: scale(1.02);
+        }
+
+        .mode-card h4 {
+            color: #ff80ab;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .mode-card p {
+            font-size: 11px;
+            color: #ccc;
+            line-height: 1.3;
+        }
+
+        /* Achievement & Stats scroll lists */
+        .scroll-list {
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 6px;
+            margin: 16px 0;
+            text-align: left;
+        }
+
+        .scroll-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scroll-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 101, 163, 0.5);
+            border-radius: 4px;
+        }
+
+        .list-item {
+            background: rgba(255,255,255,0.05);
+            padding: 10px 14px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .list-item.locked {
+            opacity: 0.4;
+            filter: grayscale(1);
+        }
+
+        .list-item-info h5 {
+            font-size: 14px;
+            color: #ffd54f;
+        }
+
+        .list-item-info p {
+            font-size: 11px;
+            color: #aaa;
+        }
+
+        /* Powerup Active Badges */
+        .powerup-bar {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .powerup-pill {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #00e676;
+            color: #00e676;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Settings Toggle */
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .setting-row label {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            accent-color: #ff4081;
+        }
+
+        /* Touch Controls for Mobile */
+        .touch-drop-area {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+        }
+
+        .credits-text {
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 16px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Touch Drop Area -->
+        <div id="touch-area" class="touch-drop-area interactive"></div>
+
+        <!-- HUD Layer -->
+        <div class="ui-layer">
+            <div class="hud-top">
+                <div class="hud-card">
+                    <span class="hud-title">Score</span>
+                    <span id="hud-score" class="hud-value">0</span>
+                    <div id="hud-combo-container" style="display: none;">
+                        <span id="hud-combo" class="combo-badge">1x COMBO</span>
+                    </div>
+                </div>
+
+                <div class="hud-card" style="align-items: center;">
+                    <span class="hud-title">Tower Height</span>
+                    <span id="hud-height" class="hud-value" style="color: #40c4ff;">0 scoops</span>
+                    <div id="hud-wind" class="wind-gauge" style="display: none;">
+                        <span>WIND:</span>
+                        <span id="wind-arrow" class="wind-arrow">➔</span>
+                    </div>
+                </div>
+
+                <div class="hud-card" style="align-items: flex-end;">
+                    <span class="hud-title">Best</span>
+                    <span id="hud-best" class="hud-value" style="color: #ffd700;">0</span>
+                    <button id="btn-pause" class="btn btn-sm btn-secondary interactive" style="margin-top: 4px;">⏸ PAUSE</button>
+                </div>
+            </div>
+
+            <div class="powerup-bar" id="active-powerups"></div>
+
+            <div class="hud-center-notifications" id="notification-area"></div>
+        </div>
+
+        <!-- MAIN MENU MODAL -->
+        <div id="modal-main-menu" class="modal-overlay active">
+            <div class="modal-card">
+                <h1 class="modal-title">🍦 Ice Cream Stacker</h1>
+                <p style="color: #ff80ab; font-weight: 600; margin-bottom: 20px;">Build the Ultimate Dessert Tower!</p>
+                
+                <button id="btn-play" class="btn btn-gold" style="width: 100%; padding: 16px; font-size: 22px;">▶ START STACKING</button>
+                
+                <div class="grid-select" style="margin-top: 16px;">
+                    <button id="btn-modes" class="btn btn-secondary">🎮 Modes</button>
+                    <button id="btn-shop" class="btn btn-secondary">🍦 Cones</button>
+                    <button id="btn-achievements" class="btn btn-secondary">🏆 Badges</button>
+                    <button id="btn-stats" class="btn btn-secondary">📊 Stats</button>
+                </div>
+
+                <button id="btn-about" class="btn btn-secondary btn-sm" style="width: 100%; margin-bottom: 8px;">ℹ️ About & How to Play</button>
+                <button id="btn-settings" class="btn btn-secondary btn-sm" style="width: 100%;">⚙ Settings & Accessibility</button>
+
+                <div class="credits-text">
+                    Engineered by Minteez and Gemini AI<br>
+                    Copyright © 2026. All Rights Reserved.
+                </div>
+            </div>
+        </div>
+
+        <!-- MODE SELECTION MODAL -->
+        <div id="modal-modes" class="modal-overlay">
+            <div class="modal-card">
+                <h2 class="modal-title">Select Mode</h2>
+                <div class="grid-select" id="mode-list">
+                    <div class="mode-card selected" data-mode="classic">
+                        <h4>Classic Mode</h4>
+                        <p>Endless stacking physics. Precision & timing are key!</p>
+                    </div>
+                    <div class="mode-card" data-mode="zen">
+                        <h4>Zen Mode</h4>
+                        <p>No wind, no hazards, relaxing scoops stacking fun.</p>
+                    </div>
+                    <div class="mode-card" data-mode="time">
+                        <h4>Time Attack</h4>
+                        <p>60 Seconds! Stack as tall as possible under pressure.</p>
+                    </div>
+                    <div class="mode-card" data-mode="hardcore">
+                        <h4>Hardcore</h4>
+                        <p>Fast swing speed, strong wind gusts & small scoops!</p>
+                    </div>
+                </div>
+                <button id="btn-back-modes" class="btn btn-secondary" style="width: 100%;">Back</button>
+            </div>
+        </div>
+
+        <!-- SHOP / CONES MODAL -->
+        <div id="modal-shop" class="modal-overlay">
+            <div class="modal-card">
+                <h2 class="modal-title">Waffle Cones</h2>
+                <div class="scroll-list" id="cone-list"></div>
+                <button id="btn-back-shop" class="btn btn-secondary" style="width: 100%;">Back</button>
+            </div>
+        </div>
+
+        <!-- ACHIEVEMENTS MODAL -->
+        <div id="modal-achievements" class="modal-overlay">
+            <div class="modal-card">
+                <h2 class="modal-title">Achievements</h2>
+                <p id="achievement-count-text" style="color: #ff80ab; font-size: 13px;">Unlocked: 0 / 50</p>
+                <div class="scroll-list" id="achievement-list"></div>
+                <button id="btn-back-achievements" class="btn btn-secondary" style="width: 100%;">Back</button>
+            </div>
+        </div>
+
+        <!-- STATS MODAL -->
+        <div id="modal-stats" class="modal-overlay">
+            <div class="modal-card">
+                <h2 class="modal-title">Player Statistics</h2>
+                <div class="scroll-list" id="stats-list"></div>
+                <button id="btn-back-stats" class="btn btn-secondary" style="width: 100%;">Back</button>
+            </div>
+        </div>
+
+        <!-- SETTINGS MODAL -->
+        <div id="modal-settings" class="modal-overlay">
+            <div class="modal-card">
+                <h2 class="modal-title">Settings</h2>
+                <div class="setting-row">
+                    <label>Sound Effects (SFX)</label>
+                    <input type="range" id="slider-sfx" min="0" max="1" step="0.1" value="0.8">
+                </div>
+                <div class="setting-row">
+                    <label>Music Volume</label>
+                    <input type="range" id="slider-music" min="0" max="1" step="0.1" value="0.5">
+                </div>
+                <div class="setting-row">
+                    <label>Game Speed</label>
+                    <input type="range" id="slider-speed" min="0.5" max="1.5" step="0.1" value="1.0">
+                </div>
+                <div class="setting-row">
+                    <label>Colorblind Friendly</label>
+                    <input type="checkbox" id="check-colorblind">
+                </div>
+                <div class="setting-row">
+                    <label>Reduced Motion</label>
+                    <input type="checkbox" id="check-motion">
+                </div>
+                <button id="btn-back-settings" class="btn btn-secondary" style="width: 100%; margin-top: 16px;">Save & Close</button>
+            </div>
+        </div>
+
+        <!-- ABOUT / HOW TO PLAY MODAL -->
+        <div id="modal-about" class="modal-overlay">
+            <div class="modal-card">
+                <h2 class="modal-title">About The Game</h2>
+                <div class="scroll-list" style="max-height: 360px;">
+                    <div style="text-align: left; padding: 10px; color: #eee; font-size: 14px; line-height: 1.6;">
+                        <h3 style="color: #ff9ebb; margin-bottom: 8px;">🍦 The Concept</h3>
+                        <p style="margin-bottom: 14px;">
+                            <strong>Ice Cream Stacker</strong> is an arcade physics stacking game set in a bright, dessert-themed world! Your objective is simple yet addictive: stack scoops of ice cream as tall as possible on top of a waffle cone without letting the tower tumble into disaster.
+                        </p>
+
+                        <h3 style="color: #ff9ebb; margin-bottom: 8px;">🎮 How to Play</h3>
+                        <ul style="padding-left: 20px; margin-bottom: 14px;">
+                            <li style="margin-bottom: 6px;"><strong>Drop Scoops:</strong> Tap anywhere on the screen, or press <kbd style="background:#444; padding:2px 6px; border-radius:4px;">Space</kbd> / <kbd style="background:#444; padding:2px 6px; border-radius:4px;">Enter</kbd> to release swinging scoops.</li>
+                            <li style="margin-bottom: 6px;"><strong>Time Your Drops:</strong> Precision is key! Land scoops dead-center on top of each other to earn <strong>PERFECT</strong> drops, bonus points, and build combo multipliers.</li>
+                            <li style="margin-bottom: 6px;"><strong>Balance Physics:</strong> Off-center scoops increase wobble and cause your stack to lean. If the total center of mass sways too far, your entire tower will collapse!</li>
+                            <li style="margin-bottom: 6px;"><strong>Watch the Wind:</strong> As your tower grows taller, gusts of wind will push dropping scoops sideways.</li>
+                            <li style="margin-bottom: 6px;"><strong>Pause Game:</strong> Press <kbd style="background:#444; padding:2px 6px; border-radius:4px;">P</kbd> or <kbd style="background:#444; padding:2px 6px; border-radius:4px;">Esc</kbd> or tap ⏸ PAUSE to pause the game at any time.</li>
+                        </ul>
+
+                        <h3 style="color: #ff9ebb; margin-bottom: 8px;">⭐ Features & Progression</h3>
+                        <ul style="padding-left: 20px;">
+                            <li style="margin-bottom: 4px;"><strong>Multiple Game Modes:</strong> Classic, Zen, Time Attack, and Hardcore.</li>
+                            <li style="margin-bottom: 4px;"><strong>Custom Cones:</strong> Score points to unlock waffle cone designs in the Cones Shop.</li>
+                            <li style="margin-bottom: 4px;"><strong>50 Badges:</strong> Unlock achievements for high scores, precision streaks, and stacking heights.</li>
+                        </ul>
+                    </div>
+                </div>
+                <button id="btn-back-about" class="btn btn-secondary" style="width: 100%;">Back</button>
+            </div>
+        </div>
+
+        <!-- PAUSE MODAL -->
+        <div id="modal-pause" class="modal-overlay">
+            <div class="modal-card">
+                <h2 class="modal-title">Game Paused</h2>
+                <button id="btn-resume" class="btn btn-gold" style="width: 100%; margin-bottom: 10px;">▶ RESUME</button>
+                <button id="btn-restart" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">🔄 RESTART</button>
+                <button id="btn-quit" class="btn btn-secondary" style="width: 100%;">🏠 MAIN MENU</button>
+                <div class="credits-text">
+                    Engineered by Minteez and Gemini AI<br>
+                    Copyright © 2026. All Rights Reserved.
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME OVER MODAL -->
+        <div id="modal-gameover" class="modal-overlay">
+            <div class="modal-card">
+                <h2 class="modal-title" style="color: #ff5252;">Stack Collapse!</h2>
+                <p id="gameover-summary" style="font-size: 16px; margin-bottom: 16px;">You built a 14 scoop tower!</p>
+                <div class="hud-card" style="margin-bottom: 16px; align-items: center;">
+                    <span class="hud-title">Final Score</span>
+                    <span id="gameover-score" class="hud-value" style="color: #ffd700; font-size: 36px;">0</span>
+                </div>
+                <button id="btn-play-again" class="btn btn-gold" style="width: 100%; margin-bottom: 10px; font-size: 20px;">🔄 PLAY AGAIN</button>
+                <button id="btn-gameover-menu" class="btn btn-secondary" style="width: 100%;">🏠 MAIN MENU</button>
+                <div class="credits-text">
+                    Engineered by Minteez and Gemini AI<br>
+                    Copyright © 2026. All Rights Reserved.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Game Engine State
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Audio Engine (Web Audio API Synthesizer)
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.sfxVolume = 0.8;
+                this.musicVolume = 0.5;
+                this.initialized = false;
+            }
+
+            init() {
+                if (this.initialized) return;
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                    this.initialized = true;
+                } catch (e) {
+                    console.log("Web Audio API not supported", e);
+                }
+            }
+
+            playTone(freq, type = 'sine', duration = 0.15, vol = 0.3) {
+                if (!this.initialized || this.sfxVolume <= 0) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol * this.sfxVolume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {}
+            }
+
+            playPop() {
+                if (!this.initialized) return;
+                this.playTone(320 + Math.random() * 120, 'sine', 0.08, 0.4);
+            }
+
+            playDrop() {
+                if (!this.initialized) return;
+                this.playTone(180, 'triangle', 0.12, 0.5);
+            }
+
+            playPerfect(combo = 1) {
+                if (!this.initialized) return;
+                const base = 440 * Math.pow(1.05946, Math.min(combo * 2, 24));
+                this.playTone(base, 'sine', 0.2, 0.4);
+                setTimeout(() => this.playTone(base * 1.25, 'sine', 0.25, 0.4), 80);
+            }
+
+            playPowerup() {
+                if (!this.initialized) return;
+                [300, 400, 500, 700].forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 'sine', 0.15, 0.3), idx * 60);
+                });
+            }
+
+            playCrash() {
+                if (!this.initialized || this.sfxVolume <= 0) return;
+                try {
+                    const bufferSize = this.ctx.sampleRate * 0.4;
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    const whiteNoise = this.ctx.createBufferSource();
+                    whiteNoise.buffer = buffer;
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+                    filter.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 0.4);
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0.6 * this.sfxVolume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+                    whiteNoise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    whiteNoise.start();
+                } catch(e) {}
+            }
+        }
+
+        const audio = new SoundEngine();
+
+        // Game Flavors Database (25 Distinct Flavors)
+        const FLAVORS = [
+            { name: "Vanilla", color: "#FFF8E7", shadow: "#E6DEC6", accent: "#FFE8B5" },
+            { name: "Chocolate", color: "#5C3A21", shadow: "#3D2412", accent: "#7A4E2C" },
+            { name: "Strawberry", color: "#FF6B8B", shadow: "#D64565", accent: "#FF9ebb" },
+            { name: "Mint", color: "#A8E6CF", shadow: "#7CCCAE", accent: "#DCFFED" },
+            { name: "Blueberry", color: "#6C5CE7", shadow: "#4A3BB8", accent: "#A29BFE" },
+            { name: "Mango", color: "#FFB302", shadow: "#D99400", accent: "#FFC843" },
+            { name: "Bubblegum", color: "#FF7675", shadow: "#D63031", accent: "#FAB1A0" },
+            { name: "Cookies & Cream", color: "#E0E0E0", shadow: "#B0B0B0", accent: "#333333" },
+            { name: "Pistachio", color: "#B8E994", shadow: "#78E08F", accent: "#E8FAE0" },
+            { name: "Cotton Candy", color: "#FD79A8", shadow: "#E84393", accent: "#74B9FF" },
+            { name: "Lemon Sorbet", color: "#FFEAA7", shadow: "#FDCB6E", accent: "#FFF9DB" },
+            { name: "Coffee", color: "#8D5B4C", shadow: "#633A2E", accent: "#B07D6F" },
+            { name: "Raspberry", color: "#E84393", shadow: "#B82E6B", accent: "#FF7675" },
+            { name: "Caramel", color: "#E67E22", shadow: "#D35400", accent: "#F39C12" },
+            { name: "Matcha", color: "#55EFC4", shadow: "#00B894", accent: "#81ECEC" },
+            { name: "Peanut Butter", color: "#D4A373", shadow: "#BC8A5F", accent: "#FAEDCD" },
+            { name: "Rainbow", color: "#FF7675", shadow: "#74B9FF", accent: "#FFEAA7", isRainbow: true },
+            { name: "Oreo", color: "#2D3436", shadow: "#000000", accent: "#DFE6E9" },
+            { name: "Red Velvet", color: "#D63031", shadow: "#900C3F", accent: "#FF7675" },
+            { name: "Coconut", color: "#F5F6FA", shadow: "#DCDDE1", accent: "#FFFFFF" },
+            { name: "Banana", color: "#F1C40F", shadow: "#F39C12", accent: "#F9E79F" },
+            { name: "Blackcurrant", color: "#8E44AD", shadow: "#6C3483", accent: "#BB8FCE" },
+            { name: "Cherry", color: "#C0392B", shadow: "#922B21", accent: "#E74C3C" },
+            { name: "Honeycomb", color: "#F39C12", shadow: "#D68910", accent: "#F9E79F" },
+            { name: "Birthday Cake", color: "#F8A5C2", shadow: "#F78FB3", accent: "#63C2DE", isCake: true }
+        ];
+
+        // Cones Database
+        const CONES = [
+            { id: "classic", name: "Classic Waffle", scoreReq: 0, color: "#D38342", darkColor: "#A65F23" },
+            { id: "choco", name: "Chocolate Dipped", scoreReq: 1000, color: "#5C3A21", darkColor: "#3D2412" },
+            { id: "rainbow", name: "Rainbow Cone", scoreReq: 3000, color: "#FF7675", darkColor: "#74B9FF" },
+            { id: "sugar", name: "Sugar Cone", scoreReq: 6000, color: "#E67E22", darkColor: "#D35400" },
+            { id: "golden", name: "Golden Cone", scoreReq: 12000, color: "#FFD700", darkColor: "#B8860B" },
+            { id: "galaxy", name: "Galaxy Cone", scoreReq: 25000, color: "#8E44AD", darkColor: "#2C3E50" }
+        ];
+
+        // Achievements Database (50 Achievements)
+        const ACHIEVEMENTS_DATA = Array.from({ length: 50 }, (_, i) => {
+            const id = i + 1;
+            let title = `Achievement #${id}`;
+            let desc = `Reach milestone level ${id}`;
+            if (id === 1) { title = "First Scoop"; desc = "Stack your very first scoop!"; }
+            else if (id === 2) { title = "Tower Apprentice"; desc = "Reach a tower height of 5 scoops."; }
+            else if (id === 3) { title = "Dessert Architect"; desc = "Reach a tower height of 15 scoops."; }
+            else if (id === 4) { title = "Tower Master"; desc = "Reach a tower height of 30 scoops."; }
+            else if (id === 5) { title = "Sky High"; desc = "Reach a tower height of 50 scoops."; }
+            else if (id === 6) { title = "Combo Beginner"; desc = "Achieve a 3x combo!"; }
+            else if (id === 7) { title = "Combo King"; desc = "Achieve a 10x combo!"; }
+            else if (id === 8) { title = "Precision God"; desc = "Achieve 5 perfect drops in a row."; }
+            else if (id === 9) { title = "Wobble Survivor"; desc = "Recover from an extreme stack lean."; }
+            else if (id === 10) { title = "Sweet Millionaire"; desc = "Score 10,000 total points."; }
+            else { title = `Mastery Badge ${id}`; desc = `Score higher than ${id * 1000} cumulative points.`; }
+            return { id, title, desc, unlocked: false };
+        });
+
+        // Persistent Storage Data
+        let saveData = {
+            highScore: 0,
+            totalScoops: 0,
+            totalGames: 0,
+            unlockedCones: ["classic"],
+            selectedCone: "classic",
+            achievements: [],
+            settings: { sfx: 0.8, music: 0.5, speed: 1.0, colorblind: false, motion: false }
+        };
+
+        function loadStorage() {
+            try {
+                const raw = localStorage.getItem('ice_cream_stacker_data');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    saveData = { ...saveData, ...parsed };
+                }
+            } catch(e) {}
+        }
+
+        function saveStorage() {
+            try {
+                localStorage.setItem('ice_cream_stacker_data', JSON.stringify(saveData));
+            } catch(e) {}
+        }
+
+        loadStorage();
+
+        // Game Engine Variables
+        let screenWidth = 0;
+        let screenHeight = 0;
+        let gameMode = 'classic'; // 'classic', 'zen', 'time', 'hardcore'
+        let gameState = 'MENU'; // 'MENU', 'PLAYING', 'PAUSED', 'GAMEOVER'
+        let gameTime = 0;
+        let timeAttackTimer = 60;
+
+        // Physics State
+        let cameraY = 0;
+        let targetCameraY = 0;
+        let score = 0;
+        let combo = 0;
+        let maxCombo = 0;
+        let wind = 0; // -1 to 1
+        let windTarget = 0;
+
+        // Cone Base
+        const coneWidth = 70;
+        const coneHeight = 90;
+
+        // Scoop Stack & Swinging Scoop
+        let stack = [];
+        let swingingScoop = null;
+        let activePowerups = [];
+        let particles = [];
+        let floatingCollectibles = [];
+        let backgroundClouds = [];
+
+        class Particle {
+            constructor(x, y, color, vx, vy, size, life) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = vx;
+                this.vy = vy;
+                this.size = size;
+                this.life = life;
+                this.maxLife = life;
+            }
+
+            update(dt) {
+                this.x += this.vx * dt * 60;
+                this.y += this.vy * dt * 60;
+                this.life -= dt;
+            }
+
+            draw(ctx) {
+                const alpha = Math.max(0, this.life / this.maxLife);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y - cameraY, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function spawnConfetti(x, y) {
+            const colors = ['#FF7675', '#74B9FF', '#FFEAA7', '#55EFC4', '#A29BFE', '#FD79A8'];
+            for (let i = 0; i < 30; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 6;
+                particles.push(new Particle(
+                    x, y,
+                    colors[Math.floor(Math.random() * colors.length)],
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed - 2,
+                    3 + Math.random() * 4,
+                    0.8 + Math.random() * 0.6
+                ));
+            }
+        }
+
+        class Scoop {
+            constructor(y, flavor, width = 90) {
+                this.x = screenWidth / 2;
+                this.y = y;
+                this.width = width;
+                this.height = 42;
+                this.flavor = flavor;
+                this.squash = 1;
+                this.toppings = this.generateToppings();
+                this.vy = 0;
+                this.isDropping = false;
+            }
+
+            generateToppings() {
+                const toppings = [];
+                const count = Math.floor(Math.random() * 5) + 2;
+                for (let i = 0; i < count; i++) {
+                    toppings.push({
+                        relX: (Math.random() - 0.5) * 0.7,
+                        relY: (Math.random() - 0.5) * 0.4,
+                        color: ['#333', '#FF4081', '#FFD700', '#00E676', '#FFFFFF'][Math.floor(Math.random() * 5)],
+                        size: 2 + Math.random() * 3
+                    });
+                }
+                return toppings;
+            }
+
+            draw(ctx, xOffset = 0, angle = 0) {
+                ctx.save();
+                ctx.translate(this.x + xOffset, this.y - cameraY);
+                ctx.rotate(angle);
+                ctx.scale(1 / this.squash, this.squash);
+
+                const w = this.width;
+                const h = this.height;
+
+                // Main Scoop Body Gradient
+                const grad = ctx.createLinearGradient(0, -h/2, 0, h/2);
+                grad.addColorStop(0, this.flavor.accent);
+                grad.addColorStop(0.5, this.flavor.color);
+                grad.addColorStop(1, this.flavor.shadow);
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(0, -h/6, w/2, Math.PI, 0, false);
+                ctx.bezierCurveTo(w/2, h/2, -w/2, h/2, -w/2, -h/6);
+                ctx.closePath();
+                ctx.fill();
+
+                // Fluffy Scoop Skirt / Flounces
+                ctx.fillStyle = this.flavor.shadow;
+                const scallops = 6;
+                const r = w / scallops / 2;
+                for (let i = 0; i < scallops; i++) {
+                    const cx = -w/2 + r + i * r * 2;
+                    ctx.beginPath();
+                    ctx.arc(cx, h/4, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Render Toppings
+                this.toppings.forEach(t => {
+                    ctx.fillStyle = t.color;
+                    ctx.beginPath();
+                    ctx.arc(t.relX * w, t.relY * h - 4, t.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                ctx.restore();
+            }
+        }
+
+        // Swinging Pendulum Motion Manager
+        class SwingingScoop {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.flavor = FLAVORS[Math.floor(Math.random() * FLAVORS.length)];
+                this.scoop = new Scoop(120, this.flavor);
+                this.angle = 0;
+                this.swingSpeed = (gameMode === 'hardcore' ? 2.8 : 1.8) + (stack.length * 0.05);
+                this.arcWidth = Math.min(screenWidth * 0.38, 220);
+            }
+
+            update(dt) {
+                if (!this.scoop.isDropping) {
+                    this.angle += this.swingSpeed * dt;
+                    this.scoop.x = (screenWidth / 2) + Math.sin(this.angle) * this.arcWidth;
+                    this.scoop.y = 120 + cameraY;
+                } else {
+                    // Physics Drop
+                    this.scoop.vy += 2200 * dt; // Gravity
+                    this.scoop.y += this.scoop.vy * dt;
+
+                    // Wind impact while dropping
+                    if (gameMode !== 'zen') {
+                        this.scoop.x += wind * 120 * dt;
+                    }
+
+                    // Collision Check with Top of Stack
+                    const topY = stack.length === 0 ? screenHeight - 120 : stack[stack.length - 1].y - 32;
+                    if (this.scoop.y >= topY) {
+                        this.land();
+                    }
+                }
+            }
+
+            drop() {
+                if (!this.scoop.isDropping) {
+                    this.scoop.isDropping = true;
+                    audio.playDrop();
+                }
+            }
+
+            land() {
+                const targetX = stack.length === 0 ? screenWidth / 2 : stack[stack.length - 1].x;
+                const offset = this.scoop.x - targetX;
+                const absOffset = Math.abs(offset);
+
+                if (absOffset > 52) {
+                    // Missed completely or severe fall -> Crash Collapse!
+                    triggerGameOver();
+                    return;
+                }
+
+                // Successful Placement!
+                this.scoop.vy = 0;
+                this.scoop.isDropping = false;
+                this.scoop.squash = 0.7; // Squash FX
+
+                stack.push(this.scoop);
+                saveData.totalScoops++;
+
+                // Score & Combo Logic
+                let earnedScore = 100;
+                if (absOffset < 8) {
+                    // Perfect Drop
+                    combo++;
+                    audio.playPerfect(combo);
+                    earnedScore += 200 * combo;
+                    showNotification(combo > 3 ? `${combo}x LEGENDARY!` : "PERFECT!");
+                    spawnConfetti(this.scoop.x, this.scoop.y);
+                } else if (absOffset < 20) {
+                    combo = Math.max(1, combo);
+                    audio.playPop();
+                    earnedScore += 50;
+                    showNotification("Great!");
+                } else {
+                    combo = 0;
+                    audio.playPop();
+                    showNotification("Wobbly!");
+                }
+
+                score += earnedScore;
+                maxCombo = Math.max(maxCombo, combo);
+
+                // Check achievements
+                checkAchievements();
+
+                // Update Camera
+                targetCameraY = Math.max(0, (stack.length - 6) * 36);
+
+                // Spawn Next Scoop
+                this.reset();
+            }
+
+            draw(ctx) {
+                if (!this.scoop.isDropping) {
+                    // Draw Swing String / Crane Line
+                    ctx.save();
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+                    ctx.setLineDash([4, 4]);
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(screenWidth / 2, 0);
+                    ctx.lineTo(this.scoop.x, this.scoop.y - cameraY);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+                this.scoop.draw(ctx);
+            }
+        }
+
+        function initClouds() {
+            backgroundClouds = [];
+            for (let i = 0; i < 8; i++) {
+                backgroundClouds.push({
+                    x: Math.random() * screenWidth,
+                    y: Math.random() * screenHeight * 2 - screenHeight,
+                    size: 40 + Math.random() * 60,
+                    speed: 10 + Math.random() * 20
+                });
+            }
+        }
+
+        function updateEnvironment(dt) {
+            // Update Clouds
+            backgroundClouds.forEach(c => {
+                c.x += c.speed * dt;
+                if (c.x - c.size > screenWidth) c.x = -c.size * 2;
+            });
+
+            // Update Wind Gusts
+            if (gameMode !== 'zen') {
+                if (Math.random() < 0.01) {
+                    windTarget = (Math.random() - 0.5) * 2;
+                }
+                wind += (windTarget - wind) * dt * 2;
+            } else {
+                wind = 0;
+            }
+
+            // Smooth Camera Movement
+            cameraY += (targetCameraY - cameraY) * dt * 4;
+        }
+
+        function drawBackground(ctx) {
+            // Sky Gradient
+            const grad = ctx.createLinearGradient(0, 0, 0, screenHeight);
+            grad.addColorStop(0, '#1d0c33');
+            grad.addColorStop(0.5, '#4a1259');
+            grad.addColorStop(1, '#8c1d58');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, screenWidth, screenHeight);
+
+            // Draw Parallax Candy Clouds
+            ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+            backgroundClouds.forEach(c => {
+                const renderY = c.y - cameraY * 0.3;
+                ctx.beginPath();
+                ctx.arc(c.x, renderY, c.size, 0, Math.PI * 2);
+                ctx.arc(c.x + c.size * 0.5, renderY - c.size * 0.2, c.size * 0.7, 0, Math.PI * 2);
+                ctx.arc(c.x - c.size * 0.5, renderY - c.size * 0.2, c.size * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function drawCone(ctx) {
+            const x = screenWidth / 2;
+            const y = screenHeight - 60 - cameraY;
+
+            const selectedConeData = CONES.find(c => c.id === saveData.selectedCone) || CONES[0];
+
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Draw Cone Body
+            ctx.fillStyle = selectedConeData.color;
+            ctx.beginPath();
+            ctx.moveTo(-coneWidth / 2, 0);
+            ctx.lineTo(coneWidth / 2, 0);
+            ctx.lineTo(0, coneHeight);
+            ctx.closePath();
+            ctx.fill();
+
+            // Waffle Grid Texture
+            ctx.strokeStyle = selectedConeData.darkColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = -coneWidth/2; i <= coneWidth/2; i += 12) {
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i / 3, coneHeight * 0.8);
+            }
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawStack(ctx) {
+            let totalWobble = 0;
+            
+            // Calculate wobble leaning center of mass
+            for (let i = 0; i < stack.length; i++) {
+                const prevX = i === 0 ? screenWidth / 2 : stack[i - 1].x;
+                const diff = stack[i].x - prevX;
+                totalWobble += diff * 0.08;
+            }
+
+            const tiltAngle = Math.sin(gameTime * 3) * (totalWobble * 0.01);
+
+            // Draw Scoops in Stack
+            stack.forEach((scoop, index) => {
+                // Recover squash
+                scoop.squash += (1 - scoop.squash) * 0.1;
+                scoop.draw(ctx, Math.sin(gameTime * 2 + index * 0.2) * totalWobble * 0.3, tiltAngle * (index / stack.length));
+            });
+
+            // Collapse Check if tilt/wobble gets out of hand
+            if (Math.abs(totalWobble) > 85 && gameState === 'PLAYING') {
+                triggerGameOver();
+            }
+        }
+
+        function showNotification(text) {
+            const area = document.getElementById('notification-area');
+            area.innerHTML = `<div class="floating-banner">${text}</div>`;
+            setTimeout(() => { area.innerHTML = ''; }, 800);
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-score').innerText = score;
+            document.getElementById('hud-best').innerText = saveData.highScore;
+            document.getElementById('hud-height').innerText = `${stack.length} scoops`;
+
+            const comboContainer = document.getElementById('hud-combo-container');
+            if (combo > 1) {
+                comboContainer.style.display = 'block';
+                document.getElementById('hud-combo').innerText = `${combo}x COMBO`;
+            } else {
+                comboContainer.style.display = 'none';
+            }
+
+            const windHud = document.getElementById('hud-wind');
+            if (gameMode !== 'zen') {
+                windHud.style.display = 'flex';
+                const arrow = document.getElementById('wind-arrow');
+                arrow.style.transform = `rotate(${wind > 0 ? 0 : 180}deg) scale(${Math.abs(wind) * 1.5})`;
+            } else {
+                windHud.style.display = 'none';
+            }
+        }
+
+        function setModal(id, active) {
+            const modal = document.getElementById(id);
+            if (active) modal.classList.add('active');
+            else modal.classList.remove('active');
+        }
+
+        function checkAchievements() {
+            let newlyUnlocked = false;
+            ACHIEVEMENTS_DATA.forEach(ach => {
+                if (!ach.unlocked) {
+                    let condition = false;
+                    if (ach.id === 1 && stack.length >= 1) condition = true;
+                    if (ach.id === 2 && stack.length >= 5) condition = true;
+                    if (ach.id === 3 && stack.length >= 15) condition = true;
+                    if (ach.id === 4 && stack.length >= 30) condition = true;
+                    if (ach.id === 5 && stack.length >= 50) condition = true;
+                    if (ach.id === 6 && combo >= 3) condition = true;
+                    if (ach.id === 7 && combo >= 10) condition = true;
+                    if (ach.id > 10 && score >= ach.id * 1000) condition = true;
+
+                    if (condition) {
+                        ach.unlocked = true;
+                        newlyUnlocked = true;
+                        showNotification(`🏆 BADGE UNLOCKED!\n${ach.title}`);
+                        audio.playPowerup();
+                    }
+                }
+            });
+
+            if (newlyUnlocked) {
+                saveData.achievements = ACHIEVEMENTS_DATA.filter(a => a.unlocked).map(a => a.id);
+                saveStorage();
+            }
+        }
+
+        function populateAchievementsUI() {
+            const list = document.getElementById('achievement-list');
+            list.innerHTML = '';
+            let count = 0;
+
+            ACHIEVEMENTS_DATA.forEach(ach => {
+                if (ach.unlocked) count++;
+                const item = document.createElement('div');
+                item.className = `list-item ${ach.unlocked ? '' : 'locked'}`;
+                item.innerHTML = `
+                    <div class="list-item-info">
+                        <h5>${ach.unlocked ? '🏆' : '🔒'} ${ach.title}</h5>
+                        <p>${ach.desc}</p>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+
+            document.getElementById('achievement-count-text').innerText = `Unlocked: ${count} / ${ACHIEVEMENTS_DATA.length}`;
+        }
+
+        function populateStatsUI() {
+            const list = document.getElementById('stats-list');
+            list.innerHTML = `
+                <div class="list-item"><span>High Score</span><strong>${saveData.highScore}</strong></div>
+                <div class="list-item"><span>Total Scoops Dropped</span><strong>${saveData.totalScoops}</strong></div>
+                <div class="list-item"><span>Games Played</span><strong>${saveData.totalGames}</strong></div>
+                <div class="list-item"><span>Achievements Unlocked</span><strong>${saveData.achievements ? saveData.achievements.length : 0} / 50</strong></div>
+            `;
+        }
+
+        function populateShopUI() {
+            const list = document.getElementById('cone-list');
+            list.innerHTML = '';
+            CONES.forEach(cone => {
+                const isUnlocked = saveData.highScore >= cone.scoreReq || cone.id === 'classic';
+                const isSelected = saveData.selectedCone === cone.id;
+
+                const item = document.createElement('div');
+                item.className = `list-item ${isUnlocked ? '' : 'locked'}`;
+                item.innerHTML = `
+                    <div class="list-item-info">
+                        <h5>${cone.name}</h5>
+                        <p>${isUnlocked ? (isSelected ? 'EQUIPPED' : 'Tap to equip') : `Unlock at ${cone.scoreReq} pts`}</p>
+                    </div>
+                    ${isUnlocked ? `<button class="btn btn-sm ${isSelected ? 'btn-gold' : 'btn-secondary'}">${isSelected ? 'Active' : 'Equip'}</button>` : '🔒'}
+                `;
+
+                if (isUnlocked) {
+                    item.onclick = () => {
+                        saveData.selectedCone = cone.id;
+                        saveStorage();
+                        populateShopUI();
+                    };
+                }
+                list.appendChild(item);
+            });
+        }
+
+        function startGame() {
+            score = 0;
+            combo = 0;
+            maxCombo = 0;
+            stack = [];
+            particles = [];
+            cameraY = 0;
+            targetCameraY = 0;
+            gameTime = 0;
+            timeAttackTimer = 60;
+            saveData.totalGames++;
+            saveStorage();
+
+            swingingScoop = new SwingingScoop();
+            gameState = 'PLAYING';
+
+            setModal('modal-main-menu', false);
+            setModal('modal-gameover', false);
+            setModal('modal-pause', false);
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            audio.playCrash();
+
+            if (score > saveData.highScore) {
+                saveData.highScore = score;
+                saveStorage();
+            }
+
+            document.getElementById('gameover-summary').innerText = `You stacked ${stack.length} delicious scoops!`;
+            document.getElementById('gameover-score').innerText = score;
+            setModal('modal-gameover', true);
+        }
+
+        function initInput() {
+            const dropHandler = (e) => {
+                if (e) e.preventDefault();
+                audio.init();
+                if (gameState === 'PLAYING' && swingingScoop) {
+                    swingingScoop.drop();
+                }
+            };
+
+            document.getElementById('touch-area').addEventListener('pointerdown', dropHandler);
+
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowDown') {
+                    dropHandler(e);
+                } else if (e.code === 'KeyP' || e.code === 'Escape') {
+                    if (gameState === 'PLAYING') {
+                        gameState = 'PAUSED';
+                        setModal('modal-pause', true);
+                    } else if (gameState === 'PAUSED') {
+                        gameState = 'PLAYING';
+                        setModal('modal-pause', false);
+                    }
+                }
+            });
+
+            // UI Button Bindings
+            document.getElementById('btn-play').onclick = () => startGame();
+            document.getElementById('btn-pause').onclick = () => {
+                if (gameState === 'PLAYING') {
+                    gameState = 'PAUSED';
+                    setModal('modal-pause', true);
+                }
+            };
+            document.getElementById('btn-resume').onclick = () => {
+                gameState = 'PLAYING';
+                setModal('modal-pause', false);
+            };
+            document.getElementById('btn-restart').onclick = () => startGame();
+            document.getElementById('btn-play-again').onclick = () => startGame();
+            document.getElementById('btn-quit').onclick = () => {
+                gameState = 'MENU';
+                setModal('modal-pause', false);
+                setModal('modal-main-menu', true);
+            };
+            document.getElementById('btn-gameover-menu').onclick = () => {
+                gameState = 'MENU';
+                setModal('modal-gameover', false);
+                setModal('modal-main-menu', true);
+            };
+
+            // Modal Navigation
+            document.getElementById('btn-about').onclick = () => { setModal('modal-main-menu', false); setModal('modal-about', true); };
+            document.getElementById('btn-back-about').onclick = () => { setModal('modal-about', false); setModal('modal-main-menu', true); };
+
+            document.getElementById('btn-modes').onclick = () => { setModal('modal-main-menu', false); setModal('modal-modes', true); };
+            document.getElementById('btn-back-modes').onclick = () => { setModal('modal-modes', false); setModal('modal-main-menu', true); };
+
+            document.getElementById('btn-shop').onclick = () => { populateShopUI(); setModal('modal-main-menu', false); setModal('modal-shop', true); };
+            document.getElementById('btn-back-shop').onclick = () => { setModal('modal-shop', false); setModal('modal-main-menu', true); };
+
+            document.getElementById('btn-achievements').onclick = () => { populateAchievementsUI(); setModal('modal-main-menu', false); setModal('modal-achievements', true); };
+            document.getElementById('btn-back-achievements').onclick = () => { setModal('modal-achievements', false); setModal('modal-main-menu', true); };
+
+            document.getElementById('btn-stats').onclick = () => { populateStatsUI(); setModal('modal-main-menu', false); setModal('modal-stats', true); };
+            document.getElementById('btn-back-stats').onclick = () => { setModal('modal-stats', false); setModal('modal-main-menu', true); };
+
+            document.getElementById('btn-settings').onclick = () => { setModal('modal-main-menu', false); setModal('modal-settings', true); };
+            document.getElementById('btn-back-settings').onclick = () => { setModal('modal-settings', false); setModal('modal-main-menu', true); };
+
+            // Mode Selection logic
+            document.querySelectorAll('#mode-list .mode-card').forEach(card => {
+                card.onclick = () => {
+                    document.querySelectorAll('#mode-list .mode-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    gameMode = card.getAttribute('data-mode');
+                };
+            });
+        }
+
+        function resize() {
+            screenWidth = window.innerWidth;
+            screenHeight = window.innerHeight;
+            canvas.width = screenWidth;
+            canvas.height = screenHeight;
+            initClouds();
+        }
+
+        let lastTime = performance.now();
+
+        function gameLoop(now) {
+            const dt = Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
+
+            if (gameState === 'PLAYING') {
+                gameTime += dt;
+                updateEnvironment(dt);
+
+                if (swingingScoop) swingingScoop.update(dt);
+
+                // Update particles
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    particles[i].update(dt);
+                    if (particles[i].life <= 0) particles.splice(i, 1);
+                }
+
+                updateHUD();
+            }
+
+            // Drawing Phase
+            ctx.clearRect(0, 0, screenWidth, screenHeight);
+            drawBackground(ctx);
+            drawCone(ctx);
+            drawStack(ctx);
+
+            if (gameState === 'PLAYING' && swingingScoop) {
+                swingingScoop.draw(ctx);
+            }
+
+            particles.forEach(p => p.draw(ctx));
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialization Entrypoint
+        window.onload = () => {
+            window.addEventListener('resize', resize);
+            resize();
+            initInput();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>

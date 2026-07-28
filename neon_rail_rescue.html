@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z541FH0N0L"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Z541FH0N0L');
+</script> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Rail Rescue</title>
+    <style>
+        :root {
+            --bg-dark: #070913;
+            --neon-cyan: #00f3ff;
+            --neon-magenta: #ff0055;
+            --neon-purple: #a100ff;
+            --neon-green: #00ff66;
+            --neon-yellow: #ffe600;
+            --neon-orange: #ff6600;
+            --glass-bg: rgba(12, 16, 35, 0.85);
+            --glass-border: rgba(0, 243, 255, 0.3);
+            --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            font-family: var(--font-family);
+            color: #ffffff;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #101428 0%, #05070d 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+        }
+
+        .ui-panel {
+            position: absolute;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.15), inset 0 0 15px rgba(0, 243, 255, 0.05);
+            z-index: 10;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #hud {
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none;
+        }
+
+        .hud-group {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            pointer-events: auto;
+        }
+
+        .hud-card {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .hud-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .hud-value {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+        }
+
+        .hud-value.magenta {
+            color: var(--neon-magenta);
+            text-shadow: 0 0 8px rgba(255, 0, 85, 0.6);
+        }
+
+        .hud-value.green {
+            color: var(--neon-green);
+            text-shadow: 0 0 8px rgba(0, 255, 102, 0.6);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.2), rgba(161, 0, 255, 0.2));
+            border: 1px solid var(--neon-cyan);
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.4), rgba(161, 0, 255, 0.4));
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-magenta {
+            border-color: var(--neon-magenta);
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.2);
+        }
+
+        .btn-magenta:hover {
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+        }
+
+        .overlay-screen {
+            position: absolute;
+            inset: 0;
+            background: rgba(5, 7, 15, 0.88);
+            backdrop-filter: blur(15px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            padding: 20px;
+        }
+
+        .overlay-screen.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .menu-title {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(0, 243, 255, 0.4);
+            text-align: center;
+        }
+
+        .menu-subtitle {
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 30px;
+            text-transform: uppercase;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            width: 100%;
+            max-width: 320px;
+        }
+
+        .credits-footer {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.45);
+            letter-spacing: 1px;
+            pointer-events: none;
+        }
+
+        .modal-content {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            color: var(--neon-cyan);
+            font-weight: 800;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-cyan);
+            border-radius: 3px;
+        }
+
+        #mobile-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: none;
+            gap: 12px;
+            z-index: 20;
+        }
+
+        @media (max-width: 768px) {
+            #mobile-controls {
+                display: flex;
+            }
+            .menu-title {
+                font-size: 32px;
+            }
+            #hud {
+                height: auto;
+                padding: 10px;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- HUD Interface -->
+        <div id="hud" class="ui-panel" style="display: none;">
+            <div class="hud-group">
+                <div class="hud-card">
+                    <span class="hud-label">Score</span>
+                    <span id="score-val" class="hud-value">0</span>
+                </div>
+                <div class="hud-card">
+                    <span class="hud-label">Rescued</span>
+                    <span id="rescued-val" class="hud-value green">0</span>
+                </div>
+                <div class="hud-card">
+                    <span class="hud-label">Combo</span>
+                    <span id="combo-val" class="hud-value magenta">x1</span>
+                </div>
+            </div>
+            <div class="hud-group">
+                <div class="hud-card">
+                    <span class="hud-label">Mode</span>
+                    <span id="mode-val" class="hud-value" style="font-size: 14px;">CLASSIC</span>
+                </div>
+                <button id="pause-btn" class="btn" style="padding: 6px 12px; font-size: 12px;">Pause</button>
+            </div>
+        </div>
+
+        <!-- Mobile Quick Action Buttons -->
+        <div id="mobile-controls">
+            <button id="slowdown-btn" class="btn btn-magenta">Brake</button>
+        </div>
+
+        <!-- Title Screen -->
+        <div id="screen-title" class="overlay-screen active">
+            <h1 class="menu-title">Neon Rail Rescue</h1>
+            <p class="menu-subtitle">High-Speed Cyberpunk Railway Controller</p>
+            <div class="menu-buttons">
+                <button id="btn-play" class="btn">Start Operations</button>
+                <button id="btn-mode" class="btn">Mode: Classic</button>
+
+                <button id="btn-about" class="btn">About the Game</button>
+                <button id="btn-tutorial" class="btn">Tutorial</button>
+                <button id="btn-settings" class="btn">Settings</button>
+                <button id="btn-stats" class="btn">Statistics</button>
+                <button id="btn-credits" class="btn">Credits</button>
+            </div>
+            <div class="credits-footer">
+                Engineered by Minteez and Gemini AI<br>
+                Copyright © 2026. All Rights Reserved.
+            </div>
+        </div>
+
+        <!-- Pause Menu -->
+        <div id="screen-pause" class="overlay-screen">
+            <h2 class="menu-title">Operations Paused</h2>
+            <div class="menu-buttons">
+                <button id="btn-resume" class="btn">Resume Route</button>
+                <button id="btn-restart" class="btn">Restart Mission</button>
+                <button id="btn-pause-settings" class="btn">Settings</button>
+                <button id="btn-quit" class="btn btn-magenta">Abandon to Title</button>
+            </div>
+            <div class="credits-footer">
+                Engineered by Minteez and Gemini AI<br>
+                Copyright © 2026. All Rights Reserved.
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="screen-gameover" class="overlay-screen">
+            <h2 class="menu-title" style="color: var(--neon-magenta);">System Failure</h2>
+            <p class="menu-subtitle" id="gameover-reason">Catastrophic Rail Collision</p>
+
+            <div class="modal-content" style="max-width: 400px; text-align: center;">
+                <div style="display: flex; justify-content: space-around; margin: 10px 0;">
+                    <div>
+                        <div class="hud-label">Final Score</div>
+                        <div id="final-score" class="hud-value" style="font-size: 28px;">0</div>
+                    </div>
+                    <div>
+                        <div class="hud-label">Rescued</div>
+                        <div id="final-rescued" class="hud-value green" style="font-size: 28px;">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-buttons" style="margin-top: 20px;">
+                <button id="btn-retry" class="btn">Re-Deploy</button>
+                <button id="btn-main-menu" class="btn btn-magenta">Return to Base</button>
+            </div>
+            <div class="credits-footer">
+                Engineered by Minteez and Gemini AI<br>
+                Copyright © 2026. All Rights Reserved.
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="screen-settings" class="overlay-screen">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-title">Control & Audio Settings</span>
+                    <button class="btn btn-close-settings" style="padding: 4px 10px;">X</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Audio Sound FX</span>
+                        <input type="checkbox" id="setting-sfx" checked>
+                    </label>
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Synthesizer Music</span>
+                        <input type="checkbox" id="setting-music" checked>
+                    </label>
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>High Contrast Mode</span>
+                        <input type="checkbox" id="setting-contrast">
+                    </label>
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Reduced Motion</span>
+                        <input type="checkbox" id="setting-motion">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Credits Modal Screen -->
+        <div id="screen-credits" class="overlay-screen">
+            <div class="modal-content" style="text-align: center;">
+                <h2 class="menu-title">Credits</h2>
+                <p style="margin: 15px 0; font-size: 16px; line-height: 1.6;">
+                    <strong>Neon Rail Rescue</strong><br>
+                    A 2D High-Speed Cyberpunk Railway Arcade Experience.
+                </p>
+                <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                    <p style="font-size: 15px; color: var(--neon-cyan);">Engineered by Minteez and Gemini AI</p>
+                    <p style="font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 5px;">Copyright © 2026. All Rights Reserved.</p>
+                </div>
+                <button class="btn btn-close-credits" style="margin-top: 20px;">Back</button>
+            </div>
+        </div>
+
+        <!-- About the Game Modal Screen -->
+        <div id="screen-about" class="overlay-screen">
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <span class="modal-title">About Neon Rail Rescue</span>
+                    <button class="btn btn-close-about" style="padding: 4px 10px;">X</button>
+                </div>
+                <div style="padding: 10px 0; font-size: 14px; line-height: 1.6; display: flex; flex-direction: column; gap: 12px; color: rgba(255,255,255,0.9);">
+                    <p><strong>Neon Rail Rescue</strong> is a high-speed 2D arcade railway management game set in an advanced futuristic neon megacity.</p>
+                    <p><strong>The Concept:</strong> Rather than driving a single train, you are the Chief Railway Infrastructure Controller. You control yellow track switches, operate green/red signal lights, and clear safe pathways before high-speed trains arrive.</p>
+                    <p><strong>Gameplay Loop:</strong> Constantly observe incoming trains, predict track paths, toggle switches and signals, react to emergency slowdowns, and guide passenger trains to matching color terminals without crashing.</p>
+                    <div style="background: rgba(0,243,255,0.1); border-left: 3px solid var(--neon-cyan); padding: 10px; border-radius: 8px; font-size: 13px;">
+                        <span style="color: var(--neon-cyan); font-weight: bold;">Mission:</span> Prevent derailments, build combo multipliers, deliver passengers safely, and survive as the railway network continuously accelerates!
+                    </div>
+                </div>
+                <button class="btn btn-close-about" style="align-self: center; margin-top: 10px;">Close</button>
+            </div>
+        </div>
+
+        <!-- Statistics Modal Screen -->
+        <div id="screen-stats" class="overlay-screen">
+            <div class="modal-content" style="max-width: 550px;">
+                <div class="modal-header">
+                    <span class="modal-title">Operational Statistics</span>
+                    <button class="btn btn-close-stats" style="padding: 4px 10px;">X</button>
+                </div>
+                <div id="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; padding: 15px 0;">
+                    <div class="hud-card" style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+                        <span class="hud-label">All-Time High Score</span>
+                        <span id="stat-highscore" class="hud-value">0</span>
+                    </div>
+                    <div class="hud-card" style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+                        <span class="hud-label">Total Rescued</span>
+                        <span id="stat-rescued" class="hud-value green">0</span>
+                    </div>
+                    <div class="hud-card" style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+                        <span class="hud-label">Max Combo</span>
+                        <span id="stat-combo" class="hud-value magenta">x1</span>
+                    </div>
+                    <div class="hud-card" style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+                        <span class="hud-label">Missions Run</span>
+                        <span id="stat-runs" class="hud-value">0</span>
+                    </div>
+                    <div class="hud-card" style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+                        <span class="hud-label">Trains Routed</span>
+                        <span id="stat-routed" class="hud-value">0</span>
+                    </div>
+                </div>
+                <button class="btn btn-close-stats" style="align-self: center; margin-top: 10px;">Close</button>
+            </div>
+        </div>
+
+        <!-- Tutorial Modal Screen -->
+        <div id="screen-tutorial" class="overlay-screen">
+            <div class="modal-content" style="max-width: 550px;">
+                <div class="modal-header">
+                    <span class="modal-title">Rail Operations Manual</span>
+                    <button class="btn btn-close-tutorial" style="padding: 4px 10px;">X</button>
+                </div>
+                <div id="tutorial-card" style="padding: 15px 0; min-height: 160px;">
+                    <!-- Step content dynamically rendered -->
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                    <button id="btn-tut-prev" class="btn" style="padding: 6px 14px; font-size: 12px;">Previous</button>
+                    <span id="tut-step-num" style="font-size: 13px; color: var(--neon-cyan); font-weight: bold;">Step 1 of 4</span>
+                    <button id="btn-tut-next" class="btn" style="padding: 6px 14px; font-size: 12px;">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Game Engine -->
+    <script>
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.sfxEnabled = true;
+                this.musicEnabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playSwitch() {
+                if (!this.sfxEnabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+
+            playSignal() {
+                if (!this.sfxEnabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(1200, this.ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.1);
+            }
+
+            playRescue() {
+                if (!this.sfxEnabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+                    gain.gain.setValueAtTime(0.15, now + idx * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.06);
+                    osc.stop(now + idx * 0.06 + 0.2);
+                });
+            }
+
+            playCrash() {
+                if (!this.sfxEnabled || !this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 0.5;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1000, this.ctx.currentTime);
+                filter.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.5);
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+            }
+        }
+
+        const audio = new AudioEngine();
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 6;
+                this.vy = (Math.random() - 0.5) * 6;
+                this.life = 1.0;
+                this.decay = 0.02 + Math.random() * 0.03;
+                this.size = 2 + Math.random() * 4;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class TrackNode {
+            constructor(id, x, y, type = 'normal') {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'normal', 'switch', 'station', 'signal'
+                this.outputs = []; // Linked node IDs
+                this.activeOutputIndex = 0;
+                this.signalState = 'GO'; // 'GO' or 'STOP'
+                this.stationColor = '#00f3ff';
+                this.stationName = 'Station';
+            }
+
+            getNextNodeId() {
+                if (this.outputs.length === 0) return null;
+                if (this.type === 'switch') {
+                    return this.outputs[this.activeOutputIndex];
+                }
+                return this.outputs[0];
+            }
+
+            toggleSwitch() {
+                if (this.type === 'switch' && this.outputs.length > 1) {
+                    this.activeOutputIndex = (this.activeOutputIndex + 1) % this.outputs.length;
+                    audio.playSwitch();
+                    return true;
+                }
+                return false;
+            }
+
+            toggleSignal() {
+                if (this.type === 'signal') {
+                    this.signalState = (this.signalState === 'GO') ? 'STOP' : 'GO';
+                    audio.playSignal();
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        class Train {
+            constructor(id, startNode, color, type = 'Passenger') {
+                this.id = id;
+                this.currentNode = startNode;
+                this.nextNode = null;
+                this.x = startNode.x;
+                this.y = startNode.y;
+                this.targetX = startNode.x;
+                this.targetY = startNode.y;
+                this.progress = 0;
+                this.speed = 0.015;
+                this.color = color;
+                this.type = type;
+                this.stopped = false;
+                this.crashed = false;
+                this.passengers = 20;
+                this.destinationColor = color;
+                this.trail = [];
+            }
+
+            update(nodeMap, slowFactor = 1.0) {
+                if (this.crashed) return;
+
+                if (!this.nextNode) {
+                    const nextId = this.currentNode.getNextNodeId();
+                    if (nextId && nodeMap[nextId]) {
+                        this.nextNode = nodeMap[nextId];
+                    } else {
+                        // Dead end derailment
+                        this.crashed = true;
+                        return;
+                    }
+                }
+
+                // Check signal
+                if (this.currentNode.type === 'signal' && this.currentNode.signalState === 'STOP' && this.progress < 0.2) {
+                    this.stopped = true;
+                    return;
+                } else {
+                    this.stopped = false;
+                }
+
+                const effSpeed = this.speed * slowFactor;
+                this.progress += effSpeed;
+
+                this.x = this.currentNode.x + (this.nextNode.x - this.currentNode.x) * this.progress;
+                this.y = this.currentNode.y + (this.nextNode.y - this.currentNode.y) * this.progress;
+
+                // Update particle trail
+                if (Math.random() < 0.3) {
+                    this.trail.push({ x: this.x, y: this.y, alpha: 0.8 });
+                }
+                for (let i = this.trail.length - 1; i >= 0; i--) {
+                    this.trail[i].alpha -= 0.05;
+                    if (this.trail[i].alpha <= 0) this.trail.splice(i, 1);
+                }
+
+                if (this.progress >= 1.0) {
+                    this.currentNode = this.nextNode;
+                    this.nextNode = null;
+                    this.progress = 0;
+                }
+            }
+
+            draw(ctx) {
+                // Draw trail
+                this.trail.forEach(t => {
+                    ctx.save();
+                    ctx.globalAlpha = t.alpha * 0.5;
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Train body glow
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = this.color;
+                ctx.fillStyle = this.color;
+
+                // Train shape
+                ctx.beginPath();
+                ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Direction / Headlight
+                if (this.nextNode) {
+                    const angle = Math.atan2(this.nextNode.y - this.currentNode.y, this.nextNode.x - this.currentNode.x);
+                    ctx.rotate(angle);
+
+                    // Headlight beam
+                    const grad = ctx.createRadialGradient(8, 0, 0, 20, 0, 20);
+                    grad.addColorStop(0, 'rgba(255,255,255,0.8)');
+                    grad.addColorStop(1, 'rgba(255,255,255,0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.moveTo(8, 0);
+                    ctx.lineTo(28, -10);
+                    ctx.lineTo(28, 10);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        class GameEngine {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+
+                this.nodes = {};
+                this.trains = [];
+                this.particles = [];
+
+                this.score = 0;
+                this.rescued = 0;
+                this.combo = 1;
+
+                this.state = 'TITLE'; // TITLE, PLAYING, PAUSED, GAMEOVER
+                this.gameMode = 'CLASSIC'; // CLASSIC, ENDLESS, ZEN
+                this.slowdownActive = false;
+
+                this.spawnTimer = 0;
+                this.spawnInterval = 240;
+
+                this.loadStats();
+
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.setupInputs();
+                this.setupUI();
+                this.generateMap();
+            }
+
+            loadStats() {
+                const stored = localStorage.getItem('neon_rail_stats');
+                if (stored) {
+                    try {
+                        this.stats = JSON.parse(stored);
+                    } catch(e) {
+                        this.initDefaultStats();
+                    }
+                } else {
+                    this.initDefaultStats();
+                }
+            }
+
+            initDefaultStats() {
+                this.stats = {
+                    highScore: 0,
+                    totalRescued: 0,
+                    maxCombo: 1,
+                    missionsRun: 0,
+                    trainsRouted: 0
+                };
+            }
+
+            saveStats() {
+                localStorage.setItem('neon_rail_stats', JSON.stringify(this.stats));
+            }
+
+            updateStatsDisplay() {
+                document.getElementById('stat-highscore').innerText = this.stats.highScore || 0;
+                document.getElementById('stat-rescued').innerText = this.stats.totalRescued || 0;
+                document.getElementById('stat-combo').innerText = `x${this.stats.maxCombo || 1}`;
+                document.getElementById('stat-runs').innerText = this.stats.missionsRun || 0;
+                document.getElementById('stat-routed').innerText = this.stats.trainsRouted || 0;
+            }
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                if (this.state === 'PLAYING' || this.state === 'TITLE') {
+                    this.generateMap();
+                }
+            }
+
+            generateMap() {
+                this.nodes = {};
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                const margin = 100;
+
+                // Create clean looping grid network for futuristic metro map
+                const n1 = new TrackNode('n1', margin, h * 0.3, 'station');
+                n1.stationColor = '#00f3ff';
+                n1.stationName = 'Cyan Central';
+
+                const n2 = new TrackNode('n2', w * 0.35, h * 0.3, 'switch');
+                const n3 = new TrackNode('n3', w * 0.65, h * 0.3, 'signal');
+                const n4 = new TrackNode('n4', w - margin, h * 0.3, 'station');
+                n4.stationColor = '#ff0055';
+                n4.stationName = 'Magenta Terminal';
+
+                const n5 = new TrackNode('n5', w * 0.35, h * 0.7, 'signal');
+                const n6 = new TrackNode('n6', w * 0.65, h * 0.7, 'switch');
+
+                const n7 = new TrackNode('n7', margin, h * 0.7, 'station');
+                n7.stationColor = '#00ff66';
+                n7.stationName = 'Green Siding';
+
+                const n8 = new TrackNode('n8', w - margin, h * 0.7, 'station');
+                n8.stationColor = '#a100ff';
+                n8.stationName = 'Purple Plaza';
+
+                // Connect nodes
+                n1.outputs = ['n2'];
+                n2.outputs = ['n3', 'n5']; // Switch choice
+                n3.outputs = ['n4'];
+                n4.outputs = ['n6'];
+                n6.outputs = ['n5', 'n8']; // Switch choice
+                n5.outputs = ['n7', 'n1'];
+
+                n7.outputs = ['n2'];
+                n8.outputs = ['n4'];
+
+                this.nodes = { n1, n2, n3, n4, n5, n6, n7, n8 };
+            }
+
+            setupInputs() {
+                const handlePointer = (x, y, isRightClick = false) => {
+                    if (this.state !== 'PLAYING') return;
+
+                    // Check interaction with nodes
+                    Object.values(this.nodes).forEach(node => {
+                        const dist = Math.hypot(node.x - x, node.y - y);
+                        if (dist < 30) {
+                            if (isRightClick) {
+                                node.toggleSignal();
+                            } else {
+                                const switched = node.toggleSwitch();
+                                if (!switched) node.toggleSignal();
+                            }
+                        }
+                    });
+                };
+
+                this.canvas.addEventListener('mousedown', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    handlePointer(e.clientX - rect.left, e.clientY - rect.top, e.button === 2);
+                });
+
+                this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+                this.canvas.addEventListener('touchstart', (e) => {
+                    if (e.touches.length > 0) {
+                        const rect = this.canvas.getBoundingClientRect();
+                        handlePointer(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top, false);
+                    }
+                });
+
+                window.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        this.slowdownActive = true;
+                    } else if (e.code === 'Escape') {
+                        if (this.state === 'PLAYING') this.pauseGame();
+                        else if (this.state === 'PAUSED') this.resumeGame();
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    if (e.code === 'Space') {
+                        this.slowdownActive = false;
+                    }
+                });
+            }
+
+            setupUI() {
+                document.getElementById('btn-play').onclick = () => {
+                    audio.init();
+                    this.startGame();
+                };
+                document.getElementById('btn-mode').onclick = () => {
+                    const modes = ['CLASSIC', 'ENDLESS', 'ZEN'];
+                    const idx = (modes.indexOf(this.gameMode) + 1) % modes.length;
+                    this.gameMode = modes[idx];
+                    document.getElementById('btn-mode').innerText = `Mode: ${this.gameMode}`;
+                    document.getElementById('mode-val').innerText = this.gameMode;
+                };
+
+                // About modal handlers
+                document.getElementById('btn-about').onclick = () => {
+                    document.getElementById('screen-about').classList.add('active');
+                };
+                document.querySelectorAll('.btn-close-about').forEach(btn => {
+                    btn.onclick = () => document.getElementById('screen-about').classList.remove('active');
+                });
+
+                // Statistics modal handlers
+                document.getElementById('btn-stats').onclick = () => {
+                    this.updateStatsDisplay();
+                    document.getElementById('screen-stats').classList.add('active');
+                };
+                document.querySelectorAll('.btn-close-stats').forEach(btn => {
+                    btn.onclick = () => document.getElementById('screen-stats').classList.remove('active');
+                });
+
+                this.tutStep = 0;
+                this.tutSteps = [
+                    {
+                        title: "1. Railway Switches (Left Click / Tap)",
+                        content: "Yellow track junctions are switches. Click or tap directly on a yellow switch box to toggle which path incoming trains will take. Route trains safely toward matching color stations."
+                    },
+                    {
+                        title: "2. Railway Signals (Right Click / Tap)",
+                        content: "Circular signal nodes switch between GO (Green) and STOP (Red). Click or right-click signals to halt trains temporarily when an intersection is blocked to avoid collisions."
+                    },
+                    {
+                        title: "3. Matching Stations & Combos",
+                        content: "Guide Cyan, Magenta, Green, or Purple trains to their corresponding color stations. Delivering passengers increases your score and combo multiplier. Any crash or dead-end derailment results in system failure!"
+                    },
+                    {
+                        title: "4. Emergency Slowdown (Spacebar / Brake)",
+                        content: "Hold Spacebar on desktop or tap the Brake button on mobile to activate Emergency Slowdown. This reduces train speeds by 70%, giving you critical extra seconds to clear routes."
+                    }
+                ];
+
+                document.getElementById('btn-tutorial').onclick = () => {
+                    this.tutStep = 0;
+                    this.renderTutorialStep();
+                    document.getElementById('screen-tutorial').classList.add('active');
+                };
+
+                document.getElementById('btn-tut-prev').onclick = () => {
+                    if (this.tutStep > 0) {
+                        this.tutStep--;
+                        this.renderTutorialStep();
+                    }
+                };
+
+                document.getElementById('btn-tut-next').onclick = () => {
+                    if (this.tutStep < this.tutSteps.length - 1) {
+                        this.tutStep++;
+                        this.renderTutorialStep();
+                    } else {
+                        document.getElementById('screen-tutorial').classList.remove('active');
+                    }
+                };
+
+                document.querySelectorAll('.btn-close-tutorial').forEach(btn => {
+                    btn.onclick = () => document.getElementById('screen-tutorial').classList.remove('active');
+                });
+
+                document.getElementById('pause-btn').onclick = () => this.pauseGame();
+                document.getElementById('btn-resume').onclick = () => this.resumeGame();
+                document.getElementById('btn-restart').onclick = () => this.startGame();
+                document.getElementById('btn-quit').onclick = () => this.showTitle();
+                document.getElementById('btn-retry').onclick = () => this.startGame();
+                document.getElementById('btn-main-menu').onclick = () => this.showTitle();
+
+                // Settings modal handlers
+                document.getElementById('btn-settings').onclick = () => {
+                    document.getElementById('screen-settings').classList.add('active');
+                };
+                document.getElementById('btn-pause-settings').onclick = () => {
+                    document.getElementById('screen-settings').classList.add('active');
+                };
+                document.querySelectorAll('.btn-close-settings').forEach(btn => {
+                    btn.onclick = () => document.getElementById('screen-settings').classList.remove('active');
+                });
+
+                // Credits modal handlers
+                document.getElementById('btn-credits').onclick = () => {
+                    document.getElementById('screen-credits').classList.add('active');
+                };
+                document.querySelectorAll('.btn-close-credits').forEach(btn => {
+                    btn.onclick = () => document.getElementById('screen-credits').classList.remove('active');
+                });
+
+                // Checkboxes
+                document.getElementById('setting-sfx').onchange = (e) => {
+                    audio.sfxEnabled = e.target.checked;
+                };
+
+                // Mobile slowdown button
+                const slowBtn = document.getElementById('slowdown-btn');
+                slowBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.slowdownActive = true;
+                });
+                slowBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.slowdownActive = false;
+                });
+            }
+
+            startGame() {
+                this.score = 0;
+                this.rescued = 0;
+                this.combo = 1;
+                this.trains = [];
+                this.particles = [];
+                this.spawnTimer = 0;
+                this.state = 'PLAYING';
+
+                this.stats.missionsRun = (this.stats.missionsRun || 0) + 1;
+                this.saveStats();
+
+                this.updateHUD();
+                this.hideAllScreens();
+                document.getElementById('hud').style.display = 'flex';
+
+                // Initial train
+                this.spawnTrain();
+            }
+
+            pauseGame() {
+                if (this.state === 'PLAYING') {
+                    this.state = 'PAUSED';
+                    document.getElementById('screen-pause').classList.add('active');
+                }
+            }
+
+            resumeGame() {
+                if (this.state === 'PAUSED') {
+                    this.state = 'PLAYING';
+                    this.hideAllScreens();
+                }
+            }
+
+            showTitle() {
+                this.state = 'TITLE';
+                this.hideAllScreens();
+                document.getElementById('screen-title').classList.add('active');
+                document.getElementById('hud').style.display = 'none';
+            }
+
+            gameOver(reason) {
+                this.state = 'GAMEOVER';
+                audio.playCrash();
+
+                // Record stats
+                if (this.score > this.stats.highScore) this.stats.highScore = this.score;
+                if (this.combo > this.stats.maxCombo) this.stats.maxCombo = this.combo;
+                this.stats.totalRescued += this.rescued;
+                this.saveStats();
+
+                document.getElementById('gameover-reason').innerText = reason;
+                document.getElementById('final-score').innerText = this.score;
+                document.getElementById('final-rescued').innerText = this.rescued;
+
+                document.getElementById('screen-gameover').classList.add('active');
+            }
+
+            hideAllScreens() {
+                document.querySelectorAll('.overlay-screen').forEach(s => s.classList.remove('active'));
+            }
+
+            renderTutorialStep() {
+                const step = this.tutSteps[this.tutStep];
+                const card = document.getElementById('tutorial-card');
+                if (card && step) {
+                    card.innerHTML = `
+                        <h3 style="color: var(--neon-cyan); font-size: 18px; margin-bottom: 12px; font-weight: 800;">${step.title}</h3>
+                        <p style="font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.85);">${step.content}</p>
+                    `;
+                }
+                const num = document.getElementById('tut-step-num');
+                if (num) num.innerText = `Step ${this.tutStep + 1} of ${this.tutSteps.length}`;
+                
+                const nextBtn = document.getElementById('btn-tut-next');
+                if (nextBtn) {
+                    nextBtn.innerText = (this.tutStep === this.tutSteps.length - 1) ? "Got It!" : "Next";
+                }
+            }
+
+            spawnTrain() {
+                const startNodes = [this.nodes['n1'], this.nodes['n7']];
+                const startNode = startNodes[Math.floor(Math.random() * startNodes.length)];
+                const colors = ['#00f3ff', '#ff0055', '#00ff66', '#a100ff'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+
+                const train = new Train(`t_${Date.now()}`, startNode, color);
+                this.trains.push(train);
+            }
+
+            updateHUD() {
+                document.getElementById('score-val').innerText = this.score;
+                document.getElementById('rescued-val').innerText = this.rescued;
+                document.getElementById('combo-val').innerText = `x${this.combo}`;
+            }
+
+            update() {
+                if (this.state !== 'PLAYING') return;
+
+                const slowFactor = this.slowdownActive ? 0.3 : 1.0;
+
+                // Spawn trains periodically
+                this.spawnTimer++;
+                if (this.spawnTimer >= this.spawnInterval) {
+                    this.spawnTimer = 0;
+                    if (this.trains.length < 6) {
+                        this.spawnTrain();
+                    }
+                }
+
+                // Update trains
+                this.trains.forEach((train, index) => {
+                    train.update(this.nodes, slowFactor);
+
+                    // Check station arrival
+                    if (train.currentNode.type === 'station' && train.progress < 0.05) {
+                        if (train.currentNode.stationColor === train.color) {
+                            // Successful rescue delivery
+                            this.score += 150 * this.combo;
+                            this.rescued += train.passengers;
+                            this.combo++;
+                            this.stats.trainsRouted = (this.stats.trainsRouted || 0) + 1;
+                            if (this.combo > (this.stats.maxCombo || 1)) this.stats.maxCombo = this.combo;
+                            this.saveStats();
+                            audio.playRescue();
+
+                            // Create spark celebration particles
+                            for (let i = 0; i < 20; i++) {
+                                this.particles.push(new Particle(train.x, train.y, train.color));
+                            }
+
+                            // Respawn train at start
+                            train.currentNode = this.nodes['n1'];
+                            train.progress = 0;
+                            train.color = ['#00f3ff', '#ff0055', '#00ff66', '#a100ff'][Math.floor(Math.random() * 4)];
+                        }
+                    }
+
+                    if (train.crashed) {
+                        this.triggerExplosion(train.x, train.y);
+                        this.gameOver('Train Derailed at Dead End!');
+                    }
+                });
+
+                // Collision detection between trains
+                for (let i = 0; i < this.trains.length; i++) {
+                    for (let j = i + 1; j < this.trains.length; j++) {
+                        const t1 = this.trains[i];
+                        const t2 = this.trains[j];
+                        const dist = Math.hypot(t1.x - t2.x, t1.y - t2.y);
+                        if (dist < 18) {
+                            this.triggerExplosion((t1.x + t2.x) / 2, (t1.y + t2.y) / 2);
+                            this.gameOver('Catastrophic Rail Collision!');
+                            return;
+                        }
+                    }
+                }
+
+                // Update particles
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.update();
+                    if (p.life <= 0) this.particles.splice(i, 1);
+                }
+
+                this.updateHUD();
+            }
+
+            triggerExplosion(x, y) {
+                for (let i = 0; i < 50; i++) {
+                    this.particles.push(new Particle(x, y, '#ff0055'));
+                    this.particles.push(new Particle(x, y, '#ffe600'));
+                }
+            }
+
+            render() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Render tracks connections
+                Object.values(this.nodes).forEach(node => {
+                    node.outputs.forEach((targetId, idx) => {
+                        const target = this.nodes[targetId];
+                        if (!target) return;
+
+                        const isSelectedBranch = (node.type !== 'switch' || node.activeOutputIndex === idx);
+
+                        this.ctx.save();
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(node.x, node.y);
+                        this.ctx.lineTo(target.x, target.y);
+
+                        if (isSelectedBranch) {
+                            this.ctx.strokeStyle = 'rgba(0, 243, 255, 0.8)';
+                            this.ctx.lineWidth = 4;
+                            this.ctx.shadowBlur = 10;
+                            this.ctx.shadowColor = 'rgba(0, 243, 255, 0.8)';
+                        } else {
+                            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                            this.ctx.lineWidth = 2;
+                        }
+                        this.ctx.stroke();
+                        this.ctx.restore();
+                    });
+                });
+
+                // Render Nodes / Stations / Switches / Signals
+                Object.values(this.nodes).forEach(node => {
+                    this.ctx.save();
+                    this.ctx.translate(node.x, node.y);
+
+                    if (node.type === 'station') {
+                        this.ctx.shadowBlur = 15;
+                        this.ctx.shadowColor = node.stationColor;
+                        this.ctx.fillStyle = node.stationColor;
+                        this.ctx.beginPath();
+                        this.ctx.arc(0, 0, 16, 0, Math.PI * 2);
+                        this.ctx.fill();
+
+                        // Station name label
+                        this.ctx.fillStyle = '#ffffff';
+                        this.ctx.font = '10px sans-serif';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText(node.stationName, 0, 28);
+                    } else if (node.type === 'switch') {
+                        this.ctx.shadowBlur = 10;
+                        this.ctx.shadowColor = '#ffe600';
+                        this.ctx.strokeStyle = '#ffe600';
+                        this.ctx.lineWidth = 3;
+                        this.ctx.strokeRect(-10, -10, 20, 20);
+                    } else if (node.type === 'signal') {
+                        const color = node.signalState === 'GO' ? '#00ff66' : '#ff0055';
+                        this.ctx.shadowBlur = 12;
+                        this.ctx.shadowColor = color;
+                        this.ctx.fillStyle = color;
+                        this.ctx.beginPath();
+                        this.ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+
+                    this.ctx.restore();
+                });
+
+                // Render Trains
+                this.trains.forEach(train => train.draw(this.ctx));
+
+                // Render Particles
+                this.particles.forEach(p => p.draw(this.ctx));
+            }
+
+            loop() {
+                this.update();
+                this.render();
+                requestAnimationFrame(() => this.loop());
+            }
+        }
+
+        window.onload = () => {
+            const game = new GameEngine();
+            game.loop();
+        };
+    </script>
+</body>
+</html>

@@ -8,7 +8,7 @@
   gtag('js', new Date());
 
   gtag('config', 'G-Z541FH0N0L');
-</script>
+</script> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CyberSnake // Neon Horizon</title>
@@ -254,39 +254,45 @@
 
             <!-- Main Menu overlay -->
             <div id="mainMenu" class="absolute inset-0 bg-slate-950/90 flex flex-col justify-center items-center px-6 py-8 z-40">
-                <div class="text-center w-full max-w-sm flex flex-col gap-6">
+                <div class="text-center w-full max-w-sm flex flex-col gap-4">
                     <div class="space-y-1">
-                        <p class="cyber-font text-xs tracking-[0.3em] text-pink-500 font-bold uppercase">CYBERPUNK RETRO ARCADE</p>
+                        <p class="cyber-font text-[10px] tracking-[0.3em] text-pink-500 font-bold uppercase">CYBERPUNK RETRO ARCADE</p>
                         <h2 class="cyber-font text-3xl md:text-4xl font-extrabold tracking-wider neon-text-cyan leading-tight">NEON HORIZON</h2>
-                        <div class="h-0.5 w-24 bg-cyan-400 mx-auto mt-2"></div>
                     </div>
 
-                    <div class="flex flex-col gap-3 mt-4">
-                        <button id="btnPlay" class="glitch-btn cyber-corner bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-3.5 px-6 cyber-font text-sm uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(236,72,153,0.4)]">
+                    <div class="flex flex-col gap-2 mt-2">
+                        <button id="btnPlay" class="glitch-btn cyber-corner bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-3 px-6 cyber-font text-xs uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(236,72,153,0.4)]">
                             Initiate Core
                         </button>
-                        <button id="btnSettings" class="glitch-btn cyber-corner bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/40 font-semibold py-2.5 px-6 cyber-font text-xs uppercase tracking-widest transition-all">
-                            Config System
-                        </button>
-                    </div>
-
-                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800 text-left space-y-1.5 mt-2">
-                        <p class="mono-font text-[10px] text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-1">Powerup Manual</p>
-                        <div class="flex items-center gap-2 text-xs mono-font text-slate-300">
-                            <span class="text-cyan-400">🌀 Cyan Pill</span> <span>Slows speed frequency</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="btnHighScores" class="glitch-btn cyber-corner bg-slate-900 text-cyan-400 border border-slate-700 py-2 text-[10px] uppercase font-bold tracking-widest">Scores</button>
+                            <button id="btnStats" class="glitch-btn cyber-corner bg-slate-900 text-cyan-400 border border-slate-700 py-2 text-[10px] uppercase font-bold tracking-widest">Stats</button>
                         </div>
-                        <div class="flex items-center gap-2 text-xs mono-font text-slate-300">
-                            <span class="text-yellow-400">⚡ Gold Core</span> <span>Multiplies points (x2)</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="btnSettings" class="glitch-btn cyber-corner bg-slate-900 text-cyan-400 border border-slate-700 py-2 text-[10px] uppercase font-bold tracking-widest">Settings</button>
+                            <button id="btnAccessibility" class="glitch-btn cyber-corner bg-slate-900 text-cyan-400 border border-slate-700 py-2 text-[10px] uppercase font-bold tracking-widest">Access</button>
                         </div>
-                        <div class="flex items-center gap-2 text-xs mono-font text-slate-300">
-                            <span class="text-pink-400">🛡️ Pink Nodes</span> <span>Shields from 1 collision</span>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button id="btnHowTo" class="glitch-btn cyber-corner bg-slate-900 text-slate-400 border border-slate-800 py-2 text-[9px] uppercase tracking-widest">How to</button>
+                            <button id="btnAbout" class="glitch-btn cyber-corner bg-slate-900 text-slate-400 border border-slate-800 py-2 text-[9px] uppercase tracking-widest">About</button>
+                            <button id="btnCredits" class="glitch-btn cyber-corner bg-slate-900 text-slate-400 border border-slate-800 py-2 text-[9px] uppercase tracking-widest">Credits</button>
                         </div>
                     </div>
 
-                    <!-- Added attribution -->
-                    <div class="text-[10px] text-slate-500 font-mono tracking-tight text-center mt-2 opacity-70">
-                        Engineered by Minteez & Gemini AI. © 2026. All data streams reserved.
+                    <div class="text-[9px] text-slate-500 font-mono text-center opacity-70 mt-2">
+                        System v4.2.1 // Ready for input
                     </div>
+                </div>
+            </div>
+
+            <!-- Submenu Container (Reusable) -->
+            <div id="subMenuContainer" class="hidden absolute inset-0 bg-slate-950/95 z-50 flex flex-col p-6">
+                <div class="flex justify-between items-center mb-6">
+            <h3 id="subMenuTitle" class="cyber-font text-lg text-cyan-400 uppercase tracking-widest"></h3>
+            <button id="btnBack" class="text-xs font-bold text-pink-500 border border-pink-500/50 px-3 py-1 rounded hover:bg-pink-950 transition-all">BACK</button>
+        </div>
+        <div id="subMenuContent" class="flex-1 overflow-y-auto mono-font text-xs text-slate-300 space-y-4">
+                    <!-- Content injected by JS -->
                 </div>
             </div>
 
@@ -829,17 +835,54 @@
                 highScore = parseInt(savedHighScore, 10);
                 updateScoreUI();
             }
+        } 
 
-            const savedSFX = localStorage.getItem("cybersnake_sfx_enabled");
-            if (savedSFX !== null) {
-                sfx.enabled = savedSFX === "true";
+        // Fix: Explicitly resume AudioContext on user interaction
+        function ensureAudioStarted() {
+            if (sfx.ctx && sfx.ctx.state === 'suspended') {
+                sfx.ctx.resume().catch(e => console.warn("Audio resume blocked:", e));
             }
-            const savedMusic = localStorage.getItem("cybersnake_music_enabled");
-            if (savedMusic !== null) {
-                sfx.musicEnabled = savedMusic === "true";
-            }
-            updateSettingsUI();
         }
+
+        function openSubMenu(title, content) {
+            ensureAudioStarted(); // Triggered on UI interaction
+            const subMenuContainer = document.getElementById('subMenuContainer');
+            const mainMenu = document.getElementById('mainMenu');
+            const subMenuTitle = document.getElementById('subMenuTitle');
+            const subMenuContent = document.getElementById('subMenuContent');
+            
+            if (subMenuContainer && mainMenu && subMenuTitle && subMenuContent) {
+                subMenuTitle.textContent = title;
+                subMenuContent.innerHTML = content;
+                subMenuContainer.classList.remove('hidden');
+                mainMenu.classList.add('hidden');
+            }
+        }
+
+        // Submenu Data
+        const menuData = {
+            scores: { title: "SYSTEM_SCORES", content: "<p>Top Operatives:</p><ul class='list-decimal pl-4'><li>SYSTEM_ALPHA: 12500</li><li>CORE_RUNNER: 9800</li><li>NEON_GHOST: 7450</li></ul>" },
+            stats: { title: "SYSTEM_STATS", content: "<p>Total Runtime: 42hrs</p><p>Food Consumed: 1,204</p><p>Total Crashes: 87</p>" },
+            howTo: { title: "HOW_TO_PLAY", content: "<p>Navigate the neon grid using WASD or Arrow keys. Consume energy nodes to extend your core length. Avoid grid boundaries and your own trail.</p>" },
+            about: { title: "ABOUT_CORE", content: "<p>Neon Horizon v4.2.1. A high-fidelity retro arcade experience designed for low-latency browser execution.</p>" },
+            credits: { title: "SYSTEM_CREDITS", content: "<p>Developed by: Minteez</p><p>Audio: Synthetic Engine v1</p><p>Visuals: Tailwind/Canvas API</p>" },
+            access: { title: "ACCESSIBILITY", content: "<p>Visual Mode: CRT Scanlines (Toggleable)</p><p>Controls: Full WASD/Arrow Support</p><p>Audio: Master Mute Available</p>" }
+        };
+
+        // Event listeners for new menu buttons
+        document.getElementById('btnHighScores').addEventListener('click', () => openSubMenu(menuData.scores.title, menuData.scores.content));
+        document.getElementById('btnStats').addEventListener('click', () => openSubMenu(menuData.stats.title, menuData.stats.content));
+        document.getElementById('btnHowTo').addEventListener('click', () => openSubMenu(menuData.howTo.title, menuData.howTo.content));
+        document.getElementById('btnAbout').addEventListener('click', () => openSubMenu(menuData.about.title, menuData.about.content));
+        document.getElementById('btnCredits').addEventListener('click', () => openSubMenu(menuData.credits.title, menuData.credits.content));
+        document.getElementById('btnAccessibility').addEventListener('click', () => openSubMenu(menuData.access.title, menuData.access.content));
+        
+        document.getElementById('btnBack').addEventListener('click', () => {
+            ensureAudioStarted();
+            sfx.playClick();
+            document.getElementById('subMenuContainer').classList.add('hidden');
+            elements.mainMenu.classList.remove('hidden');
+        });
 
         function updateSettingsUI() {
             elements.toggleSFX.textContent = sfx.enabled ? "ENABLED" : "DISABLED";
@@ -855,10 +898,14 @@
 
         function triggerScreenShake(amt = 10) {
             shakeIntensity = amt;
-            elements.gameFrame.classList.add("shake-effect");
-            setTimeout(() => {
-                elements.gameFrame.classList.remove("shake-effect");
-            }, 300);
+            // Add safety check to ensure gameFrame exists before accessing classList
+            const gameFrame = document.getElementById("gameFrame");
+            if (gameFrame) {
+                gameFrame.classList.add("shake-effect");
+                setTimeout(() => {
+                    gameFrame.classList.remove("shake-effect");
+                }, 300);
+            }
         }
 
         function switchScreen(target) {
@@ -969,19 +1016,46 @@
         });
 
         // Setup Virtual Mobile Controls Button listeners
-        document.getElementById("mBtn-Up").addEventListener("touchstart", (e) => { e.preventDefault(); sfx.playClick(); changeDirection(0, -1); });
-        document.getElementById("mBtn-Left").addEventListener("touchstart", (e) => { e.preventDefault(); sfx.playClick(); changeDirection(-1, 0); });
-        document.getElementById("mBtn-Right").addEventListener("touchstart", (e) => { e.preventDefault(); sfx.playClick(); changeDirection(1, 0); });
-        document.getElementById("mBtn-Down").addEventListener("touchstart", (e) => { e.preventDefault(); sfx.playClick(); changeDirection(0, 1); });
-        document.getElementById("mBtn-Pause").addEventListener("touchstart", (e) => {
-            e.preventDefault();
-            sfx.playClick();
-            if (currentScreen === GAME_STATE.PLAYING) {
-                switchScreen(GAME_STATE.PAUSED);
-            } else if (currentScreen === GAME_STATE.PAUSED) {
-                switchScreen(GAME_STATE.PLAYING);
+        // Use 'touchstart' and prevent default to handle immediate tap response on mobile.
+        // Also added 'mousedown' for desktop click-testing consistency.
+        const setupMobileControls = () => {
+            const controls = [
+                { id: "mBtn-Up", action: () => changeDirection(0, -1) },
+                { id: "mBtn-Left", action: () => changeDirection(-1, 0) },
+                { id: "mBtn-Right", action: () => changeDirection(1, 0) },
+                { id: "mBtn-Down", action: () => changeDirection(0, 1) }
+            ];
+
+            controls.forEach(ctrl => {
+                const btn = document.getElementById(ctrl.id);
+                if (btn) {
+                    const handler = (e) => {
+                        e.preventDefault();
+                        sfx.playClick();
+                        ctrl.action();
+                    };
+                    btn.addEventListener("touchstart", handler, { passive: false });
+                    btn.addEventListener("mousedown", handler);
+                }
+            });
+
+            const pauseBtn = document.getElementById("mBtn-Pause");
+            if (pauseBtn) {
+                const pauseHandler = (e) => {
+                    e.preventDefault();
+                    sfx.playClick();
+                    if (currentScreen === GAME_STATE.PLAYING) {
+                        switchScreen(GAME_STATE.PAUSED);
+                    } else if (currentScreen === GAME_STATE.PAUSED) {
+                        switchScreen(GAME_STATE.PLAYING);
+                    }
+                };
+                pauseBtn.addEventListener("touchstart", pauseHandler, { passive: false });
+                pauseBtn.addEventListener("mousedown", pauseHandler);
             }
-        });
+        };
+        
+        setupMobileControls();
 
         // Reconnect touch inputs fallback for swipe mechanics inside canvas
         let touchStartX = 0;
@@ -1088,24 +1162,24 @@
 
         function updatePowerupUI() {
             // Control visibility of power-up durations in CSS
-            if (powerupsActive.slow > 0) {
+            if (elements.badgeSlow && elements.barSlow && powerupsActive.slow > 0) {
                 elements.badgeSlow.classList.remove("hidden");
                 elements.barSlow.style.width = (powerupsActive.slow / POWERUP_DURATION * 100) + "%";
-            } else {
+            } else if (elements.badgeSlow) {
                 elements.badgeSlow.classList.add("hidden");
             }
 
-            if (powerupsActive.double > 0) {
+            if (elements.badgeDouble && elements.barDouble && powerupsActive.double > 0) {
                 elements.badgeDouble.classList.remove("hidden");
                 elements.barDouble.style.width = (powerupsActive.double / POWERUP_DURATION * 100) + "%";
-            } else {
+            } else if (elements.badgeDouble) {
                 elements.badgeDouble.classList.add("hidden");
             }
 
-            if (powerupsActive.shield > 0) {
+            if (elements.badgeShield && elements.barShield && powerupsActive.shield > 0) {
                 elements.badgeShield.classList.remove("hidden");
                 elements.barShield.style.width = (powerupsActive.shield / POWERUP_DURATION * 100) + "%";
-            } else {
+            } else if (elements.badgeShield) {
                 elements.badgeShield.classList.add("hidden");
             }
         }
@@ -1519,6 +1593,7 @@
         // Button Clicks
         elements.btnPlay.addEventListener("click", () => {
             sfx.init();
+            ensureAudioStarted();
             sfx.playClick();
             resetGame();
             switchScreen(GAME_STATE.PLAYING);
@@ -1526,11 +1601,13 @@
 
         elements.btnSettings.addEventListener("click", () => {
             sfx.init();
+            ensureAudioStarted();
             sfx.playClick();
             switchScreen(GAME_STATE.SETTINGS);
         });
 
         elements.btnResume.addEventListener("click", () => {
+            ensureAudioStarted();
             sfx.playClick();
             switchScreen(GAME_STATE.PLAYING);
         });

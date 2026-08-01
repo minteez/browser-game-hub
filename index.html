@@ -1,89 +1,194 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z541FH0N0L"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-Z541FH0N0L');
-</script>    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minteez's Browser Game Hub</title>
+    <title>Minteez's Browser Game Hub | Arcade Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1a1a2e;
-            color: #e94560;
-            text-align: center;
-            padding: 50px;
-        }
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 40px;
-            color: #fff;
-        }
-        .game-list {
-            list-style: none;
-            padding: 0;
-        }
-        .game-list li {
-            margin: 20px 0;
-        }
-        .game-list a {
-            text-decoration: none;
-            color: #fff;
-            background-color: #0f3460;
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            border-radius: 8px;
-            display: inline-block;
-            width: 200px;
-            transition: transform 0.2s, background-color 0.2s;
-            border: 2px solid #e94560;
-        }
-        .game-list a:hover {
-            transform: scale(1.05);
-            background-color: #e94560;
-            color: #1a1a2e;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #050505; color: #fff; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .neon-glow { text-shadow: 0 0 10px rgba(0, 255, 255, 0.5); }
+        .btn-glow { transition: all 0.3s ease; }
+        .btn-glow:hover { box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); transform: translateY(-2px); }
+        .card-hover:hover { transform: translateY(-10px); border-color: #0ff; }
+        @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
     </style>
 </head>
-<body>
+<body class="bg-slate-950 text-slate-200">
 
-    <h1>🎮 Minteez's Browser Game Hub</h1>
-  <div style="background-color: darkblue; width: 100%; height: 20px;"></div>   
-    <p>Select a game to play:</p>
+    <nav class="fixed w-full z-50 glass py-4 px-6 flex justify-between items-center transition-all duration-300">
+        <a href="#" class="text-xl font-bold tracking-tighter text-white">🎮 Minteez Hub</a>
+        <div class="hidden md:flex space-x-8 font-medium text-sm">
+            <a href="#home" class="hover:text-cyan-400 transition">Home</a>
+            <a href="#games" class="hover:text-cyan-400 transition">Games</a>
+            <a href="#about" class="hover:text-cyan-400 transition">About</a>
+            <a href="#features" class="hover:text-cyan-400 transition">Features</a>
+        </div>
+    </nav>
 
-    <ul class="game-list">
-        <li><a href="neon_dodge.html">Neon Dodge</a></li>       
-        <li><a href="neon_cyberpunk_snake.html">Cyber-Snake</a></li>
-        <li><a href="arcade_space_shooter.html">Arcade Space Shooter</a></li>
-        <li><a href="neon_survivor.html">Neon Survivor</a></li>
-        <li><a href="neon_racer_pro.html">Neon Racer Pro</a></li>
-        <li><a href="modern_idle_tycoon.html">Modern Idle Tycoon</a></li>
-        <li><a href="neon_ascent.html">Neon Ascent</a></li>
-        <li><a href="titan_defense.html">Titan Defense</a></li>
-       <li><a href="sky_hopper.html">Sky Hopper</a></li>
-      <li><a href="retro_maze_chomper.html">Retro Maze Chomper<img src="https://ncert.nic.in/images/new.gif"></a></li>
-      <li><a href="ice_cream_stacker.html">Ice Cream Stacker<img src="https://ncert.nic.in/images/new.gif"></a></li>
-      <li><a href="magnet_mayhem_arcade_game.html">Magnet Mayhem<img src="https://ncert.nic.in/images/new.gif"></a></li>
-      <li><a href="neon_rail_rescue.html">Neon Rail Rescue<img src="https://ncert.nic.in/images/new.gif"></a></li>
-      <li><a href="cosmic_sentinel.html">Cosmic Sentinel<img src="https://ncert.nic.in/images/new.gif"></a></li>
-    </ul>
-  <div style="background-color: darkblue; width: 100%; height: 20px;"></div>   
-<footer>
-  <p>&copy; 2026 Website owned by Minteez. All rights reserved.<br><br>
-Release 3 Build 2807.2026</p>
-<h3> My Profiles </h3>
-  <nav> 
-<a href="https://www.instagram.com/sudo.minteez">Instagram</a>
-<a href="https://www.youtube.com/@thecubermint">YouTube</a>
-<a href="https://www.github.com/minteez">GitHub</a>
-<a href="https://minteez.lovable.app">My Portfolio</a>
-  </nav>
-</footer>
+    <header id="home" class="relative h-screen flex items-center justify-center text-center overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/30 via-slate-950 to-slate-950"></div>
+        <div class="relative z-10 px-4">
+            <h1 class="text-5xl md:text-7xl font-extrabold mb-6 neon-glow">Minteez's Browser Game Hub</h1>
+            <p class="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-8">Play instantly in your browser. No downloads. No installation. Just pure arcade fun.</p>
+            <div class="flex gap-4 justify-center">
+                <a href="#games" class="px-8 py-4 bg-cyan-500 text-slate-950 font-bold rounded-full btn-glow">Browse Games</a>
+                <a href="#about" class="px-8 py-4 border border-cyan-500 text-cyan-400 font-bold rounded-full hover:bg-cyan-500/10 transition">About</a>
+            </div>
+        </div>
+    </header>
+
+    <section id="about" class="py-20 px-6 max-w-4xl mx-auto text-center">
+        <h2 class="text-4xl font-bold mb-8">About the Hub</h2>
+        <p class="text-slate-400 leading-relaxed text-lg">A collection of browser-based HTML5 games created for Minteez's Browser Game Hub, engineered entirely by Gemini AI using detailed game design prompts written by ChatGPT. The hub features a growing library of classic 2D arcade-style games, including both original titles and faithful recreations inspired by legendary arcade games such as Pac-Man, Space Invaders, and Snake Xenzia. Every game runs completely online—simply open your browser and start playing.</p>
+    </section>
+
+    <section id="games" class="py-20 px-6">
+        <h2 class="text-4xl font-bold mb-12 text-center">Complete Game Library</h2>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+            <!-- Game List -->
+            <!-- 1. Neon Dodge -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">🚀</div>
+                <h4 class="font-bold">Neon Dodge</h4>
+                <p class="text-xs text-slate-500 mb-2">Endless Survival</p>
+                <p class="text-sm text-slate-400 mb-4">Avoid obstacles and survive.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 2. Cyber-Snake -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">🐍</div>
+                <h4 class="font-bold">Cyber-Snake</h4>
+                <p class="text-xs text-slate-500 mb-2">Classic Arcade</p>
+                <p class="text-sm text-slate-400 mb-4">Inspired by Snake Xenzia.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 3. Arcade Space Shooter -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">🛸</div>
+                <h4 class="font-bold">Arcade Space Shooter</h4>
+                <p class="text-xs text-slate-500 mb-2">Space Shooter</p>
+                <p class="text-sm text-slate-400 mb-4">Destroy enemies and survive.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 4. Neon Survivor -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">⚔️</div>
+                <h4 class="font-bold">Neon Survivor</h4>
+                <p class="text-xs text-slate-500 mb-2">Survival Action</p>
+                <p class="text-sm text-slate-400 mb-4">Fight endless enemy waves.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 5. Neon Racer Pro -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">🏎️</div>
+                <h4 class="font-bold">Neon Racer Pro</h4>
+                <p class="text-xs text-slate-500 mb-2">Arcade Racing</p>
+                <p class="text-sm text-slate-400 mb-4">Fast-paced highway racing.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 6. Modern Idle Tycoon -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">📈</div>
+                <h4 class="font-bold">Modern Idle Tycoon</h4>
+                <p class="text-xs text-slate-500 mb-2">Idle Strategy</p>
+                <p class="text-sm text-slate-400 mb-4">Build your business empire.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 7. Neon Ascent -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">🧗</div>
+                <h4 class="font-bold">Neon Ascent</h4>
+                <p class="text-xs text-slate-500 mb-2">Platformer</p>
+                <p class="text-sm text-slate-400 mb-4">Climb dangerous levels.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 8. Titan Defense -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">🛡️</div>
+                <h4 class="font-bold">Titan Defense</h4>
+                <p class="text-xs text-slate-500 mb-2">Tower Defense</p>
+                <p class="text-sm text-slate-400 mb-4">Protect your base.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 9. Sky Hopper -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">🐦</div>
+                <h4 class="font-bold">Sky Hopper</h4>
+                <p class="text-xs text-slate-500 mb-2">Arcade</p>
+                <p class="text-sm text-slate-400 mb-4">Inspired by Flappy Bird.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 10. Retro Maze Chomper -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">🟡</div>
+                <h4 class="font-bold">Retro Maze Chomper</h4>
+                <p class="text-xs text-slate-500 mb-2">Maze Arcade</p>
+                <p class="text-sm text-slate-400 mb-4">Inspired by Pac-Man.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 11. Ice Cream Stacker -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">🍦</div>
+                <h4 class="font-bold">Ice Cream Stacker</h4>
+                <p class="text-xs text-slate-500 mb-2">Casual</p>
+                <p class="text-sm text-slate-400 mb-4">Stack as high as possible.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 12. Magnet Mayhem -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">🧲</div>
+                <h4 class="font-bold">Magnet Mayhem</h4>
+                <p class="text-xs text-slate-500 mb-2">Physics Puzzle</p>
+                <p class="text-sm text-slate-400 mb-4">Solve magnetic challenges.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 13. Neon Rail Rescue -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">🚂</div>
+                <h4 class="font-bold">Neon Rail Rescue</h4>
+                <p class="text-xs text-slate-500 mb-2">Puzzle</p>
+                <p class="text-sm text-slate-400 mb-4">Switch tracks, save trains.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+            <!-- 14. Cosmic Sentinel -->
+            <div class="glass p-5 rounded-2xl card-hover transition duration-300">
+                <div class="h-32 bg-slate-800 rounded-xl mb-4 flex items-center justify-center text-4xl">👾</div>
+                <h4 class="font-bold">Cosmic Sentinel</h4>
+                <p class="text-xs text-slate-500 mb-2">Space Arcade</p>
+                <p class="text-sm text-slate-400 mb-4">Inspired by Space Invaders.</p>
+                <a href="" class="block w-full py-2 bg-slate-800 text-center rounded-lg font-bold hover:bg-cyan-600 transition">Play</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="py-20 bg-slate-900/50">
+        <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-4 gap-8 text-center">
+            <div><h3 class="text-4xl font-bold text-cyan-400">14+</h3><p>Games Available</p></div>
+            <div><h3 class="text-4xl font-bold text-cyan-400">100%</h3><p>Browser Based</p></div>
+            <div><h3 class="text-4xl font-bold text-cyan-400">4</h3><p>Device Types</p></div>
+            <div><h3 class="text-4xl font-bold text-cyan-400">0</h3><p>Downloads</p></div>
+        </div>
+    </section>
+
+    <footer class="py-12 border-t border-slate-800 text-center text-slate-500 text-sm">
+        <p>© 2026 Minteez's Browser Game Hub. Release 4 Build 2008.2026</p>
+        <div class="mt-6 flex justify-center space-x-8">
+            <a href="https://www.instagram.com/sudo.minteez" target="_blank" rel="noopener noreferrer" class="hover:text-white">Instagram</a>
+            <a href="https://www.github.com/minteez" target="_blank" rel="noopener noreferrer" class="hover:text-white">GitHub</a>
+            <a href="https://www.youtube.com/@thecubermint" target="_blank" rel="noopener noreferrer" class="hover:text-white">YouTube</a>
+            <a href="https://minteez.lovable.app" target="_blank" rel="noopener noreferrer" class="hover:text-white">Portfolio</a>
+        </div>
+    </footer>
+
+    <script>
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 50) nav.classList.add('bg-slate-950/90');
+            else nav.classList.remove('bg-slate-950/90');
+        });
+    </script>
 </body>
-</html>   
+</html>

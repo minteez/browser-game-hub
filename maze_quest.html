@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Maze Quest 2026</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rubik:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.85);
+            --primary-accent: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.4);
+            --gold-accent: #f59e0b;
+            --gold-glow: rgba(245, 158, 11, 0.5);
+            --wall-color: #1e293b;
+            --path-color: #0f172a;
+            --text-main: #f8fafc;
+            --ui-font: 'Rubik', sans-serif;
+            --title-font: 'Orbitron', sans-serif;
+        }
+
+        /* High Contrast Palette Override */
+        body.high-contrast {
+            --bg-color: #000000;
+            --panel-bg: #111111;
+            --primary-accent: #ffff00;
+            --primary-glow: rgba(255, 255, 0, 0.8);
+            --gold-accent: #ff00ff;
+            --gold-glow: rgba(255, 0, 255, 0.8);
+            --wall-color: #333333;
+            --path-color: #000000;
+            --text-main: #ffffff;
+        }
+
+        /* Deuteranopia Palette Override */
+        body.color-blind {
+            --primary-accent: #0072b2;
+            --primary-glow: rgba(0, 114, 178, 0.5);
+            --gold-accent: #e69f00;
+            --gold-glow: rgba(230, 159, 0, 0.6);
+        }
+
+        /* Large Text Mode */
+        body.large-text {
+            font-size: 115%;
+        }
+
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: var(--ui-font);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+        }
+
+        .title-font {
+            font-family: var(--title-font);
+        }
+
+        /* Arcade UI Glass Panel */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        /* Arcade Button Effects */
+        .btn-arcade {
+            position: relative;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            font-weight: 700;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 0 #1e40af, 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+            transition: all 0.15s ease;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .btn-arcade:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #1e40af, 0 15px 20px -3px rgba(37, 99, 235, 0.6);
+            filter: brightness(1.1);
+        }
+
+        .btn-arcade:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #1e40af, 0 5px 10px -3px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-arcade-gold {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 4px 0 #b45309, 0 10px 15px -3px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-arcade-gold:hover {
+            box-shadow: 0 6px 0 #b45309, 0 15px 20px -3px rgba(245, 158, 11, 0.6);
+        }
+
+        .btn-arcade-gold:active {
+            box-shadow: 0 2px 0 #b45309;
+        }
+
+        .btn-arcade-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 4px 0 #991b1b, 0 10px 15px -3px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-arcade-secondary {
+            background: linear-gradient(135deg, #475569, #334155);
+            box-shadow: 0 4px 0 #1e293b, 0 8px 12px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Reduced Motion */
+        body.reduced-motion * {
+            animation: none !important;
+            transition: none !important;
+        }
+
+        /* Glowing text effects */
+        .glow-title {
+            text-shadow: 0 0 20px var(--primary-glow), 0 0 40px var(--primary-glow);
+        }
+
+        .glow-gold {
+            text-shadow: 0 0 20px var(--gold-glow), 0 0 30px var(--gold-glow);
+        }
+
+        /* Custom Scrollbar for inner menus */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen relative">
+
+    <!-- Background Animated Particles Canvas -->
+    <canvas id="bgCanvas" class="absolute inset-0 z-0 pointer-events-none w-full h-full"></canvas>
+
+    <!-- MAIN UI CONTAINER -->
+    <div id="uiContainer" class="relative z-10 w-full max-w-4xl h-full md:h-[90vh] flex flex-col items-center justify-center p-2 sm:p-4">
+
+        <!-- ================= MAIN MENU SCREEN ================= -->
+        <div id="menuScreen" class="glass-panel rounded-3xl p-6 md:p-8 w-full max-w-md text-center flex flex-col items-center space-y-4 animate-fade-in my-auto">
+            <div class="space-y-1">
+                <span class="text-xs font-semibold tracking-widest text-sky-400 uppercase">Arcade Maze Adventure</span>
+                <h1 class="text-4xl sm:text-5xl font-black title-font text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-amber-300 to-amber-500 glow-title py-1">
+                    MAZE QUEST
+                </h1>
+                <p class="text-slate-400 text-xs sm:text-sm">Find the golden exit tile!</p>
+            </div>
+
+            <div class="w-full space-y-3 pt-2">
+                <button onclick="GameApp.startNewGame()" class="btn-arcade btn-arcade-gold w-full py-3.5 text-lg flex items-center justify-center gap-3 group">
+                    <i class="fa-solid fa-play group-hover:scale-125 transition-transform"></i>
+                    <span>PLAY GAME</span>
+                </button>
+
+                <button onclick="GameApp.showScreen('modeSelectScreen')" class="btn-arcade w-full py-2.5 text-base flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>GAME MODES</span>
+                </button>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button onclick="GameApp.showScreen('highScoresScreen')" class="btn-arcade btn-arcade-secondary py-2.5 text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-trophy text-amber-400"></i>
+                        <span>High Scores</span>
+                    </button>
+                    <button onclick="GameApp.showScreen('achievementsScreen')" class="btn-arcade btn-arcade-secondary py-2.5 text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-medal text-emerald-400"></i>
+                        <span>Achievements</span>
+                    </button>
+                    <button onclick="GameApp.showScreen('statisticsScreen')" class="btn-arcade btn-arcade-secondary py-2.5 text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-chart-bar text-sky-400"></i>
+                        <span>Statistics</span>
+                    </button>
+                    <button onclick="GameApp.showScreen('settingsScreen')" class="btn-arcade btn-arcade-secondary py-2.5 text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-gear text-purple-400"></i>
+                        <span>Settings</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button onclick="GameApp.showScreen('accessibilityScreen')" class="btn-arcade btn-arcade-secondary py-2 text-xs sm:text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-universal-access text-teal-400"></i>
+                        <span>Accessibility</span>
+                    </button>
+                    <button onclick="GameApp.showScreen('howToPlayScreen')" class="btn-arcade btn-arcade-secondary py-2 text-xs sm:text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-circle-question text-cyan-400"></i>
+                        <span>How To Play</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button onclick="GameApp.showScreen('aboutScreen')" class="btn-arcade btn-arcade-secondary py-2 text-xs sm:text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-circle-info text-blue-400"></i>
+                        <span>About</span>
+                    </button>
+                    <button onclick="GameApp.showScreen('creditsScreen')" class="btn-arcade btn-arcade-secondary py-2 text-xs sm:text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-code text-indigo-400"></i>
+                        <span>Credits</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MODE SELECT SCREEN ================= -->
+        <div id="modeSelectScreen" class="glass-panel rounded-3xl p-6 w-full max-w-md text-center hidden flex-col space-y-4 my-auto">
+            <h2 class="text-2xl font-bold title-font text-sky-400 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-layer-group"></i> Select Game Mode
+            </h2>
+
+            <div class="space-y-3">
+                <button onclick="GameApp.selectMode('classic')" class="w-full p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600/50 text-left transition flex items-center gap-4 group">
+                    <div class="w-12 h-12 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-compass"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-white text-base">Classic Explorer</div>
+                        <div class="text-xs text-slate-400">Standard maze layout. Collect stars & find the golden exit!</div>
+                    </div>
+                </button>
+
+                <button onclick="GameApp.selectMode('timeAttack')" class="w-full p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600/50 text-left transition flex items-center gap-4 group">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-stopwatch"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-white text-base">Time Attack</div>
+                        <div class="text-xs text-slate-400">Race against a 30-second countdown timer!</div>
+                    </div>
+                </button>
+
+                <button onclick="GameApp.selectMode('fog')" class="w-full p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600/50 text-left transition flex items-center gap-4 group">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-eye-slash"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-white text-base">Fog of War</div>
+                        <div class="text-xs text-slate-400">Dark maze with only a spotlight around your player!</div>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Maze Difficulty Size -->
+            <div class="pt-2 text-left">
+                <label class="text-xs text-slate-400 font-semibold mb-1 block">MAZE SIZE:</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="sizeEasy" onclick="GameApp.setMazeSize('easy')" class="py-2 rounded-xl bg-sky-600 text-white font-bold text-xs">Small</button>
+                    <button id="sizeMedium" onclick="GameApp.setMazeSize('medium')" class="py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700">Medium</button>
+                    <button id="sizeHard" onclick="GameApp.setMazeSize('hard')" class="py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700">Large</button>
+                </div>
+            </div>
+
+            <button onclick="GameApp.showScreen('menuScreen')" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm mt-2">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Back to Main Menu
+            </button>
+        </div>
+
+        <!-- ================= HIGH SCORES SCREEN ================= -->
+        <div id="highScoresScreen" class="glass-panel rounded-3xl p-6 w-full max-w-md hidden flex-col space-y-4 my-auto">
+            <h2 class="text-2xl font-bold title-font text-amber-400 text-center flex items-center justify-center gap-2">
+                <i class="fa-solid fa-trophy"></i> High Scores
+            </h2>
+
+            <div class="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800 text-sm">
+                <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                    <span class="text-slate-400">Best Time (Classic Easy):</span>
+                    <span id="bestTimeEasy" class="font-bold text-amber-400">--:--</span>
+                </div>
+                <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                    <span class="text-slate-400">Best Time (Classic Medium):</span>
+                    <span id="bestTimeMed" class="font-bold text-amber-400">--:--</span>
+                </div>
+                <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                    <span class="text-slate-400">Best Time (Classic Large):</span>
+                    <span id="bestTimeHard" class="font-bold text-amber-400">--:--</span>
+                </div>
+                <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                    <span class="text-slate-400">Most Stars Collected:</span>
+                    <span id="mostStars" class="font-bold text-amber-400">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Time Attack High Score:</span>
+                    <span id="timeAttackBest" class="font-bold text-amber-400">0 pts</span>
+                </div>
+            </div>
+
+            <button onclick="GameApp.showScreen('menuScreen')" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Back
+            </button>
+        </div>
+
+        <!-- ================= ACHIEVEMENTS SCREEN ================= -->
+        <div id="achievementsScreen" class="glass-panel rounded-3xl p-6 w-full max-w-md hidden flex-col space-y-4 my-auto">
+            <h2 class="text-2xl font-bold title-font text-emerald-400 text-center flex items-center justify-center gap-2">
+                <i class="fa-solid fa-medal"></i> Achievements
+            </h2>
+
+            <div id="achievementsList" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                <!-- Dynamically Populated -->
+            </div>
+
+            <button onclick="GameApp.showScreen('menuScreen')" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Back
+            </button>
+        </div>
+
+        <!-- ================= STATISTICS SCREEN ================= -->
+        <div id="statisticsScreen" class="glass-panel rounded-3xl p-6 w-full max-w-md hidden flex-col space-y-4 my-auto">
+            <h2 class="text-2xl font-bold title-font text-sky-400 text-center flex items-center justify-center gap-2">
+                <i class="fa-solid fa-chart-bar"></i> Statistics
+            </h2>
+
+            <div class="grid grid-cols-2 gap-3 text-center">
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    <div class="text-xs text-slate-400">Mazes Solved</div>
+                    <div id="statMazesSolved" class="text-xl font-bold text-sky-400">0</div>
+                </div>
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    <div class="text-xs text-slate-400">Total Playtime</div>
+                    <div id="statTotalPlaytime" class="text-xl font-bold text-emerald-400">0s</div>
+                </div>
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    <div class="text-xs text-slate-400">Total Steps Taken</div>
+                    <div id="statTotalSteps" class="text-xl font-bold text-amber-400">0</div>
+                </div>
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    <div class="text-xs text-slate-400">Stars Picked Up</div>
+                    <div id="statStarsCollected" class="text-xl font-bold text-yellow-400">0</div>
+                </div>
+            </div>
+
+            <button onclick="GameApp.showScreen('menuScreen')" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Back
+            </button>
+        </div>
+
+        <!-- ================= SETTINGS SCREEN ================= -->
+        <div id="settingsScreen" class="glass-panel rounded-3xl p-6 w-full max-w-md hidden flex-col space-y-4 my-auto">
+            <h2 class="text-2xl font-bold title-font text-purple-400 text-center flex items-center justify-center gap-2">
+                <i class="fa-solid fa-gear"></i> Settings
+            </h2>
+
+            <div class="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800 text-sm">
+                <div class="flex justify-between items-center">
+                    <span>Sound FX</span>
+                    <input type="checkbox" id="settingSfx" onchange="GameApp.updateSettings()" class="w-5 h-5 accent-sky-500 rounded cursor-pointer" checked>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span>Music</span>
+                    <input type="checkbox" id="settingMusic" onchange="GameApp.updateSettings()" class="w-5 h-5 accent-sky-500 rounded cursor-pointer" checked>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span>Screen Shake</span>
+                    <input type="checkbox" id="settingShake" onchange="GameApp.updateSettings()" class="w-5 h-5 accent-sky-500 rounded cursor-pointer" checked>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span>Particle Trail Effects</span>
+                    <input type="checkbox" id="settingParticles" onchange="GameApp.updateSettings()" class="w-5 h-5 accent-sky-500 rounded cursor-pointer" checked>
+                </div>
+            </div>
+
+            <button onclick="GameApp.resetData()" class="btn-arcade btn-arcade-danger w-full py-2 text-xs">
+                <i class="fa-solid fa-trash mr-1"></i> Reset Saved Progress & Data
+            </button>
+
+            <button onclick="GameApp.showScreen('menuScreen')" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Back
+            </button>
+        </div>
+
+        <!-- ================= ACCESSIBILITY SCREEN ================= -->
+        <div id="accessibilityScreen" class="glass-panel rounded-3xl p-6 w-full max-w-md hidden flex-col space-y-4 my-auto">
+            <h2 class="text-2xl font-bold title-font text-teal-400 text-center flex items-center justify-center gap-2">
+                <i class="fa-solid fa-universal-access"></i> Accessibility
+            </h2>
+
+            <div class="space-y-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800 text-sm">
+                <div class="flex justify-between items-center">
+                    <span>High Contrast Mode</span>
+                    <input type="checkbox" id="accHighContrast" onchange="GameApp.updateAccessibility()" class="w-5 h-5 accent-teal-500 rounded cursor-pointer">
+                </div>
+                <div class="flex justify-between items-center">
+                    <span>Color-Blind Friendly Mode</span>
+                    <input type="checkbox" id="accColorBlind" onchange="GameApp.updateAccessibility()" class="w-5 h-5 accent-teal-500 rounded cursor-pointer">
+                </div>
+                <div class="flex justify-between items-center">
+                    <span>Reduced Motion</span>
+                    <input type="checkbox" id="accReducedMotion" onchange="GameApp.updateAccessibility()" class="w-5 h-5 accent-teal-500 rounded cursor-pointer">
+                </div>
+                <div class="flex justify-between items-center">
+                    <span>Large Text UI</span>
+                    <input type="checkbox" id="accLargeText" onchange="GameApp.updateAccessibility()" class="w-5 h-5 accent-teal-500 rounded cursor-pointer">
+                </div>
+                <div class="flex justify-between items-center">
+                    <span>Show Mobile On-Screen D-Pad</span>
+                    <input type="checkbox" id="accShowDPad" onchange="GameApp.updateAccessibility()" class="w-5 h-5 accent-teal-500 rounded cursor-pointer" checked>
+                </div>
+            </div>
+
+            <button onclick="GameApp.showScreen('menuScreen')" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Back
+            </button>
+        </div>
+
+        <!-- ================= HOW TO PLAY SCREEN ================= -->
+        <div id="howToPlayScreen" class="glass-panel rounded-3xl p-6 w-full max-w-md hidden flex-col space-y-4 my-auto">
+            <h2 class="text-2xl font-bold title-font text-cyan-400 text-center flex items-center justify-center gap-2">
+                <i class="fa-solid fa-circle-question"></i> How To Play
+            </h2>
+
+            <div class="space-y-3 text-xs text-slate-300 bg-slate-900/60 p-4 rounded-2xl border border-slate-800 max-h-64 overflow-y-auto">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-lg font-bold shrink-0">
+                        <i class="fa-solid fa-keyboard"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-white">Controls</div>
+                        <div>Use Arrow Keys or WASD on Keyboard, Swipe gestures, or the On-Screen D-Pad on touch devices.</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 pt-2 border-t border-slate-800">
+                    <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg font-bold shrink-0">
+                        <i class="fa-solid fa-door-open"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-white">Main Goal</div>
+                        <div>Navigate your hero character through the maze paths to reach the glowing Golden Exit Tile!</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 pt-2 border-t border-slate-800">
+                    <div class="w-10 h-10 rounded-lg bg-yellow-500/20 text-yellow-400 flex items-center justify-center text-lg font-bold shrink-0">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-white">Bonus Stars</div>
+                        <div>Collect shiny stars scattered across paths for bonus score points and higher 3-star ratings!</div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="GameApp.showScreen('menuScreen')" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Back
+            </button>
+        </div>
+
+        <!-- ================= ABOUT SCREEN ================= -->
+        <div id="aboutScreen" class="glass-panel rounded-3xl p-6 w-full max-w-md hidden flex-col space-y-4 my-auto">
+            <h2 class="text-2xl font-bold title-font text-blue-400 text-center flex items-center justify-center gap-2">
+                <i class="fa-solid fa-circle-info"></i> About The Game
+            </h2>
+
+            <div class="space-y-2 text-xs text-slate-300 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+                <p><strong class="text-sky-400">Maze Quest 2026</strong> is a fast-paced, arcade-style maze navigation game designed for players aged 9-13 and puzzle enthusiasts of all ages.</p>
+                <p>Inspired by classic 80s arcade maze runners, it features dynamic procedural maze generation, responsive keyboard & touch controls, collectible items, and dark Fog of War exploration.</p>
+                <p>Every generated maze is guaranteed to be 100% solvable with unique path combinations every single round!</p>
+            </div>
+
+            <button onclick="GameApp.showScreen('menuScreen')" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Back
+            </button>
+        </div>
+
+        <!-- ================= CREDITS SCREEN ================= -->
+        <div id="creditsScreen" class="glass-panel rounded-3xl p-6 w-full max-w-md hidden flex-col space-y-4 text-center my-auto">
+            <h2 class="text-2xl font-bold title-font text-indigo-400 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-code"></i> Credits
+            </h2>
+
+            <div class="py-6 px-4 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                <i class="fa-solid fa-gamepad text-4xl text-sky-400 animate-pulse"></i>
+                <div class="text-sm font-semibold text-slate-200">
+                    Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved.
+                </div>
+            </div>
+
+            <button onclick="GameApp.showScreen('menuScreen')" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Back
+            </button>
+        </div>
+
+        <!-- ================= GAMEPLAY SCREEN ================= -->
+        <div id="gameplayScreen" class="w-full h-full flex flex-col items-center justify-between hidden relative">
+            
+            <!-- HUD TOP BAR -->
+            <div class="w-full glass-panel rounded-2xl p-3 mb-2 flex items-center justify-between text-xs sm:text-sm">
+                <div class="flex items-center gap-4">
+                    <button onclick="GameApp.pauseGame()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-400 flex items-center justify-center text-base">
+                        <i class="fa-solid fa-pause"></i>
+                    </button>
+                    <div>
+                        <span class="text-slate-400">TIME:</span>
+                        <span id="hudTimer" class="font-bold text-amber-400 font-mono text-base ml-1">00:00</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div>
+                        <i class="fa-solid fa-star text-yellow-400 mr-1"></i>
+                        <span id="hudStars" class="font-bold text-white">0</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400">STEPS:</span>
+                        <span id="hudSteps" class="font-bold text-sky-400 font-mono ml-1">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAZE CANVAS CONTAINER -->
+            <div id="mazeCanvasContainer" class="relative flex-1 w-full flex items-center justify-center overflow-hidden rounded-2xl bg-slate-950 border border-slate-800 shadow-2xl">
+                <canvas id="mazeCanvas" class="block rounded-xl"></canvas>
+            </div>
+
+            <!-- MOBILE ON-SCREEN VIRTUAL D-PAD CONTROLLER -->
+            <div id="mobileDPad" class="w-full pt-3 flex justify-center items-center">
+                <div class="grid grid-cols-3 gap-2 w-48 h-36">
+                    <div></div>
+                    <button onclick="GameApp.handleDirection('up')" class="btn-arcade py-3 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-caret-up"></i>
+                    </button>
+                    <div></div>
+                    <button onclick="GameApp.handleDirection('left')" class="btn-arcade py-3 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-caret-left"></i>
+                    </button>
+                    <button onclick="GameApp.handleDirection('down')" class="btn-arcade py-3 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-caret-down"></i>
+                    </button>
+                    <button onclick="GameApp.handleDirection('right')" class="btn-arcade py-3 rounded-xl flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-caret-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAUSE MENU MODAL ================= -->
+        <div id="pauseModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+            <div class="glass-panel rounded-3xl p-6 w-full max-w-xs text-center space-y-3">
+                <h2 class="text-2xl font-bold title-font text-sky-400 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-pause"></i> GAME PAUSED
+                </h2>
+
+                <button onclick="GameApp.resumeGame()" class="btn-arcade btn-arcade-gold w-full py-3 text-sm">
+                    <i class="fa-solid fa-play mr-2"></i> Resume Game
+                </button>
+                <button onclick="GameApp.restartGame()" class="btn-arcade w-full py-2.5 text-sm">
+                    <i class="fa-solid fa-rotate-right mr-2"></i> Restart Maze
+                </button>
+                <button onclick="GameApp.showScreen('settingsScreen')" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm">
+                    <i class="fa-solid fa-gear mr-2"></i> Settings
+                </button>
+                <button onclick="GameApp.showScreen('howToPlayScreen')" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm">
+                    <i class="fa-solid fa-circle-question mr-2"></i> How To Play
+                </button>
+                <button onclick="GameApp.exitToMainMenu()" class="btn-arcade btn-arcade-danger w-full py-2.5 text-sm">
+                    <i class="fa-solid fa-house mr-2"></i> Main Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= VICTORY / GAME OVER MODAL ================= -->
+        <div id="victoryModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+            <div class="glass-panel rounded-3xl p-6 w-full max-w-sm text-center space-y-4 animate-bounce-in">
+                <div id="winTitleBox" class="space-y-1">
+                    <div class="text-4xl text-amber-400 glow-gold animate-bounce">
+                        <i class="fa-solid fa-trophy"></i>
+                    </div>
+                    <h2 id="winHeadline" class="text-3xl font-black title-font text-amber-300">YOU WIN!</h2>
+                    <p class="text-xs text-slate-300">You successfully reached the golden exit tile!</p>
+                </div>
+
+                <!-- Star Rating -->
+                <div id="starRatingBox" class="flex justify-center gap-2 text-2xl text-amber-400 py-1">
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                </div>
+
+                <!-- Stats summary -->
+                <div class="bg-slate-900/80 p-3 rounded-2xl border border-slate-800 space-y-1.5 text-xs">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Final Time:</span>
+                        <span id="winTime" class="font-bold text-amber-400 font-mono">00:15</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Total Steps:</span>
+                        <span id="winSteps" class="font-bold text-sky-400 font-mono">42</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Stars Collected:</span>
+                        <span id="winStars" class="font-bold text-yellow-400">3 / 3</span>
+                    </div>
+                    <div id="newRecordBadge" class="hidden text-emerald-400 font-bold text-center pt-1 border-t border-slate-800">
+                        <i class="fa-solid fa-crown mr-1"></i> NEW BEST TIME RECORD!
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <button onclick="GameApp.startNewGame()" class="btn-arcade btn-arcade-gold w-full py-3 text-base">
+                        <i class="fa-solid fa-rotate-right mr-2"></i> Play Next Maze
+                    </button>
+                    <button onclick="GameApp.shareScore()" class="btn-arcade btn-arcade-secondary w-full py-2 text-xs">
+                        <i class="fa-solid fa-share-nodes mr-1"></i> Copy Score to Clipboard
+                    </button>
+                    <button onclick="GameApp.exitToMainMenu()" class="btn-arcade btn-arcade-secondary w-full py-2.5 text-sm">
+                        <i class="fa-solid fa-house mr-2"></i> Main Menu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        class AudioSynth {
+            constructor() {
+                this.ctx = null;
+                this.sfxEnabled = true;
+                this.musicEnabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playMove() {
+                if (!this.sfxEnabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(440, this.ctx.currentTime + 0.05);
+
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            }
+
+            playStar() {
+                if (!this.sfxEnabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, this.ctx.currentTime); // D5
+                osc.frequency.setValueAtTime(880, this.ctx.currentTime + 0.08); // A5
+
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+
+            playWin() {
+                if (!this.sfxEnabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.1);
+
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime + idx * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.1 + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.1);
+                    osc.stop(this.ctx.currentTime + idx * 0.1 + 0.3);
+                });
+            }
+
+            playClick() {
+                if (!this.sfxEnabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+
+                gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.03);
+            }
+        }
+
+        class MazeGenerator {
+            static generate(cols, rows) {
+                // Ensure odd numbers for maze wall grid logic
+                if (cols % 2 === 0) cols++;
+                if (rows % 2 === 0) rows++;
+
+                // 1 = Wall, 0 = Path, 2 = Start, 3 = Exit, 4 = Star
+                let grid = Array(rows).fill().map(() => Array(cols).fill(1));
+                let stack = [];
+
+                let startR = 1, startC = 1;
+                grid[startR][startC] = 0;
+                stack.push([startR, startC]);
+
+                while (stack.length > 0) {
+                    let [r, c] = stack[stack.length - 1];
+                    let neighbors = [];
+                    let dirs = [[-2, 0], [2, 0], [0, -2], [0, 2]];
+
+                    for (let [dr, dc] of dirs) {
+                        let nr = r + dr, nc = c + dc;
+                        if (nr > 0 && nr < rows - 1 && nc > 0 && nc < cols - 1 && grid[nr][nc] === 1) {
+                            neighbors.push([nr, nc, r + dr/2, c + dc/2]);
+                        }
+                    }
+
+                    if (neighbors.length > 0) {
+                        let [nr, nc, wr, wc] = neighbors[Math.floor(Math.random() * neighbors.length)];
+                        grid[wr][wc] = 0;
+                        grid[nr][nc] = 0;
+                        stack.push([nr, nc]);
+                    } else {
+                        stack.pop();
+                    }
+                }
+
+                grid[1][1] = 2; // Start position
+                grid[rows - 2][cols - 2] = 3; // Golden Exit Tile
+
+                // Scatter 3-5 collectible stars on open paths
+                let starCount = Math.min(6, Math.floor((cols * rows) / 30));
+                let starsPlaced = 0;
+                while (starsPlaced < starCount) {
+                    let r = Math.floor(Math.random() * rows);
+                    let c = Math.floor(Math.random() * cols);
+                    if (grid[r][c] === 0 && !(r === 1 && c === 1) && !(r === rows - 2 && c === cols - 2)) {
+                        grid[r][c] = 4;
+                        starsPlaced++;
+                    }
+                }
+
+                return { grid, cols, rows, totalStars: starsPlaced };
+            }
+        }
+
+        const GameApp = {
+            // State variables
+            currentMode: 'classic', // 'classic', 'timeAttack', 'fog'
+            mazeSizeKey: 'easy',   // 'easy' (11x11), 'medium' (17x17), 'hard' (23x23)
+            grid: [],
+            cols: 11,
+            rows: 11,
+            playerPos: { r: 1, c: 1 },
+            exitPos: { r: 9, c: 9 },
+            playerVisualPos: { x: 1, y: 1 },
+            steps: 0,
+            starsCollected: 0,
+            totalStars: 0,
+            secondsElapsed: 0,
+            timeAttackRemaining: 30,
+            timerInterval: null,
+            isPaused: false,
+            gameActive: false,
+
+            // LocalStorage Data
+            scores: {
+                easy: null,
+                medium: null,
+                hard: null,
+                mostStars: 0,
+                timeAttackBest: 0
+            },
+            stats: {
+                mazesSolved: 0,
+                totalPlaytime: 0,
+                totalSteps: 0,
+                starsCollected: 0
+            },
+            settings: {
+                sfx: true,
+                music: true,
+                shake: true,
+                particles: true
+            },
+            accessibility: {
+                highContrast: false,
+                colorBlind: false,
+                reducedMotion: false,
+                largeText: false,
+                showDPad: true
+            },
+            achievements: [
+                { id: 'first_win', name: 'First Steps', desc: 'Solve your first maze', unlocked: false },
+                { id: 'star_picker', name: 'Star Collector', desc: 'Collect 10 stars total', unlocked: false },
+                { id: 'speed_demon', name: 'Speed Runner', desc: 'Solve a maze in under 10 seconds', unlocked: false },
+                { id: 'fog_master', name: 'Night Explorer', desc: 'Win a Fog of War mode maze', unlocked: false }
+            ],
+
+            // Canvas & Audio
+            canvas: null,
+            ctx: null,
+            bgCanvas: null,
+            bgCtx: null,
+            synth: new AudioSynth(),
+            particles: [],
+
+            init() {
+                this.canvas = document.getElementById('mazeCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.bgCanvas = document.getElementById('bgCanvas');
+                this.bgCtx = this.bgCanvas.getContext('2d');
+
+                this.loadLocalStorage();
+                this.applySettingsToUI();
+                this.applyAccessibilityToDOM();
+                this.renderAchievementsList();
+
+                this.initBgParticles();
+                this.bindControls();
+
+                window.addEventListener('resize', () => {
+                    this.resizeCanvases();
+                    if (this.gameActive) this.renderMaze();
+                });
+                this.resizeCanvases();
+
+                // Start ambient background loop
+                requestAnimationFrame(() => this.bgAnimLoop());
+            },
+
+            showScreen(screenId) {
+                this.synth.playClick();
+                const screens = [
+                    'menuScreen', 'modeSelectScreen', 'highScoresScreen',
+                    'achievementsScreen', 'statisticsScreen', 'settingsScreen',
+                    'accessibilityScreen', 'howToPlayScreen', 'aboutScreen',
+                    'creditsScreen', 'gameplayScreen'
+                ];
+                screens.forEach(s => {
+                    const el = document.getElementById(s);
+                    if (el) el.classList.add('hidden');
+                });
+
+                const target = document.getElementById(screenId);
+                if (target) {
+                    target.classList.remove('hidden');
+                    if (screenId === 'gameplayScreen') {
+                        target.classList.add('flex');
+                    }
+                }
+
+                // Update dynamic high score / stat text
+                this.updateUIValues();
+            },
+
+            selectMode(mode) {
+                this.currentMode = mode;
+                this.startNewGame();
+            },
+
+            setMazeSize(size) {
+                this.synth.playClick();
+                this.mazeSizeKey = size;
+                document.getElementById('sizeEasy').className = size === 'easy' ? 'py-2 rounded-xl bg-sky-600 text-white font-bold text-xs' : 'py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700';
+                document.getElementById('sizeMedium').className = size === 'medium' ? 'py-2 rounded-xl bg-sky-600 text-white font-bold text-xs' : 'py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700';
+                document.getElementById('sizeHard').className = size === 'hard' ? 'py-2 rounded-xl bg-sky-600 text-white font-bold text-xs' : 'py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700';
+            },
+
+            startNewGame() {
+                const vicModal = document.getElementById('victoryModal');
+                if (vicModal) {
+                    vicModal.classList.add('hidden');
+                    vicModal.classList.remove('flex');
+                }
+                const pauseModal = document.getElementById('pauseModal');
+                if (pauseModal) {
+                    pauseModal.classList.add('hidden');
+                    pauseModal.classList.remove('flex');
+                }
+
+                this.gameActive = true;
+                this.isPaused = false;
+                this.steps = 0;
+                this.starsCollected = 0;
+                this.secondsElapsed = 0;
+                this.timeAttackRemaining = 30;
+
+                // Determine grid dimension by size
+                if (this.mazeSizeKey === 'easy') { this.cols = 11; this.rows = 11; }
+                else if (this.mazeSizeKey === 'medium') { this.cols = 17; this.rows = 17; }
+                else { this.cols = 23; this.rows = 23; }
+
+                const mazeData = MazeGenerator.generate(this.cols, this.rows);
+                this.grid = mazeData.grid;
+                this.totalStars = mazeData.totalStars;
+                this.playerPos = { r: 1, c: 1 };
+                this.playerVisualPos = { x: 1, y: 1 };
+                this.exitPos = { r: this.rows - 2, c: this.cols - 2 };
+
+                this.showScreen('gameplayScreen');
+                this.resizeCanvases();
+                this.renderMaze();
+
+                // Start timer
+                if (this.timerInterval) clearInterval(this.timerInterval);
+                this.timerInterval = setInterval(() => this.tickTimer(), 1000);
+                this.updateHUD();
+            },
+
+            tickTimer() {
+                if (!this.gameActive || this.isPaused) return;
+
+                this.secondsElapsed++;
+                this.stats.totalPlaytime++;
+
+                if (this.currentMode === 'timeAttack') {
+                    this.timeAttackRemaining--;
+                    if (this.timeAttackRemaining <= 0) {
+                        this.gameOverTimeOut();
+                    }
+                }
+                this.updateHUD();
+                this.saveLocalStorage();
+            },
+
+            updateHUD() {
+                const timerEl = document.getElementById('hudTimer');
+                if (this.currentMode === 'timeAttack') {
+                    timerEl.textContent = `${this.timeAttackRemaining}s`;
+                    timerEl.className = this.timeAttackRemaining <= 5 ? 'font-bold text-red-500 font-mono text-base ml-1 animate-pulse' : 'font-bold text-amber-400 font-mono text-base ml-1';
+                } else {
+                    const mins = Math.floor(this.secondsElapsed / 60).toString().padStart(2, '0');
+                    const secs = (this.secondsElapsed % 60).toString().padStart(2, '0');
+                    timerEl.textContent = `${mins}:${secs}`;
+                    timerEl.className = 'font-bold text-amber-400 font-mono text-base ml-1';
+                }
+
+                document.getElementById('hudStars').textContent = `${this.starsCollected} / ${this.totalStars}`;
+                document.getElementById('hudSteps').textContent = this.steps;
+            },
+
+            bindControls() {
+                window.addEventListener('keydown', (e) => {
+                    if (!this.gameActive || this.isPaused) return;
+
+                    switch (e.key) {
+                        case 'ArrowUp': case 'w': case 'W':
+                            this.handleDirection('up'); e.preventDefault(); break;
+                        case 'ArrowDown': case 's': case 'S':
+                            this.handleDirection('down'); e.preventDefault(); break;
+                        case 'ArrowLeft': case 'a': case 'A':
+                            this.handleDirection('left'); e.preventDefault(); break;
+                        case 'ArrowRight': case 'd': case 'D':
+                            this.handleDirection('right'); e.preventDefault(); break;
+                        case 'Escape': case 'p': case 'P':
+                            this.pauseGame(); break;
+                    }
+                });
+
+                // Swipe Gestures Support
+                let touchStartX = 0, touchStartY = 0;
+                const container = document.getElementById('mazeCanvasContainer');
+                container.addEventListener('touchstart', (e) => {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+
+                container.addEventListener('touchend', (e) => {
+                    if (!this.gameActive || this.isPaused) return;
+                    let diffX = e.changedTouches[0].clientX - touchStartX;
+                    let diffY = e.changedTouches[0].clientY - touchStartY;
+
+                    if (Math.abs(diffX) > Math.abs(diffY)) {
+                        if (Math.abs(diffX) > 25) {
+                            this.handleDirection(diffX > 0 ? 'right' : 'left');
+                        }
+                    } else {
+                        if (Math.abs(diffY) > 25) {
+                            this.handleDirection(diffY > 0 ? 'down' : 'up');
+                        }
+                    }
+                }, { passive: true });
+            },
+
+            handleDirection(dir) {
+                if (!this.gameActive || this.isPaused) return;
+
+                let dr = 0, dc = 0;
+                if (dir === 'up') dr = -1;
+                if (dir === 'down') dr = 1;
+                if (dir === 'left') dc = -1;
+                if (dir === 'right') dc = 1;
+
+                let targetR = this.playerPos.r + dr;
+                let targetC = this.playerPos.c + dc;
+
+                // Check collision with walls (1)
+                if (targetR >= 0 && targetR < this.rows && targetC >= 0 && targetC < this.cols) {
+                    if (this.grid[targetR][targetC] !== 1) {
+                        this.playerPos.r = targetR;
+                        this.playerPos.c = targetC;
+                        this.steps++;
+                        this.stats.totalSteps++;
+                        this.synth.playMove();
+
+                        // Collect Star
+                        if (this.grid[targetR][targetC] === 4) {
+                            this.grid[targetR][targetC] = 0; // Clear star
+                            this.starsCollected++;
+                            this.stats.starsCollected++;
+                            this.synth.playStar();
+                        }
+
+                        // Check Exit
+                        if (targetR === this.exitPos.r && targetC === this.exitPos.c) {
+                            this.winGame();
+                            return;
+                        }
+
+                        this.updateHUD();
+                        this.renderMaze();
+                    }
+                }
+            },
+
+            renderMaze() {
+                if (!this.canvas || !this.ctx) return;
+
+                const cWidth = this.canvas.width;
+                const cHeight = this.canvas.height;
+                const cellW = cWidth / this.cols;
+                const cellH = cHeight / this.rows;
+
+                this.ctx.clearRect(0, 0, cWidth, cHeight);
+
+                // Get CSS custom property palette
+                const highContrast = this.accessibility.highContrast;
+                const wallColor = highContrast ? '#333333' : '#1e293b';
+                const pathColor = highContrast ? '#000000' : '#0f172a';
+                const goldColor = '#f59e0b';
+                const heroColor = '#38bdf8';
+
+                // Render Grid Cells
+                for (let r = 0; r < this.rows; r++) {
+                    for (let c = 0; c < this.cols; c++) {
+                        let x = c * cellW;
+                        let y = r * cellH;
+                        let tile = this.grid[r][c];
+
+                        if (tile === 1) {
+                            // Wall
+                            this.ctx.fillStyle = wallColor;
+                            this.ctx.fillRect(x, y, cellW, cellH);
+                            this.ctx.strokeStyle = highContrast ? '#555555' : 'rgba(255,255,255,0.03)';
+                            this.ctx.strokeRect(x, y, cellW, cellH);
+                        } else {
+                            // Path
+                            this.ctx.fillStyle = pathColor;
+                            this.ctx.fillRect(x, y, cellW, cellH);
+
+                            // Draw Stars
+                            if (tile === 4) {
+                                this.drawStar(x + cellW / 2, y + cellH / 2, 5, cellW * 0.25, cellW * 0.12, '#eab308');
+                            }
+                        }
+                    }
+                }
+
+                // Render Golden Exit Tile
+                let exitX = this.exitPos.c * cellW;
+                let exitY = this.exitPos.r * cellH;
+                this.ctx.fillStyle = goldColor;
+                this.ctx.fillRect(exitX + 2, exitY + 2, cellW - 4, cellH - 4);
+                this.ctx.shadowColor = goldColor;
+                this.ctx.shadowBlur = 15;
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = `${cellW * 0.5}px FontAwesome`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('\uf090', exitX + cellW/2, exitY + cellH/2); // Door icon
+                this.ctx.shadowBlur = 0;
+
+                // Render Player
+                let pX = this.playerPos.c * cellW + cellW / 2;
+                let pY = this.playerPos.r * cellH + cellH / 2;
+                let pRadius = Math.min(cellW, cellH) * 0.35;
+
+                this.ctx.beginPath();
+                this.ctx.arc(pX, pY, pRadius, 0, Math.PI * 2);
+                this.ctx.fillStyle = heroColor;
+                this.ctx.shadowColor = heroColor;
+                this.ctx.shadowBlur = 12;
+                this.ctx.fill();
+                this.ctx.shadowBlur = 0;
+
+                // Fog of War overlay rendering
+                if (this.currentMode === 'fog') {
+                    this.renderFogOverlay(pX, pY, Math.max(cellW, cellH) * 2.5);
+                }
+            },
+
+            drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
+                let rot = Math.PI / 2 * 3;
+                let x = cx;
+                let y = cy;
+                let step = Math.PI / spikes;
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(cx, cy - outerRadius);
+                for (let i = 0; i < spikes; i++) {
+                    x = cx + Math.cos(rot) * outerRadius;
+                    y = cy + Math.sin(rot) * outerRadius;
+                    this.ctx.lineTo(x, y);
+                    rot += step;
+
+                    x = cx + Math.cos(rot) * innerRadius;
+                    y = cy + Math.sin(rot) * innerRadius;
+                    this.ctx.lineTo(x, y);
+                    rot += step;
+                }
+                this.ctx.lineTo(cx, cy - outerRadius);
+                this.ctx.closePath();
+                this.ctx.fillStyle = color;
+                this.ctx.shadowColor = color;
+                this.ctx.shadowBlur = 8;
+                this.ctx.fill();
+                this.ctx.shadowBlur = 0;
+            },
+
+            renderFogOverlay(px, py, radius) {
+                const cWidth = this.canvas.width;
+                const cHeight = this.canvas.height;
+
+                this.ctx.save();
+                this.ctx.fillStyle = 'rgba(2, 6, 23, 0.96)';
+
+                // Create flashlight spotlight path
+                this.ctx.beginPath();
+                this.ctx.rect(0, 0, cWidth, cHeight);
+                this.ctx.arc(px, py, radius, 0, Math.PI * 2, true);
+                this.ctx.fill();
+                this.ctx.restore();
+            },
+
+            resizeCanvases() {
+                const container = document.getElementById('mazeCanvasContainer');
+                if (!container || !this.canvas) return;
+
+                const rect = container.getBoundingClientRect();
+                const size = Math.min(rect.width - 16, rect.height - 16);
+
+                this.canvas.width = size;
+                this.canvas.height = size;
+
+                if (this.bgCanvas) {
+                    this.bgCanvas.width = window.innerWidth;
+                    this.bgCanvas.height = window.innerHeight;
+                }
+            },
+
+            winGame() {
+                this.gameActive = false;
+                if (this.timerInterval) clearInterval(this.timerInterval);
+
+                this.synth.playWin();
+                this.stats.mazesSolved++;
+
+                // Check Best Record
+                let timeKey = this.mazeSizeKey;
+                let isNewRecord = false;
+                if (!this.scores[timeKey] || this.secondsElapsed < this.scores[timeKey]) {
+                    this.scores[timeKey] = this.secondsElapsed;
+                    isNewRecord = true;
+                }
+
+                if (this.starsCollected > this.scores.mostStars) {
+                    this.scores.mostStars = this.starsCollected;
+                }
+
+                // Check achievements
+                this.checkAchievements();
+                this.saveLocalStorage();
+
+                // Reset Headline and Star Rating UI
+                document.getElementById('winHeadline').textContent = 'YOU WIN!';
+                document.getElementById('winHeadline').className = 'text-3xl font-black title-font text-amber-300';
+                document.getElementById('starRatingBox').style.display = 'flex';
+
+                // Show Win Modal UI
+                document.getElementById('winTime').textContent = `${this.secondsElapsed}s`;
+                document.getElementById('winSteps').textContent = this.steps;
+                document.getElementById('winStars').textContent = `${this.starsCollected} / ${this.totalStars}`;
+                document.getElementById('newRecordBadge').className = isNewRecord ? 'text-emerald-400 font-bold text-center pt-1 border-t border-slate-800' : 'hidden';
+
+                document.getElementById('victoryModal').classList.remove('hidden');
+                document.getElementById('victoryModal').classList.add('flex');
+            },
+
+            gameOverTimeOut() {
+                this.gameActive = false;
+                if (this.timerInterval) clearInterval(this.timerInterval);
+
+                document.getElementById('winHeadline').textContent = 'TIME IS UP!';
+                document.getElementById('winHeadline').className = 'text-3xl font-black title-font text-red-500';
+                document.getElementById('starRatingBox').style.display = 'none';
+                document.getElementById('winTime').textContent = '0s';
+                document.getElementById('winSteps').textContent = this.steps;
+                document.getElementById('winStars').textContent = `${this.starsCollected} / ${this.totalStars}`;
+                document.getElementById('newRecordBadge').className = 'hidden';
+
+                document.getElementById('victoryModal').classList.remove('hidden');
+                document.getElementById('victoryModal').classList.add('flex');
+            },
+
+            gameOverTimeOut() {
+                this.gameActive = false;
+                if (this.timerInterval) clearInterval(this.timerInterval);
+
+                document.getElementById('winHeadline').textContent = 'TIME IS UP!';
+                document.getElementById('winHeadline').className = 'text-3xl font-black title-font text-red-500';
+                document.getElementById('winTime').textContent = '0s';
+                document.getElementById('victoryModal').classList.remove('hidden');
+                document.getElementById('victoryModal').classList.add('flex');
+            },
+
+            checkAchievements() {
+                if (this.stats.mazesSolved >= 1) this.unlockAchievement('first_win');
+                if (this.stats.starsCollected >= 10) this.unlockAchievement('star_picker');
+                if (this.secondsElapsed > 0 && this.secondsElapsed <= 10) this.unlockAchievement('speed_demon');
+                if (this.currentMode === 'fog') this.unlockAchievement('fog_master');
+            },
+
+            unlockAchievement(id) {
+                const ach = this.achievements.find(a => a.id === id);
+                if (ach && !ach.unlocked) {
+                    ach.unlocked = true;
+                }
+            },
+
+            saveLocalStorage() {
+                try {
+                    localStorage.setItem('mq2026_scores', JSON.stringify(this.scores));
+                    localStorage.setItem('mq2026_stats', JSON.stringify(this.stats));
+                    localStorage.setItem('mq2026_settings', JSON.stringify(this.settings));
+                    localStorage.setItem('mq2026_access', JSON.stringify(this.accessibility));
+                    localStorage.setItem('mq2026_achievements', JSON.stringify(this.achievements));
+                } catch(e) {}
+            },
+
+            loadLocalStorage() {
+                try {
+                    const s = localStorage.getItem('mq2026_scores');
+                    if (s) this.scores = Object.assign(this.scores, JSON.parse(s));
+
+                    const st = localStorage.getItem('mq2026_stats');
+                    if (st) this.stats = Object.assign(this.stats, JSON.parse(st));
+
+                    const set = localStorage.getItem('mq2026_settings');
+                    if (set) this.settings = Object.assign(this.settings, JSON.parse(set));
+
+                    const acc = localStorage.getItem('mq2026_access');
+                    if (acc) this.accessibility = Object.assign(this.accessibility, JSON.parse(acc));
+
+                    const ach = localStorage.getItem('mq2026_achievements');
+                    if (ach) this.achievements = Object.assign(this.achievements, JSON.parse(ach));
+                } catch(e) {}
+            },
+
+            resetData() {
+                if (confirm('Are you sure you want to reset all saved scores and settings?')) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            },
+
+            updateSettings() {
+                this.settings.sfx = document.getElementById('settingSfx').checked;
+                this.settings.music = document.getElementById('settingMusic').checked;
+                this.settings.shake = document.getElementById('settingShake').checked;
+                this.settings.particles = document.getElementById('settingParticles').checked;
+
+                this.synth.sfxEnabled = this.settings.sfx;
+                this.synth.musicEnabled = this.settings.music;
+                this.saveLocalStorage();
+            },
+
+            updateAccessibility() {
+                this.accessibility.highContrast = document.getElementById('accHighContrast').checked;
+                this.accessibility.colorBlind = document.getElementById('accColorBlind').checked;
+                this.accessibility.reducedMotion = document.getElementById('accReducedMotion').checked;
+                this.accessibility.largeText = document.getElementById('accLargeText').checked;
+                this.accessibility.showDPad = document.getElementById('accShowDPad').checked;
+
+                this.applyAccessibilityToDOM();
+                this.saveLocalStorage();
+            },
+
+            applySettingsToUI() {
+                document.getElementById('settingSfx').checked = this.settings.sfx;
+                document.getElementById('settingMusic').checked = this.settings.music;
+                document.getElementById('settingShake').checked = this.settings.shake;
+                document.getElementById('settingParticles').checked = this.settings.particles;
+                this.synth.sfxEnabled = this.settings.sfx;
+            },
+
+            applyAccessibilityToDOM() {
+                document.getElementById('accHighContrast').checked = this.accessibility.highContrast;
+                document.getElementById('accColorBlind').checked = this.accessibility.colorBlind;
+                document.getElementById('accReducedMotion').checked = this.accessibility.reducedMotion;
+                document.getElementById('accLargeText').checked = this.accessibility.largeText;
+                document.getElementById('accShowDPad').checked = this.accessibility.showDPad;
+
+                document.body.classList.toggle('high-contrast', this.accessibility.highContrast);
+                document.body.classList.toggle('color-blind', this.accessibility.colorBlind);
+                document.body.classList.toggle('reduced-motion', this.accessibility.reducedMotion);
+                document.body.classList.toggle('large-text', this.accessibility.largeText);
+
+                const dpad = document.getElementById('mobileDPad');
+                if (dpad) {
+                    dpad.className = this.accessibility.showDPad ? 'w-full pt-3 flex justify-center items-center' : 'hidden';
+                }
+            },
+
+            updateUIValues() {
+                // High Scores
+                document.getElementById('bestTimeEasy').textContent = this.scores.easy ? `${this.scores.easy}s` : '--:--';
+                document.getElementById('bestTimeMed').textContent = this.scores.medium ? `${this.scores.medium}s` : '--:--';
+                document.getElementById('bestTimeHard').textContent = this.scores.hard ? `${this.scores.hard}s` : '--:--';
+                document.getElementById('mostStars').textContent = this.scores.mostStars || 0;
+
+                // Statistics
+                document.getElementById('statMazesSolved').textContent = this.stats.mazesSolved;
+                document.getElementById('statTotalPlaytime').textContent = `${this.stats.totalPlaytime}s`;
+                document.getElementById('statTotalSteps').textContent = this.stats.totalSteps;
+                document.getElementById('statStarsCollected').textContent = this.stats.starsCollected;
+
+                this.renderAchievementsList();
+            },
+
+            renderAchievementsList() {
+                const container = document.getElementById('achievementsList');
+                if (!container) return;
+                container.innerHTML = '';
+
+                this.achievements.forEach(ach => {
+                    const item = document.createElement('div');
+                    item.className = `p-3 rounded-xl border flex items-center gap-3 ${
+                        ach.unlocked 
+                        ? 'bg-emerald-950/40 border-emerald-500/50 text-white' 
+                        : 'bg-slate-900/40 border-slate-800 text-slate-500'
+                    }`;
+                    item.innerHTML = `
+                        <div class="text-xl ${ach.unlocked ? 'text-emerald-400' : 'text-slate-600'}">
+                            <i class="fa-solid ${ach.unlocked ? 'fa-medal' : 'fa-lock'}"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-xs">${ach.name}</div>
+                            <div class="text-[10px] text-slate-400">${ach.desc}</div>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            },
+
+            pauseGame() {
+                if (!this.gameActive) return;
+                this.isPaused = true;
+                this.synth.playClick();
+                document.getElementById('pauseModal').classList.remove('hidden');
+                document.getElementById('pauseModal').classList.add('flex');
+            },
+
+            resumeGame() {
+                this.isPaused = false;
+                this.synth.playClick();
+                document.getElementById('pauseModal').classList.add('hidden');
+                document.getElementById('pauseModal').classList.remove('flex');
+            },
+
+            restartGame() {
+                document.getElementById('pauseModal').classList.add('hidden');
+                document.getElementById('pauseModal').classList.remove('flex');
+                this.startNewGame();
+            },
+
+            exitToMainMenu() {
+                this.gameActive = false;
+                this.isPaused = false;
+                if (this.timerInterval) clearInterval(this.timerInterval);
+                document.getElementById('pauseModal').classList.add('hidden');
+                document.getElementById('pauseModal').classList.remove('flex');
+                document.getElementById('victoryModal').classList.add('hidden');
+                document.getElementById('victoryModal').classList.remove('flex');
+                this.showScreen('menuScreen');
+            },
+
+            shareScore() {
+                const text = `🎮 I solved a ${this.mazeSizeKey.toUpperCase()} maze in Maze Quest 2026 in ${this.secondsElapsed} seconds with ${this.starsCollected} stars!`;
+                
+                // Fallback copy logic
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    alert('Score copied to clipboard!');
+                } catch (err) {}
+                document.body.removeChild(textArea);
+            },
+
+            initBgParticles() {
+                this.particles = [];
+                for (let i = 0; i < 40; i++) {
+                    this.particles.push({
+                        x: Math.random() * window.innerWidth,
+                        y: Math.random() * window.innerHeight,
+                        r: Math.random() * 2 + 1,
+                        vx: (Math.random() - 0.5) * 0.5,
+                        vy: (Math.random() - 0.5) * 0.5,
+                        alpha: Math.random() * 0.5 + 0.2
+                    });
+                }
+            },
+
+            bgAnimLoop() {
+                if (this.bgCtx && this.bgCanvas) {
+                    this.bgCtx.clearRect(0, 0, this.bgCanvas.width, this.bgCanvas.height);
+                    this.bgCtx.fillStyle = '#38bdf8';
+
+                    this.particles.forEach(p => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+
+                        if (p.x < 0) p.x = this.bgCanvas.width;
+                        if (p.x > this.bgCanvas.width) p.x = 0;
+                        if (p.y < 0) p.y = this.bgCanvas.height;
+                        if (p.y > this.bgCanvas.height) p.y = 0;
+
+                        this.bgCtx.globalAlpha = p.alpha;
+                        this.bgCtx.beginPath();
+                        this.bgCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                        this.bgCtx.fill();
+                    });
+                    this.bgCtx.globalAlpha = 1.0;
+                }
+                requestAnimationFrame(() => this.bgAnimLoop());
+            }
+        };
+
+        // Window Load Initialization
+        window.onload = function() {
+            GameApp.init();
+        };
+    </script>
+</body>
+</html>

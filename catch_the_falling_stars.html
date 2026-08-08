@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Catch the Falling Stars</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for arcade typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+    .font-arcade {
+      font-family: 'Fredoka One', cursive, sans-serif;
+    }
+    /* Custom scrollbar for menu panels */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #38bdf8;
+      border-radius: 9999px;
+    }
+    /* Button press & hover effects */
+    .btn-arcade {
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
+      box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+    }
+    .btn-arcade:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 0 rgba(0,0,0,0.3);
+    }
+    .btn-arcade:active {
+      transform: translateY(3px);
+      box-shadow: 0 3px 0 rgba(0,0,0,0.3);
+    }
+    /* Glassmorphic panels */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    /* Glow text effect */
+    .glow-title {
+      text-shadow: 0 0 15px rgba(250, 204, 21, 0.6), 0 0 30px rgba(250, 204, 21, 0.3);
+    }
+    /* High contrast mode styles */
+    body.high-contrast {
+      background-color: #000000 !important;
+      color: #ffffff !important;
+    }
+    body.high-contrast .glass-panel {
+      background: #000000 !important;
+      border: 3px solid #ffffff !important;
+      box-shadow: none !important;
+    }
+    body.high-contrast .btn-arcade {
+      border: 2px solid #ffffff !important;
+    }
+    /* Large Text mode styling */
+    body.large-text {
+      font-size: 1.15rem;
+    }
+    body.large-text .text-xs { font-size: 0.9rem; }
+    body.large-text .text-sm { font-size: 1.05rem; }
+    body.large-text .text-base { font-size: 1.2rem; }
+    body.large-text .text-xl { font-size: 1.5rem; }
+    body.large-text .text-2xl { font-size: 1.85rem; }
+    body.large-text .text-3xl { font-size: 2.25rem; }
+    body.large-text .text-4xl { font-size: 2.75rem; }
+  </style>
+</head>
+<body class="w-screen h-screen relative overflow-hidden flex items-center justify-center">
+
+  <!-- GAME CANVAS -->
+  <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-0 block"></canvas>
+
+  <!-- UI OVERLAY CONTAINER -->
+  <div id="uiContainer" class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center p-4">
+
+    <!-- HUD (Visible during gameplay) -->
+    <div id="hud" class="absolute top-0 left-0 right-0 p-4 flex justify-between items-start pointer-events-none hidden">
+      <div class="flex flex-col gap-1">
+        <div class="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-amber-400/30 flex items-center gap-3">
+          <span class="text-amber-400 font-arcade text-xl sm:text-2xl">SCORE</span>
+          <span id="hudScore" class="text-white font-arcade text-2xl sm:text-3xl">0</span>
+        </div>
+        <div class="bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-xl border border-sky-400/30 text-xs sm:text-sm text-sky-200 flex items-center gap-2">
+          <span>COMBO:</span>
+          <span id="hudCombo" class="font-bold text-amber-300">0x</span>
+        </div>
+      </div>
+
+      <!-- Mode & Time/Lives indicator -->
+      <div class="flex flex-col items-end gap-2">
+        <div id="livesContainer" class="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-rose-500/30 flex items-center gap-2">
+          <span class="text-rose-400 font-arcade text-sm sm:text-base mr-1">BOMBS:</span>
+          <div id="heartsBox" class="flex gap-1 text-xl sm:text-2xl">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+        <div id="timerBox" class="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-emerald-400/30 flex items-center gap-2 hidden">
+          <span class="text-emerald-400 font-arcade text-sm sm:text-base">TIME:</span>
+          <span id="hudTimer" class="text-white font-arcade text-xl sm:text-2xl">60s</span>
+        </div>
+        <!-- Active Power-up Badges -->
+        <div id="powerupContainer" class="flex gap-1"></div>
+      </div>
+
+      <!-- Pause Button -->
+      <button id="btnPause" class="pointer-events-auto bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-arcade px-3 py-2 sm:px-4 sm:py-2 rounded-2xl btn-arcade flex items-center gap-1 text-sm sm:text-base">
+        ⏸ PAUSE
+      </button>
+    </div>
+
+    <!-- MAIN MENU VIEW -->
+    <div id="viewMainMenu" class="pointer-events-auto w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-5 text-center shadow-2xl relative">
+      <div class="animate-bounce">
+        <span class="text-5xl sm:text-6xl">⭐</span>
+      </div>
+      <div>
+        <h1 class="font-arcade text-3xl sm:text-5xl text-amber-400 glow-title tracking-wider">CATCH THE</h1>
+        <h2 class="font-arcade text-4xl sm:text-6xl text-sky-300 glow-title tracking-widest mt-1">FALLING STARS</h2>
+        <p class="text-xs sm:text-sm text-slate-300 mt-2 font-medium">A Magical Arcade Catching Adventure!</p>
+      </div>
+
+      <div class="w-full flex flex-col gap-3 mt-2">
+        <button id="btnPlay" class="w-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-arcade text-xl sm:text-2xl py-3 rounded-2xl btn-arcade shadow-lg">
+          ▶ START GAME
+        </button>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btnHighScores" class="bg-slate-800/90 hover:bg-slate-700/90 text-amber-300 font-arcade py-2.5 rounded-xl border border-amber-400/30 btn-arcade text-sm sm:text-base">
+            🏆 HIGH SCORES
+          </button>
+          <button id="btnAchievements" class="bg-slate-800/90 hover:bg-slate-700/90 text-emerald-300 font-arcade py-2.5 rounded-xl border border-emerald-400/30 btn-arcade text-sm sm:text-base">
+            🏅 ACHIEVEMENTS
+          </button>
+          <button id="btnHowToPlay" class="bg-slate-800/90 hover:bg-slate-700/90 text-sky-300 font-arcade py-2.5 rounded-xl border border-sky-400/30 btn-arcade text-sm sm:text-base">
+            📖 HOW TO PLAY
+          </button>
+          <button id="btnSettings" class="bg-slate-800/90 hover:bg-slate-700/90 text-purple-300 font-arcade py-2.5 rounded-xl border border-purple-400/30 btn-arcade text-sm sm:text-base">
+            ⚙️ SETTINGS
+          </button>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-xs">
+          <button id="btnStats" class="bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 font-arcade py-2 rounded-xl border border-slate-600 btn-arcade">
+            📊 STATS
+          </button>
+          <button id="btnAccessibility" class="bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 font-arcade py-2 rounded-xl border border-slate-600 btn-arcade">
+            ♿ ACCESS
+          </button>
+          <button id="btnAbout" class="bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 font-arcade py-2 rounded-xl border border-slate-600 btn-arcade">
+            ℹ️ ABOUT
+          </button>
+        </div>
+        <button id="btnCredits" class="text-xs text-slate-400 hover:text-amber-300 underline mt-1">
+          Credits & Information
+        </button>
+      </div>
+    </div>
+
+    <!-- GAME MODE SELECT VIEW -->
+    <div id="viewModeSelect" class="pointer-events-auto w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-5 text-center hidden">
+      <h2 class="font-arcade text-2xl sm:text-4xl text-amber-400">SELECT GAME MODE</h2>
+      
+      <div class="w-full flex flex-col gap-3">
+        <button data-mode="classic" class="btnModeSelect w-full bg-slate-800 hover:bg-slate-700 border-2 border-amber-400/60 p-4 rounded-2xl flex items-center justify-between text-left btn-arcade">
+          <div>
+            <div class="font-arcade text-lg sm:text-xl text-amber-300">⭐ CLASSIC MODE</div>
+            <div class="text-xs text-slate-300">Catch stars, avoid bombs! 3 Bomb Strikes = Game Over.</div>
+          </div>
+          <span class="text-2xl">💣</span>
+        </button>
+
+        <button data-mode="time" class="btnModeSelect w-full bg-slate-800 hover:bg-slate-700 border-2 border-emerald-400/60 p-4 rounded-2xl flex items-center justify-between text-left btn-arcade">
+          <div>
+            <div class="font-arcade text-lg sm:text-xl text-emerald-300">⏱ TIME ATTACK (60s)</div>
+            <div class="text-xs text-slate-300">Score as many points as possible in 60 seconds! Bombs subtract score.</div>
+          </div>
+          <span class="text-2xl">⏳</span>
+        </button>
+
+        <button data-mode="zen" class="btnModeSelect w-full bg-slate-800 hover:bg-slate-700 border-2 border-sky-400/60 p-4 rounded-2xl flex items-center justify-between text-left btn-arcade">
+          <div>
+            <div class="font-arcade text-lg sm:text-xl text-sky-300">🌸 ZEN / ENDLESS</div>
+            <div class="text-xs text-slate-300">Relaxing play with no bombs! Practice catching stars at your pace.</div>
+          </div>
+          <span class="text-2xl">🌈</span>
+        </button>
+      </div>
+
+      <button class="btnBackToMain w-full bg-slate-700 hover:bg-slate-600 font-arcade py-2.5 rounded-xl btn-arcade text-sm">
+        ⬅ BACK TO MAIN MENU
+      </button>
+    </div>
+
+    <!-- HIGH SCORES VIEW -->
+    <div id="viewHighScores" class="pointer-events-auto w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center hidden">
+      <h2 class="font-arcade text-2xl sm:text-4xl text-amber-400">🏆 HIGH SCORES</h2>
+      
+      <div class="w-full bg-slate-900/80 rounded-2xl p-4 border border-slate-700 flex flex-col gap-3 text-sm">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <span class="text-slate-400">Classic Mode Best:</span>
+          <span id="scoreClassic" class="font-arcade text-amber-300 text-lg">0</span>
+        </div>
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <span class="text-slate-400">Time Attack Best:</span>
+          <span id="scoreTime" class="font-arcade text-emerald-300 text-lg">0</span>
+        </div>
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <span class="text-slate-400">Zen Mode Best:</span>
+          <span id="scoreZen" class="font-arcade text-sky-300 text-lg">0</span>
+        </div>
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <span class="text-slate-400">Highest Combo:</span>
+          <span id="scoreCombo" class="font-arcade text-purple-300 text-lg">0x</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400">Longest Survival:</span>
+          <span id="scoreSurvival" class="font-arcade text-rose-300 text-lg">0s</span>
+        </div>
+      </div>
+
+      <button class="btnBackToMain w-full bg-slate-700 hover:bg-slate-600 font-arcade py-2.5 rounded-xl btn-arcade text-sm">
+        ⬅ BACK TO MAIN MENU
+      </button>
+    </div>
+
+    <!-- ACHIEVEMENTS VIEW -->
+    <div id="viewAchievements" class="pointer-events-auto w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center hidden">
+      <h2 class="font-arcade text-2xl sm:text-4xl text-emerald-400">🏅 ACHIEVEMENTS</h2>
+      
+      <div id="achievementsList" class="w-full max-h-60 overflow-y-auto pr-1 flex flex-col gap-2 text-left">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <button class="btnBackToMain w-full bg-slate-700 hover:bg-slate-600 font-arcade py-2.5 rounded-xl btn-arcade text-sm">
+        ⬅ BACK TO MAIN MENU
+      </button>
+    </div>
+
+    <!-- STATISTICS VIEW -->
+    <div id="viewStats" class="pointer-events-auto w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center hidden">
+      <h2 class="font-arcade text-2xl sm:text-4xl text-sky-400">📊 GAME STATISTICS</h2>
+      
+      <div class="w-full bg-slate-900/80 rounded-2xl p-4 border border-slate-700 flex flex-col gap-2.5 text-xs sm:text-sm">
+        <div class="flex justify-between"><span class="text-slate-400">Total Games Played:</span><span id="statGamesPlayed" class="font-bold text-white">0</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Total Stars Caught:</span><span id="statTotalStars" class="font-bold text-amber-300">0</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Rainbow Stars Caught:</span><span id="statRainbowStars" class="font-bold text-pink-400">0</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Total Bombs Avoided:</span><span id="statBombsAvoided" class="font-bold text-emerald-400">0</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Bombs Hit:</span><span id="statBombsHit" class="font-bold text-rose-400">0</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Total Time Played:</span><span id="statTimePlayed" class="font-bold text-sky-300">0 min</span></div>
+      </div>
+
+      <button class="btnBackToMain w-full bg-slate-700 hover:bg-slate-600 font-arcade py-2.5 rounded-xl btn-arcade text-sm">
+        ⬅ BACK TO MAIN MENU
+      </button>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="viewSettings" class="pointer-events-auto w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center hidden">
+      <h2 class="font-arcade text-2xl sm:text-4xl text-purple-400">⚙️ SETTINGS</h2>
+      
+      <div class="w-full bg-slate-900/80 rounded-2xl p-4 border border-slate-700 flex flex-col gap-4 text-left text-xs sm:text-sm">
+        <!-- Sound Effects -->
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-slate-200">Sound Effects:</span>
+          <button id="toggleSfx" class="bg-emerald-500 text-slate-950 font-arcade px-4 py-1.5 rounded-xl btn-arcade">ON</button>
+        </div>
+        <!-- Music -->
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-slate-200">Background Music:</span>
+          <button id="toggleMusic" class="bg-emerald-500 text-slate-950 font-arcade px-4 py-1.5 rounded-xl btn-arcade">ON</button>
+        </div>
+        <!-- Screen Shake -->
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-slate-200">Screen Shake:</span>
+          <button id="toggleShake" class="bg-emerald-500 text-slate-950 font-arcade px-4 py-1.5 rounded-xl btn-arcade">ON</button>
+        </div>
+        <!-- Particle Effects -->
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-slate-200">Particles & Effects:</span>
+          <button id="toggleParticles" class="bg-emerald-500 text-slate-950 font-arcade px-4 py-1.5 rounded-xl btn-arcade">ON</button>
+        </div>
+        <!-- Fullscreen -->
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-slate-200">Fullscreen Mode:</span>
+          <button id="btnFullscreen" class="bg-slate-700 text-slate-200 font-arcade px-4 py-1.5 rounded-xl btn-arcade">TOGGLE</button>
+        </div>
+        <!-- Reset Data Button -->
+        <div class="pt-2 border-t border-slate-800">
+          <button id="btnResetData" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white font-arcade py-2 rounded-xl btn-arcade">
+            ⚠️ RESET ALL SAVED DATA
+          </button>
+        </div>
+      </div>
+
+      <button class="btnBackToMain w-full bg-slate-700 hover:bg-slate-600 font-arcade py-2.5 rounded-xl btn-arcade text-sm">
+        ⬅ BACK TO MAIN MENU
+      </button>
+    </div>
+
+    <!-- ACCESSIBILITY VIEW -->
+    <div id="viewAccessibility" class="pointer-events-auto w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center hidden">
+      <h2 class="font-arcade text-2xl sm:text-4xl text-sky-400">♿ ACCESSIBILITY</h2>
+      
+      <div class="w-full bg-slate-900/80 rounded-2xl p-4 border border-slate-700 flex flex-col gap-4 text-left text-xs sm:text-sm">
+        <!-- High Contrast Mode -->
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="font-bold text-slate-200">High Contrast Mode</div>
+            <div class="text-[10px] text-slate-400">Enhances contrast and borders for clarity</div>
+          </div>
+          <button id="toggleHighContrast" class="bg-slate-700 text-slate-200 font-arcade px-4 py-1.5 rounded-xl btn-arcade">OFF</button>
+        </div>
+
+        <!-- Colorblind Friendly Mode -->
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="font-bold text-slate-200">Color-Blind Shapes</div>
+            <div class="text-[10px] text-slate-400">Adds distinct shape symbols (★, 💣, 🛡) to items</div>
+          </div>
+          <button id="toggleColorblind" class="bg-emerald-500 text-slate-950 font-arcade px-4 py-1.5 rounded-xl btn-arcade">ON</button>
+        </div>
+
+        <!-- Reduced Motion -->
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="font-bold text-slate-200">Reduced Motion</div>
+            <div class="text-[10px] text-slate-400">Disables intense screen shakes & particle bursts</div>
+          </div>
+          <button id="toggleReducedMotion" class="bg-slate-700 text-slate-200 font-arcade px-4 py-1.5 rounded-xl btn-arcade">OFF</button>
+        </div>
+
+        <!-- Large Text -->
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="font-bold text-slate-200">Large UI Text</div>
+            <div class="text-[10px] text-slate-400">Increases font sizes across menus</div>
+          </div>
+          <button id="toggleLargeText" class="bg-slate-700 text-slate-200 font-arcade px-4 py-1.5 rounded-xl btn-arcade">OFF</button>
+        </div>
+
+        <!-- Game Speed Slider -->
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between font-bold text-slate-200">
+            <span>Game Speed Scaling:</span>
+            <span id="labelGameSpeed" class="text-amber-300">1.0x</span>
+          </div>
+          <input id="sliderSpeed" type="range" min="0.75" max="1.25" step="0.25" value="1.0" class="w-full accent-amber-400 cursor-pointer" />
+        </div>
+      </div>
+
+      <button class="btnBackToMain w-full bg-slate-700 hover:bg-slate-600 font-arcade py-2.5 rounded-xl btn-arcade text-sm">
+        ⬅ BACK TO MAIN MENU
+      </button>
+    </div>
+
+    <!-- HOW TO PLAY VIEW -->
+    <div id="viewHowToPlay" class="pointer-events-auto w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center hidden">
+      <h2 class="font-arcade text-2xl sm:text-4xl text-sky-300">📖 HOW TO PLAY</h2>
+      
+      <div class="w-full max-h-64 overflow-y-auto bg-slate-900/80 rounded-2xl p-4 border border-slate-700 text-left flex flex-col gap-3 text-xs sm:text-sm">
+        <div class="p-2.5 bg-slate-800/80 rounded-xl border border-amber-400/30">
+          <div class="font-arcade text-amber-300 text-sm mb-1">🎮 CONTROLS</div>
+          <p>• <b>Desktop:</b> Use Left & Right Arrow keys or [A] / [D] keys to move your basket.<br>• <b>Touch / Mobile:</b> Drag your finger across the screen or tap the left/right sides to steer!</p>
+        </div>
+
+        <div class="p-2.5 bg-slate-800/80 rounded-xl border border-sky-400/30">
+          <div class="font-arcade text-sky-300 text-sm mb-1">⭐ OBJECTIVE & ITEMS</div>
+          <ul class="list-disc list-inside space-y-1">
+            <li><span class="text-yellow-300 font-bold">Yellow Star:</span> +100 Points</li>
+            <li><span class="text-pink-300 font-bold">Rainbow Star:</span> +300 Points & Star Frenzy!</li>
+            <li><span class="text-cyan-300 font-bold">Shield Orb:</span> Protects you from 1 Bomb strike</li>
+            <li><span class="text-purple-300 font-bold">Magnet Orb:</span> Attracts nearby stars to your basket</li>
+            <li><span class="text-rose-400 font-bold">Bomb:</span> Explodes! 3 Strikes = Game Over in Classic mode.</li>
+          </ul>
+        </div>
+
+        <div class="p-2.5 bg-slate-800/80 rounded-xl border border-emerald-400/30">
+          <div class="font-arcade text-emerald-300 text-sm mb-1">🔥 COMBOS & MULTIPLIERS</div>
+          <p>Catch stars consecutively without missing to raise your Combo Multiplier and multiply your catch scores!</p>
+        </div>
+      </div>
+
+      <button class="btnBackToMain w-full bg-slate-700 hover:bg-slate-600 font-arcade py-2.5 rounded-xl btn-arcade text-sm">
+        ⬅ BACK TO MAIN MENU
+      </button>
+    </div>
+
+    <!-- ABOUT VIEW -->
+    <div id="viewAbout" class="pointer-events-auto w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center hidden">
+      <h2 class="font-arcade text-2xl sm:text-4xl text-amber-300">ℹ️ ABOUT THE GAME</h2>
+      
+      <div class="w-full max-h-64 overflow-y-auto bg-slate-900/80 rounded-2xl p-4 border border-slate-700 text-left flex flex-col gap-3 text-xs sm:text-sm">
+        <p><b>Catch the Falling Stars</b> is a charming, vibrant arcade experience designed for players of all ages! Inspired by nostalgic classic arcade catchers, it brings physics, magical power-ups, and cheerful sound synthesis together.</p>
+        <p><b>Core Loop:</b> Pilot your starry basket through celestial starfalls, gather rare cosmic gems, unlock achievements, and climb the high score leaderboards!</p>
+      </div>
+
+      <button class="btnBackToMain w-full bg-slate-700 hover:bg-slate-600 font-arcade py-2.5 rounded-xl btn-arcade text-sm">
+        ⬅ BACK TO MAIN MENU
+      </button>
+    </div>
+
+    <!-- CREDITS VIEW -->
+    <div id="viewCredits" class="pointer-events-auto w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center hidden">
+      <h2 class="font-arcade text-2xl sm:text-4xl text-amber-400">✨ CREDITS</h2>
+      
+      <div class="w-full bg-slate-900/90 rounded-2xl p-6 border border-amber-400/40 text-center flex flex-col items-center gap-3">
+        <span class="text-4xl animate-pulse">🌟</span>
+        <div class="font-arcade text-base sm:text-lg text-amber-300">
+          Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved.
+        </div>
+        <p class="text-xs text-slate-400">Created using HTML5 Canvas, Web Audio Synthesizer & Tailwind CSS.</p>
+      </div>
+
+      <button class="btnBackToMain w-full bg-slate-700 hover:bg-slate-600 font-arcade py-2.5 rounded-xl btn-arcade text-sm">
+        ⬅ BACK TO MAIN MENU
+      </button>
+    </div>
+
+    <!-- PAUSE MODAL -->
+    <div id="modalPause" class="pointer-events-auto w-full max-w-md glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center hidden">
+      <h2 class="font-arcade text-3xl sm:text-4xl text-amber-400">PAUSED</h2>
+      
+      <div class="w-full flex flex-col gap-3">
+        <button id="btnResume" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-arcade py-3 rounded-2xl btn-arcade text-lg">
+          ▶ RESUME GAME
+        </button>
+        <button id="btnRestart" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-arcade py-2.5 rounded-xl btn-arcade text-base">
+          🔄 RESTART
+        </button>
+        <button id="btnPauseSettings" class="bg-slate-800 hover:bg-slate-700 text-purple-300 font-arcade py-2.5 rounded-xl border border-purple-400/30 btn-arcade text-sm">
+          ⚙️ SETTINGS
+        </button>
+        <button id="btnPauseHowToPlay" class="bg-slate-800 hover:bg-slate-700 text-sky-300 font-arcade py-2.5 rounded-xl border border-sky-400/30 btn-arcade text-sm">
+          📖 HOW TO PLAY
+        </button>
+        <button id="btnPauseMainMenu" class="bg-rose-600 hover:bg-rose-500 font-arcade py-2.5 rounded-xl btn-arcade text-sm">
+          🏠 MAIN MENU
+        </button>
+      </div>
+    </div>
+
+    <!-- GAME OVER MODAL -->
+    <div id="modalGameOver" class="pointer-events-auto w-full max-w-md glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center gap-4 text-center hidden">
+      <div id="newHighTag" class="bg-amber-400 text-slate-950 font-arcade px-3 py-1 rounded-full text-xs animate-bounce hidden">
+        🎉 NEW HIGH SCORE!
+      </div>
+      <h2 id="gameOverTitle" class="font-arcade text-3xl sm:text-5xl text-rose-400 glow-title">GAME OVER</h2>
+      
+      <div class="w-full bg-slate-900/80 rounded-2xl p-4 border border-slate-700 flex flex-col gap-2 text-sm">
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400">Final Score:</span>
+          <span id="goScore" class="font-arcade text-amber-300 text-xl">0</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400">Best Score:</span>
+          <span id="goHighScore" class="font-arcade text-emerald-300 text-lg">0</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400">Max Combo:</span>
+          <span id="goCombo" class="font-arcade text-sky-300 text-lg">0x</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400">Stars Caught:</span>
+          <span id="goStars" class="font-arcade text-yellow-300 text-lg">0</span>
+        </div>
+      </div>
+
+      <div class="w-full flex flex-col gap-3">
+        <button id="btnPlayAgain" class="bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-arcade py-3 rounded-2xl btn-arcade text-xl">
+          🔄 PLAY AGAIN
+        </button>
+        <button class="btnBackToMain w-full bg-slate-700 hover:bg-slate-600 font-arcade py-2.5 rounded-xl btn-arcade text-sm">
+          🏠 MAIN MENU
+        </button>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION FOR ACHIEVEMENTS -->
+    <div id="toastNotification" class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 border-2 border-amber-400 rounded-2xl px-5 py-3 flex items-center gap-3 shadow-2xl transition-all duration-300 translate-y-20 opacity-0 pointer-events-none">
+      <span class="text-3xl">🏅</span>
+      <div class="text-left">
+        <div class="text-[10px] text-amber-400 font-arcade tracking-wider">ACHIEVEMENT UNLOCKED!</div>
+        <div id="toastTitle" class="font-arcade text-sm text-white">Star Collector</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JAVASCRIPT GAME ENGINE & MENU SYSTEM -->
+  <script>
+    // --- STATE MANAGEMENT & SAVED DATA ---
+    const STORAGE_KEY = 'catch_falling_stars_data_v1';
+
+    let gameData = {
+      highScores: { classic: 0, time: 0, zen: 0 },
+      bestCombo: 0,
+      longestSurvival: 0,
+      stats: {
+        gamesPlayed: 0,
+        starsCaught: 0,
+        rainbowStars: 0,
+        bombsAvoided: 0,
+        bombsHit: 0,
+        timePlayedSeconds: 0
+      },
+      settings: {
+        sfx: true,
+        music: true,
+        shake: true,
+        particles: true
+      },
+      accessibility: {
+        highContrast: false,
+        colorblind: true,
+        reducedMotion: false,
+        largeText: false,
+        gameSpeed: 1.0
+      },
+      achievements: {
+        first_star: false,
+        combo_5: false,
+        combo_15: false,
+        stars_50: false,
+        stars_200: false,
+        shield_master: false,
+        time_survivor: false,
+        zen_master: false
+      }
+    };
+
+    function loadGameData() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          gameData = { ...gameData, ...parsed };
+          // Ensure nested objects merge smoothly
+          gameData.highScores = { ...gameData.highScores, ...(parsed.highScores || {}) };
+          gameData.stats = { ...gameData.stats, ...(parsed.stats || {}) };
+          gameData.settings = { ...gameData.settings, ...(parsed.settings || {}) };
+          gameData.accessibility = { ...gameData.accessibility, ...(parsed.accessibility || {}) };
+          gameData.achievements = { ...gameData.achievements, ...(parsed.achievements || {}) };
+        }
+      } catch(e) {
+        console.warn('Failed to load local storage:', e);
+      }
+    }
+
+    function saveGameData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(gameData));
+      } catch(e) {
+        console.warn('Failed to save local storage:', e);
+      }
+    }
+
+    // --- WEB AUDIO API SYNTHESIZER ---
+    class AudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.bgmTimer = null;
+        this.step = 0;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContextClass();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.1) {
+        if (!gameData.settings.sfx) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch(e) {}
+      }
+
+      playStarCatch() {
+        if (!gameData.settings.sfx) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+          osc.frequency.exponentialRampToValueAtTime(1046.50, this.ctx.currentTime + 0.15); // C6
+          gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.15);
+        } catch(e) {}
+      }
+
+      playPowerup() {
+        if (!gameData.settings.sfx) return;
+        this.init();
+        const notes = [440, 554.37, 659.25, 880];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'sine', 0.15, 0.12), idx * 50);
+        });
+      }
+
+      playBombHit() {
+        if (!gameData.settings.sfx) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.3);
+        } catch(e) {}
+      }
+
+      playAchievement() {
+        if (!gameData.settings.sfx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 'triangle', 0.2, 0.15), i * 80);
+        });
+      }
+
+      startBGM() {
+        if (this.bgmTimer) return;
+        this.bgmTimer = setInterval(() => {
+          if (!gameData.settings.music) return;
+          this.init();
+          const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C pentatonic
+          const freq = scale[this.step % scale.length];
+          this.playTone(freq, 'sine', 0.2, 0.03);
+          this.step++;
+        }, 300);
+      }
+
+      stopBGM() {
+        if (this.bgmTimer) {
+          clearInterval(this.bgmTimer);
+          this.bgmTimer = null;
+        }
+      }
+    }
+
+    const audio = new AudioEngine();
+
+    // --- CANVAS & GAME ENGINE SETUP ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let width = 0;
+    let height = 0;
+
+    function resizeCanvas() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Game States
+    const STATE_MENU = 'menu';
+    const STATE_PLAYING = 'playing';
+    const STATE_PAUSED = 'paused';
+    const STATE_GAMEOVER = 'gameover';
+
+    let currentState = STATE_MENU;
+    let currentMode = 'classic'; // 'classic', 'time', 'zen'
+
+    // Gameplay Loop Variables
+    let score = 0;
+    let combo = 0;
+    let maxCombo = 0;
+    let bombsHitCount = 0;
+    let lives = 3;
+    let timeRemaining = 60; // For time attack
+    let survivalTimer = 0;
+    let starCountThisRun = 0;
+    let gameLoopId = null;
+
+    // Powerup Timers (seconds)
+    let shieldActive = false;
+    let magnetTimer = 0;
+    let frenzyTimer = 0;
+
+    // Shake
+    let shakeIntensity = 0;
+
+    // Player Basket
+    const basket = {
+      x: 0,
+      y: 0,
+      width: 110,
+      height: 35,
+      speed: 12,
+      targetX: 0,
+      squish: 1
+    };
+
+    // Arrays
+    let fallingItems = [];
+    let particles = [];
+    let floatingBgStars = [];
+
+    // Initialize Background Floating Stars
+    function initBgStars() {
+      floatingBgStars = [];
+      for (let i = 0; i < 60; i++) {
+        floatingBgStars.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          size: Math.random() * 3 + 1,
+          alpha: Math.random(),
+          speed: Math.random() * 0.5 + 0.2
+        });
+      }
+    }
+    initBgStars();
+
+    // --- PARTICLE ENGINE ---
+    function createParticles(x, y, color, count = 12) {
+      if (!gameData.settings.particles || gameData.accessibility.reducedMotion) return;
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6 + 2;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: Math.random() * 6 + 3,
+          color,
+          alpha: 1,
+          life: 1
+        });
+      }
+    }
+
+    function triggerScreenShake(amt = 10) {
+      if (!gameData.settings.shake || gameData.accessibility.reducedMotion) return;
+      shakeIntensity = amt;
+    }
+
+    // --- FALLING ITEMS & SPAWNING ---
+    // Types: 'star', 'rainbow', 'shield', 'magnet', 'bomb'
+    let spawnTimer = 0;
+
+    function spawnItem() {
+      const margin = 40;
+      const x = Math.random() * (width - margin * 2) + margin;
+      
+      let rand = Math.random();
+      let type = 'star';
+
+      if (currentMode === 'zen') {
+        // No bombs in Zen mode
+        if (rand < 0.15) type = 'rainbow';
+        else if (rand < 0.25) type = 'magnet';
+        else if (rand < 0.35) type = 'shield';
+      } else {
+        if (rand < 0.55) type = 'star';
+        else if (rand < 0.75) type = 'bomb';
+        else if (rand < 0.85) type = 'rainbow';
+        else if (rand < 0.92) type = 'magnet';
+        else type = 'shield';
+      }
+
+      // Base speed affected by game speed setting
+      let baseSpeed = (Math.random() * 2 + 3) * gameData.accessibility.gameSpeed;
+      if (frenzyTimer > 0 && type === 'star') baseSpeed *= 1.3;
+
+      fallingItems.push({
+        x,
+        y: -30,
+        type,
+        radius: type === 'bomb' ? 22 : 20,
+        vy: baseSpeed,
+        rotation: 0,
+        rotSpeed: (Math.random() - 0.5) * 0.1
+      });
+    }
+
+    // --- GAME LOOP & UPDATES ---
+    let lastTime = performance.now();
+
+    function updateGame(dt) {
+      if (currentState !== STATE_PLAYING) return;
+
+      survivalTimer += dt;
+      gameData.stats.timePlayedSeconds += dt;
+
+      // Handle Powerup Timers
+      if (magnetTimer > 0) magnetTimer -= dt;
+      if (frenzyTimer > 0) frenzyTimer -= dt;
+
+      // Handle Time Attack timer
+      if (currentMode === 'time') {
+        timeRemaining -= dt;
+        if (timeRemaining <= 0) {
+          timeRemaining = 0;
+          endGame();
+          return;
+        }
+      }
+
+      // Smooth Basket Movement towards Target
+      basket.x += (basket.targetX - basket.x) * 0.25;
+      // Clamp basket position
+      basket.x = Math.max(basket.width / 2, Math.min(width - basket.width / 2, basket.x));
+
+      // Squish animation return to normal
+      basket.squish += (1 - basket.squish) * 0.1;
+
+      // Spawning frequency (faster over time in Classic)
+      let spawnRate = frenzyTimer > 0 ? 0.25 : Math.max(0.4, 1.2 - (survivalTimer * 0.008));
+      spawnTimer += dt;
+      if (spawnTimer >= spawnRate) {
+        spawnTimer = 0;
+        spawnItem();
+      }
+
+      const basketTop = basket.y - basket.height / 2;
+      const basketLeft = basket.x - basket.width / 2;
+      const basketRight = basket.x + basket.width / 2;
+
+      // Update Falling Items
+      for (let i = fallingItems.length - 1; i >= 0; i--) {
+        const item = fallingItems[i];
+        item.y += item.vy;
+        item.rotation += item.rotSpeed;
+
+        // Magnet attraction effect
+        if (magnetTimer > 0 && item.type !== 'bomb') {
+          const dx = basket.x - item.x;
+          const dy = basket.y - item.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 300) {
+            item.x += (dx / dist) * 6;
+            item.y += (dy / dist) * 6;
+          }
+        }
+
+        // Check catch collision
+        if (item.y + item.radius >= basketTop && item.y - item.radius <= basket.y + basket.height / 2) {
+          if (item.x >= basketLeft - 10 && item.x <= basketRight + 10) {
+            // CAUGHT ITEM!
+            handleCatch(item);
+            fallingItems.splice(i, 1);
+            continue;
+          }
+        }
+
+        // Missed item (fell off screen)
+        if (item.y - item.radius > height) {
+          if (item.type === 'star' || item.type === 'rainbow') {
+            // Combo reset on missing stars
+            if (combo > 0) combo = 0;
+          } else if (item.type === 'bomb') {
+            gameData.stats.bombsAvoided++;
+          }
+          fallingItems.splice(i, 1);
+        }
+      }
+
+      // Update Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.02;
+        if (p.alpha <= 0) particles.splice(i, 1);
+      }
+
+      // Update Screen Shake
+      if (shakeIntensity > 0) shakeIntensity *= 0.9;
+
+      updateHUD();
+      checkAchievements();
+    }
+
+    function handleCatch(item) {
+      basket.squish = 0.7; // Bounce basket
+
+      if (item.type === 'star') {
+        combo++;
+        if (combo > maxCombo) maxCombo = combo;
+        let points = 100 * (1 + Math.floor(combo / 5) * 0.5);
+        score += Math.round(points);
+        starCountThisRun++;
+        gameData.stats.starsCaught++;
+        audio.playStarCatch();
+        createParticles(item.x, item.y, '#facc15', 10);
+      } else if (item.type === 'rainbow') {
+        combo += 2;
+        if (combo > maxCombo) maxCombo = combo;
+        score += 300;
+        starCountThisRun++;
+        gameData.stats.rainbowStars++;
+        gameData.stats.starsCaught++;
+        frenzyTimer = 5; // 5s Frenzy
+        audio.playPowerup();
+        createParticles(item.x, item.y, '#f472b6', 20);
+      } else if (item.type === 'shield') {
+        shieldActive = true;
+        audio.playPowerup();
+        createParticles(item.x, item.y, '#38bdf8', 15);
+      } else if (item.type === 'magnet') {
+        magnetTimer = 8; // 8s Magnet
+        audio.playPowerup();
+        createParticles(item.x, item.y, '#c084fc', 15);
+      } else if (item.type === 'bomb') {
+        if (shieldActive) {
+          shieldActive = false; // Block bomb
+          audio.playPowerup();
+          createParticles(item.x, item.y, '#38bdf8', 20);
+        } else {
+          combo = 0;
+          gameData.stats.bombsHit++;
+          audio.playBombHit();
+          triggerScreenShake(15);
+          createParticles(item.x, item.y, '#f43f5e', 25);
+
+          if (currentMode === 'classic') {
+            lives--;
+            bombsHitCount++;
+            if (lives <= 0) {
+              endGame();
+            }
+          } else if (currentMode === 'time') {
+            score = Math.max(0, score - 200);
+          }
+        }
+      }
+    }
+
+    // --- CANVAS RENDERING ---
+    function render() {
+      ctx.save();
+
+      // Screen Shake translation
+      if (shakeIntensity > 0.5) {
+        const dx = (Math.random() - 0.5) * shakeIntensity;
+        const dy = (Math.random() - 0.5) * shakeIntensity;
+        ctx.translate(dx, dy);
+      }
+
+      // Background Gradient
+      let bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+      if (gameData.accessibility.highContrast) {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, width, height);
+      } else {
+        bgGrad.addColorStop(0, '#0f172a');
+        bgGrad.addColorStop(0.5, '#1e1b4b');
+        bgGrad.addColorStop(1, '#311042');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      // Draw Background Floating Stars
+      if (!gameData.accessibility.highContrast) {
+        ctx.fillStyle = '#ffffff';
+        floatingBgStars.forEach(s => {
+          s.y += s.speed;
+          if (s.y > height) s.y = 0;
+          ctx.globalAlpha = Math.sin(Date.now() * 0.002 + s.x) * 0.3 + 0.5;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      }
+
+      // Draw Basket
+      drawBasket();
+
+      // Draw Falling Items
+      fallingItems.forEach(drawItem);
+
+      // Draw Particles
+      particles.forEach(p => {
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      ctx.restore();
+    }
+
+    function drawBasket() {
+      ctx.save();
+      ctx.translate(basket.x, basket.y);
+      ctx.scale(1, basket.squish);
+
+      const w = basket.width;
+      const h = basket.height;
+
+      // Shield Aura
+      if (shieldActive) {
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, w / 2 + 12, h / 2 + 12, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Magnet Aura
+      if (magnetTimer > 0) {
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#c084fc';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, w / 2 + 8, h / 2 + 8, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Woven Basket Body
+      ctx.fillStyle = gameData.accessibility.highContrast ? '#ffffff' : '#fbbf24';
+      ctx.beginPath();
+      ctx.roundRect(-w / 2, -h / 2, w, h, 12);
+      ctx.fill();
+
+      // Basket Rim Detail
+      ctx.fillStyle = gameData.accessibility.highContrast ? '#aaaaaa' : '#d97706';
+      ctx.beginPath();
+      ctx.roundRect(-w / 2 - 4, -h / 2 - 4, w + 8, 10, 6);
+      ctx.fill();
+
+      // Cute Face on Basket
+      if (!gameData.accessibility.highContrast) {
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(-18, 2, 4, 0, Math.PI * 2);
+        ctx.arc(18, 2, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Smile
+        ctx.beginPath();
+        ctx.arc(0, 4, 10, 0.1 * Math.PI, 0.9 * Math.PI);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#0f172a';
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawItem(item) {
+      ctx.save();
+      ctx.translate(item.x, item.y);
+      ctx.rotate(item.rotation);
+
+      if (item.type === 'star') {
+        drawStarShape(item.radius, '#facc15', '#eab308');
+        if (gameData.accessibility.colorblind) drawSymbol('★', '#000');
+      } else if (item.type === 'rainbow') {
+        const time = Date.now() * 0.005;
+        const color = `hsl(${Math.floor(time * 100) % 360}, 90%, 65%)`;
+        drawStarShape(item.radius + 2, color, '#ffffff');
+        if (gameData.accessibility.colorblind) drawSymbol('🌈', '#000');
+      } else if (item.type === 'shield') {
+        drawOrb('#38bdf8', '#0284c7');
+        drawSymbol('🛡', '#ffffff');
+      } else if (item.type === 'magnet') {
+        drawOrb('#c084fc', '#9333ea');
+        drawSymbol('🧲', '#ffffff');
+      } else if (item.type === 'bomb') {
+        // Dark Bomb
+        ctx.fillStyle = gameData.accessibility.highContrast ? '#ffffff' : '#1e293b';
+        ctx.beginPath();
+        ctx.arc(0, 0, item.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Fuse spark
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(item.radius - 4, -item.radius + 2, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (gameData.accessibility.colorblind) drawSymbol('💣', '#ffffff');
+      }
+
+      ctx.restore();
+    }
+
+    function drawStarShape(r, fillColor, strokeColor) {
+      ctx.fillStyle = fillColor;
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * r, -Math.sin((18 + i * 72) * Math.PI / 180) * r);
+        ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (r / 2), -Math.sin((54 + i * 72) * Math.PI / 180) * (r / 2));
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function drawOrb(color1, color2) {
+      let grad = ctx.createRadialGradient(-4, -4, 2, 0, 0, 20);
+      grad.addColorStop(0, color1);
+      grad.addColorStop(1, color2);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawSymbol(sym, col) {
+      ctx.fillStyle = col;
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(sym, 0, 1);
+    }
+
+    // --- MENU NAVIGATION & UI MANAGERS ---
+    const views = {
+      main: document.getElementById('viewMainMenu'),
+      mode: document.getElementById('viewModeSelect'),
+      highScores: document.getElementById('viewHighScores'),
+      achievements: document.getElementById('viewAchievements'),
+      stats: document.getElementById('viewStats'),
+      settings: document.getElementById('viewSettings'),
+      accessibility: document.getElementById('viewAccessibility'),
+      howToPlay: document.getElementById('viewHowToPlay'),
+      about: document.getElementById('viewAbout'),
+      credits: document.getElementById('viewCredits'),
+      hud: document.getElementById('hud'),
+      pause: document.getElementById('modalPause'),
+      gameOver: document.getElementById('modalGameOver')
+    };
+
+    function showView(targetView) {
+      Object.values(views).forEach(v => {
+        if (v && v !== views.hud) v.classList.add('hidden');
+      });
+      if (targetView) targetView.classList.remove('hidden');
+    }
+
+    // Update HUD display elements
+    function updateHUD() {
+      document.getElementById('hudScore').innerText = score;
+      document.getElementById('hudCombo').innerText = `${combo}x`;
+      document.getElementById('hudTimer').innerText = `${Math.ceil(timeRemaining)}s`;
+
+      // Lives Hearts
+      const heartsBox = document.getElementById('heartsBox');
+      heartsBox.innerHTML = '';
+      for (let i = 0; i < 3; i++) {
+        const heart = document.createElement('span');
+        heart.innerText = i < lives ? '💣' : '❌';
+        heart.className = i < lives ? 'opacity-100 scale-100' : 'opacity-30 scale-90';
+        heartsBox.appendChild(heart);
+      }
+
+      // Active powerup badges
+      const pContainer = document.getElementById('powerupContainer');
+      pContainer.innerHTML = '';
+      if (shieldActive) {
+        pContainer.innerHTML += `<span class="bg-sky-500/80 text-xs font-arcade px-2 py-1 rounded-lg">🛡 SHIELD</span>`;
+      }
+      if (magnetTimer > 0) {
+        pContainer.innerHTML += `<span class="bg-purple-500/80 text-xs font-arcade px-2 py-1 rounded-lg">🧲 MAGNET (${Math.ceil(magnetTimer)}s)</span>`;
+      }
+      if (frenzyTimer > 0) {
+        pContainer.innerHTML += `<span class="bg-pink-500/80 text-xs font-arcade px-2 py-1 rounded-lg animate-pulse">🌈 FRENZY (${Math.ceil(frenzyTimer)}s)</span>`;
+      }
+    }
+
+    // Refresh display screens
+    function refreshHighScoresView() {
+      document.getElementById('scoreClassic').innerText = gameData.highScores.classic;
+      document.getElementById('scoreTime').innerText = gameData.highScores.time;
+      document.getElementById('scoreZen').innerText = gameData.highScores.zen;
+      document.getElementById('scoreCombo').innerText = `${gameData.bestCombo}x`;
+      document.getElementById('scoreSurvival').innerText = `${Math.round(gameData.longestSurvival)}s`;
+    }
+
+    function refreshStatsView() {
+      document.getElementById('statGamesPlayed').innerText = gameData.stats.gamesPlayed;
+      document.getElementById('statTotalStars').innerText = gameData.stats.starsCaught;
+      document.getElementById('statRainbowStars').innerText = gameData.stats.rainbowStars;
+      document.getElementById('statBombsAvoided').innerText = gameData.stats.bombsAvoided;
+      document.getElementById('statBombsHit').innerText = gameData.stats.bombsHit;
+      document.getElementById('statTimePlayed').innerText = `${Math.floor(gameData.stats.timePlayedSeconds / 60)} min`;
+    }
+
+    function refreshAchievementsView() {
+      const list = document.getElementById('achievementsList');
+      list.innerHTML = '';
+
+      const items = [
+        { id: 'first_star', name: 'First Celestial Star', desc: 'Catch your very first star' },
+        { id: 'combo_5', name: 'Star Streak', desc: 'Reach a 5x catch combo' },
+        { id: 'combo_15', name: 'Combo Master', desc: 'Reach a 15x catch combo' },
+        { id: 'stars_50', name: 'Star Collector', desc: 'Catch 50 total stars' },
+        { id: 'stars_200', name: 'Galaxy Hunter', desc: 'Catch 200 total stars' },
+        { id: 'shield_master', name: 'Aegis Guardian', desc: 'Catch a Shield Orb' },
+        { id: 'time_survivor', name: 'Starlight Survivor', desc: 'Survive 60 seconds in Classic Mode' },
+        { id: 'zen_master', name: 'Zen Relaxer', desc: 'Play a game of Zen Mode' }
+      ];
+
+      items.forEach(ach => {
+        const unlocked = gameData.achievements[ach.id];
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-xl border flex items-center justify-between ${
+          unlocked ? 'bg-emerald-950/60 border-emerald-400/50 text-white' : 'bg-slate-900/60 border-slate-700 text-slate-500'
+        }`;
+        card.innerHTML = `
+          <div>
+            <div class="font-arcade text-sm ${unlocked ? 'text-emerald-300' : 'text-slate-400'}">${ach.name}</div>
+            <div class="text-xs">${ach.desc}</div>
+          </div>
+          <span class="text-xl">${unlocked ? '✅' : '🔒'}</span>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function checkAchievements() {
+      const unlock = (id, name) => {
+        if (!gameData.achievements[id]) {
+          gameData.achievements[id] = true;
+          saveGameData();
+          audio.playAchievement();
+          showToast(name);
+        }
+      };
+
+      if (starCountThisRun >= 1) unlock('first_star', 'First Celestial Star');
+      if (combo >= 5) unlock('combo_5', 'Star Streak');
+      if (combo >= 15) unlock('combo_15', 'Combo Master');
+      if (gameData.stats.starsCaught >= 50) unlock('stars_50', 'Star Collector');
+      if (gameData.stats.starsCaught >= 200) unlock('stars_200', 'Galaxy Hunter');
+      if (shieldActive) unlock('shield_master', 'Aegis Guardian');
+      if (currentMode === 'classic' && survivalTimer >= 60) unlock('time_survivor', 'Starlight Survivor');
+      if (currentMode === 'zen') unlock('zen_master', 'Zen Relaxer');
+    }
+
+    function showToast(title) {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastTitle').innerText = title;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // Apply Settings / Accessibility classes
+    function applyAccessibilitySettings() {
+      document.body.classList.toggle('high-contrast', gameData.accessibility.highContrast);
+      document.body.classList.toggle('large-text', gameData.accessibility.largeText);
+
+      document.getElementById('toggleSfx').innerText = gameData.settings.sfx ? 'ON' : 'OFF';
+      document.getElementById('toggleMusic').innerText = gameData.settings.music ? 'ON' : 'OFF';
+      document.getElementById('toggleShake').innerText = gameData.settings.shake ? 'ON' : 'OFF';
+      document.getElementById('toggleParticles').innerText = gameData.settings.particles ? 'ON' : 'OFF';
+
+      document.getElementById('toggleHighContrast').innerText = gameData.accessibility.highContrast ? 'ON' : 'OFF';
+      document.getElementById('toggleColorblind').innerText = gameData.accessibility.colorblind ? 'ON' : 'OFF';
+      document.getElementById('toggleReducedMotion').innerText = gameData.accessibility.reducedMotion ? 'ON' : 'OFF';
+      document.getElementById('toggleLargeText').innerText = gameData.accessibility.largeText ? 'ON' : 'OFF';
+      document.getElementById('sliderSpeed').value = gameData.accessibility.gameSpeed;
+      document.getElementById('labelGameSpeed').innerText = `${gameData.accessibility.gameSpeed}x`;
+
+      if (gameData.settings.music && currentState === STATE_PLAYING) {
+        audio.startBGM();
+      } else {
+        audio.stopBGM();
+      }
+    }
+
+    // --- INPUT HANDLING ---
+    basket.targetX = width / 2;
+    basket.x = width / 2;
+    basket.y = height - 80;
+
+    // Keyboard Controls
+    const keys = {};
+    window.addEventListener('keydown', (e) => {
+      keys[e.key] = true;
+      if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+        if (currentState === STATE_PLAYING) pauseGame();
+        else if (currentState === STATE_PAUSED) resumeGame();
+      }
+    });
+    window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+    function handleKeyboardMovement() {
+      if (currentState !== STATE_PLAYING) return;
+      const moveSpeed = basket.speed * gameData.accessibility.gameSpeed;
+      if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+        basket.targetX -= moveSpeed;
+      }
+      if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+        basket.targetX += moveSpeed;
+      }
+    }
+
+    // Touch & Mouse Drag Controls
+    function handlePointerMove(e) {
+      if (currentState !== STATE_PLAYING) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      basket.targetX = clientX;
+    }
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('touchmove', handlePointerMove, { passive: true });
+    window.addEventListener('touchstart', handlePointerMove, { passive: true });
+
+    // --- GAME FLOW LOGIC ---
+    function startGame(mode) {
+      currentMode = mode;
+      currentState = STATE_PLAYING;
+
+      score = 0;
+      combo = 0;
+      maxCombo = 0;
+      lives = 3;
+      timeRemaining = 60;
+      survivalTimer = 0;
+      starCountThisRun = 0;
+      bombsHitCount = 0;
+      shieldActive = false;
+      magnetTimer = 0;
+      frenzyTimer = 0;
+
+      fallingItems = [];
+      particles = [];
+
+      basket.x = width / 2;
+      basket.targetX = width / 2;
+      basket.y = height - 80;
+
+      gameData.stats.gamesPlayed++;
+      saveGameData();
+
+      // UI update
+      showView(null);
+      views.hud.classList.remove('hidden');
+
+      if (currentMode === 'classic') {
+        document.getElementById('livesContainer').classList.remove('hidden');
+        document.getElementById('timerBox').classList.add('hidden');
+      } else if (currentMode === 'time') {
+        document.getElementById('livesContainer').classList.add('hidden');
+        document.getElementById('timerBox').classList.remove('hidden');
+      } else if (currentMode === 'zen') {
+        document.getElementById('livesContainer').classList.add('hidden');
+        document.getElementById('timerBox').classList.add('hidden');
+      }
+
+      audio.startBGM();
+    }
+
+    function pauseGame() {
+      if (currentState !== STATE_PLAYING) return;
+      currentState = STATE_PAUSED;
+      views.pause.classList.remove('hidden');
+      audio.stopBGM();
+    }
+
+    function resumeGame() {
+      if (currentState !== STATE_PAUSED) return;
+      currentState = STATE_PLAYING;
+      views.pause.classList.add('hidden');
+      audio.startBGM();
+    }
+
+    function endGame() {
+      currentState = STATE_GAMEOVER;
+      audio.stopBGM();
+
+      views.hud.classList.add('hidden');
+
+      // Check High Scores
+      let isNewHigh = false;
+      if (score > gameData.highScores[currentMode]) {
+        gameData.highScores[currentMode] = score;
+        isNewHigh = true;
+      }
+      if (maxCombo > gameData.bestCombo) gameData.bestCombo = maxCombo;
+      if (survivalTimer > gameData.longestSurvival) gameData.longestSurvival = survivalTimer;
+
+      saveGameData();
+
+      // Populate Game Over Modal
+      document.getElementById('goScore').innerText = score;
+      document.getElementById('goHighScore').innerText = gameData.highScores[currentMode];
+      document.getElementById('goCombo').innerText = `${maxCombo}x`;
+      document.getElementById('goStars').innerText = starCountThisRun;
+
+      const tag = document.getElementById('newHighTag');
+      if (isNewHigh) tag.classList.remove('hidden');
+      else tag.classList.add('hidden');
+
+      views.gameOver.classList.remove('hidden');
+    }
+
+    // --- BUTTON EVENT LISTENERS ---
+    document.getElementById('btnPlay').onclick = () => { audio.playTone(600); showView(views.mode); };
+    document.getElementById('btnHighScores').onclick = () => { audio.playTone(600); refreshHighScoresView(); showView(views.highScores); };
+    document.getElementById('btnAchievements').onclick = () => { audio.playTone(600); refreshAchievementsView(); showView(views.achievements); };
+    document.getElementById('btnStats').onclick = () => { audio.playTone(600); refreshStatsView(); showView(views.stats); };
+    document.getElementById('btnSettings').onclick = () => { audio.playTone(600); showView(views.settings); };
+    document.getElementById('btnAccessibility').onclick = () => { audio.playTone(600); showView(views.accessibility); };
+    document.getElementById('btnHowToPlay').onclick = () => { audio.playTone(600); showView(views.howToPlay); };
+    document.getElementById('btnAbout').onclick = () => { audio.playTone(600); showView(views.about); };
+    document.getElementById('btnCredits').onclick = () => { audio.playTone(600); showView(views.credits); };
+
+    document.querySelectorAll('.btnBackToMain').forEach(btn => {
+      btn.onclick = () => {
+        audio.playTone(400);
+        showView(views.main);
+        if (currentState === STATE_PAUSED || currentState === STATE_GAMEOVER) {
+          currentState = STATE_MENU;
+        }
+      };
+    });
+
+    // Game Mode selection buttons
+    document.querySelectorAll('.btnModeSelect').forEach(btn => {
+      btn.onclick = (e) => {
+        const mode = e.currentTarget.getAttribute('data-mode');
+        startGame(mode);
+      };
+    });
+
+    // Pause button and Pause Modal actions
+    document.getElementById('btnPause').onclick = () => pauseGame();
+    document.getElementById('btnResume').onclick = () => resumeGame();
+    document.getElementById('btnRestart').onclick = () => {
+      views.pause.classList.add('hidden');
+      startGame(currentMode);
+    };
+    document.getElementById('btnPauseSettings').onclick = () => {
+      views.pause.classList.add('hidden');
+      showView(views.settings);
+    };
+    document.getElementById('btnPauseHowToPlay').onclick = () => {
+      views.pause.classList.add('hidden');
+      showView(views.howToPlay);
+    };
+    document.getElementById('btnPauseMainMenu').onclick = () => {
+      views.pause.classList.add('hidden');
+      views.hud.classList.add('hidden');
+      currentState = STATE_MENU;
+      showView(views.main);
+    };
+
+    document.getElementById('btnPlayAgain').onclick = () => {
+      views.gameOver.classList.add('hidden');
+      startGame(currentMode);
+    };
+
+    // Settings Toggles
+    document.getElementById('toggleSfx').onclick = () => {
+      gameData.settings.sfx = !gameData.settings.sfx;
+      saveGameData(); applyAccessibilitySettings();
+    };
+    document.getElementById('toggleMusic').onclick = () => {
+      gameData.settings.music = !gameData.settings.music;
+      saveGameData(); applyAccessibilitySettings();
+    };
+    document.getElementById('toggleShake').onclick = () => {
+      gameData.settings.shake = !gameData.settings.shake;
+      saveGameData(); applyAccessibilitySettings();
+    };
+    document.getElementById('toggleParticles').onclick = () => {
+      gameData.settings.particles = !gameData.settings.particles;
+      saveGameData(); applyAccessibilitySettings();
+    };
+
+    document.getElementById('btnFullscreen').onclick = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(()=>{});
+      } else {
+        document.exitFullscreen().catch(()=>{});
+      }
+    };
+
+    document.getElementById('btnResetData').onclick = () => {
+      if (confirm) {
+        // Safe standard reset
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      }
+    };
+
+    // Accessibility Toggles
+    document.getElementById('toggleHighContrast').onclick = () => {
+      gameData.accessibility.highContrast = !gameData.accessibility.highContrast;
+      saveGameData(); applyAccessibilitySettings();
+    };
+    document.getElementById('toggleColorblind').onclick = () => {
+      gameData.accessibility.colorblind = !gameData.accessibility.colorblind;
+      saveGameData(); applyAccessibilitySettings();
+    };
+    document.getElementById('toggleReducedMotion').onclick = () => {
+      gameData.accessibility.reducedMotion = !gameData.accessibility.reducedMotion;
+      saveGameData(); applyAccessibilitySettings();
+    };
+    document.getElementById('toggleLargeText').onclick = () => {
+      gameData.accessibility.largeText = !gameData.accessibility.largeText;
+      saveGameData(); applyAccessibilitySettings();
+    };
+    document.getElementById('sliderSpeed').oninput = (e) => {
+      gameData.accessibility.gameSpeed = parseFloat(e.target.value);
+      saveGameData(); applyAccessibilitySettings();
+    };
+
+    // --- MAIN ENGINE FRAME LOOP ---
+    function engineLoop(timestamp) {
+      const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+      lastTime = timestamp;
+
+      handleKeyboardMovement();
+      updateGame(dt);
+      render();
+
+      requestAnimationFrame(engineLoop);
+    }
+
+    // Startup Initialization
+    window.onload = () => {
+      loadGameData();
+      applyAccessibilitySettings();
+      showView(views.main);
+      requestAnimationFrame(engineLoop);
+    };
+  </script>
+</body>
+</html>

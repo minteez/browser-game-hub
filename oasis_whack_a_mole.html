@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Oasis Mole Mayhem - Desert Arcade</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      font-family: 'Fredoka', cursive, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      background: #e2a85c;
+      overflow-x: hidden;
+    }
+
+    /* Animated Desert Oasis Background */
+    .oasis-bg {
+      background: linear-gradient(180deg, #3aaed8 0%, #72d6ec 35%, #eec882 70%, #d89b43 100%);
+    }
+
+    .sand-pattern {
+      background-image: radial-gradient(#c2822a 15%, transparent 16%), radial-gradient(#d3933a 15%, transparent 16%);
+      background-size: 30px 30px;
+      background-position: 0 0, 15px 15px;
+    }
+
+    /* Animations */
+    @keyframes bounce-subtle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6)); }
+      50% { filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.9)); }
+    }
+
+    @keyframes wave-sway {
+      0%, 100% { transform: rotate(-3deg); }
+      50% { transform: rotate(3deg); }
+    }
+
+    @keyframes pop-up {
+      0% { transform: translateY(100%) scale(0.7); opacity: 0; }
+      70% { transform: translateY(-10%) scale(1.05); opacity: 1; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    @keyframes whack-recoil {
+      0% { transform: scale(1) rotate(0deg); }
+      30% { transform: scale(0.7) rotate(-15deg); }
+      100% { transform: translateY(120%) scale(0.5); opacity: 0; }
+    }
+
+    .animate-bounce-subtle { animation: bounce-subtle 2.5s ease-in-out infinite; }
+    .animate-glow { animation: pulse-glow 2s infinite; }
+    .animate-sway { animation: wave-sway 4s ease-in-out infinite; }
+    .mole-enter { animation: pop-up 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .mole-whacked { animation: whack-recoil 0.3s ease-in forwards; }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #d89b43; border-radius: 8px; }
+    ::-webkit-scrollbar-thumb { background: #8b5a1b; border-radius: 8px; }
+
+    /* High Contrast Mode Overrides */
+    body.high-contrast {
+      background: #000000 !important;
+      color: #ffffff !important;
+    }
+    body.high-contrast .modal-panel {
+      background: #111111 !important;
+      border: 4px solid #ffff00 !important;
+      color: #ffffff !important;
+    }
+    body.high-contrast button {
+      border: 3px solid #ffffff !important;
+      background: #222222 !important;
+      color: #ffff00 !important;
+    }
+
+    /* Colorblind Badge styling */
+    .cb-badge { display: none; }
+    body.cb-friendly .cb-badge { display: flex; }
+
+    /* Large UI mode */
+    body.large-ui { font-size: 1.25rem; }
+    body.large-ui button { padding: 1rem 1.5rem !important; font-size: 1.25rem !important; }
+
+    /* Reduced Motion */
+    body.reduced-motion *, body.reduced-motion .animate-bounce-subtle, body.reduced-motion .animate-sway {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    /* Canvas styling */
+    #particle-canvas {
+      pointer-events: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 40;
+    }
+
+    /* Custom Hammer Cursor */
+    .game-cursor {
+      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="%23d97706"><path d="M18 2l4 4-3 3-4-4 3-3zm-5 5l4 4-8 8H5v-4l8-8z"/></svg>') 16 16, auto;
+    }
+
+    .hole-shadow {
+      box-shadow: inset 0 12px 18px rgba(0,0,0,0.6), 0 6px 12px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body class="oasis-bg min-h-screen text-amber-950 flex flex-col justify-between select-none relative overflow-x-hidden">
+
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-amber-900 text-amber-100 px-6 py-3 rounded-full shadow-2xl border-2 border-amber-400 font-bold z-50 transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px] flex items-center gap-2">
+    <span id="toast-icon">✨</span>
+    <span id="toast-text">Notification</span>
+  </div>
+
+  <!-- MAIN MENU CONTAINER -->
+  <div id="app-container" class="relative z-10 min-h-screen flex flex-col justify-between max-w-4xl mx-auto w-full p-4">
+
+    <main id="view-main-menu" class="flex-1 flex flex-col items-center justify-center text-center my-auto py-6">
+      
+      <!-- Title & Header Visual -->
+      <div class="relative mb-6 animate-bounce-subtle">
+        <div class="absolute -inset-4 bg-amber-400/30 rounded-full blur-xl"></div>
+        <div class="relative flex items-center justify-center gap-2 text-4xl sm:text-6xl font-black text-amber-900 drop-shadow-lg tracking-wide">
+          <span>🌴</span>
+          <span class="bg-gradient-to-r from-amber-800 via-amber-600 to-yellow-800 bg-clip-text text-transparent">OASIS MOLE</span>
+          <span>🌴</span>
+        </div>
+        <div class="text-2xl sm:text-3xl font-extrabold text-amber-700 tracking-wider uppercase mt-1 drop-shadow-sm">
+          🏜️ MAYHEM 🏜️
+        </div>
+        <p class="text-sm sm:text-base font-semibold text-amber-900/80 mt-1 bg-amber-200/60 px-4 py-1 rounded-full inline-block backdrop-blur-sm border border-amber-400/40">
+          Whack the cheeky desert critters before sunset!
+        </p>
+      </div>
+
+      <!-- Main Navigation Grid -->
+      <div class="w-full max-w-md bg-amber-100/90 backdrop-blur-md p-6 rounded-3xl shadow-2xl border-4 border-amber-500/80 space-y-3 relative overflow-hidden">
+        
+        <!-- Play Button -->
+        <button onclick="app.showModeSelect()" class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-extrabold text-2xl py-4 rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition transform flex items-center justify-center gap-3 border-b-4 border-green-800">
+          <span>🎮</span> PLAY GAME <span>▶️</span>
+        </button>
+
+        <div class="grid grid-cols-2 gap-3 pt-2">
+          <button onclick="app.showScreen('view-high-scores')" class="bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold py-3 px-4 rounded-xl shadow border-2 border-amber-400 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2">
+            🏆 High Scores
+          </button>
+          <button onclick="app.showScreen('view-how-to-play')" class="bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold py-3 px-4 rounded-xl shadow border-2 border-amber-400 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2">
+            📖 How to Play
+          </button>
+          <button onclick="app.showScreen('view-achievements')" class="bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold py-3 px-4 rounded-xl shadow border-2 border-amber-400 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2">
+            ⭐ Achievements
+          </button>
+          <button onclick="app.showScreen('view-stats')" class="bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold py-3 px-4 rounded-xl shadow border-2 border-amber-400 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2">
+            📊 Statistics
+          </button>
+          <button onclick="app.showScreen('view-settings')" class="bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold py-3 px-4 rounded-xl shadow border-2 border-amber-400 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2">
+            ⚙️ Settings
+          </button>
+          <button onclick="app.showScreen('view-accessibility')" class="bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold py-3 px-4 rounded-xl shadow border-2 border-amber-400 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2">
+            ♿ Accessibility
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 pt-1">
+          <button onclick="app.showScreen('view-about')" class="bg-amber-300/70 hover:bg-amber-300 text-amber-950 font-bold py-2.5 px-3 rounded-xl shadow border border-amber-500 hover:scale-[1.02] active:scale-[0.98] transition text-sm flex items-center justify-center gap-1.5">
+            ℹ️ About Game
+          </button>
+          <button onclick="app.showScreen('view-credits')" class="bg-amber-300/70 hover:bg-amber-300 text-amber-950 font-bold py-2.5 px-3 rounded-xl shadow border border-amber-500 hover:scale-[1.02] active:scale-[0.98] transition text-sm flex items-center justify-center gap-1.5">
+            📜 Credits
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <div id="view-mode-select" class="hidden flex-1 flex flex-col items-center justify-center text-center py-6">
+      <div class="modal-panel bg-amber-100/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-500 w-full max-w-lg relative">
+        <h2 class="text-3xl font-extrabold text-amber-950 mb-2 flex items-center justify-center gap-2">
+          <span>🎯</span> SELECT GAME MODE
+        </h2>
+        <p class="text-amber-800 text-sm mb-6">Choose your desert challenge length and intensity!</p>
+
+        <div class="space-y-4">
+          <button onclick="app.startGame('classic')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white p-4 rounded-2xl shadow-lg border-b-4 border-amber-800 text-left transition transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-between">
+            <div>
+              <div class="text-xl font-black flex items-center gap-2">⏳ Classic Arcade (30s)</div>
+              <div class="text-xs text-amber-100 mt-0.5">The standard 30-second fast-paced mole whacking frenzy!</div>
+            </div>
+            <span class="text-2xl">⚡</span>
+          </button>
+
+          <button onclick="app.startGame('rapid')" class="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white p-4 rounded-2xl shadow-lg border-b-4 border-red-800 text-left transition transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-between">
+            <div>
+              <div class="text-xl font-black flex items-center gap-2">🔥 Desert Rush (20s)</div>
+              <div class="text-xs text-orange-100 mt-0.5">Super fast spawns! Lightning reflexes required.</div>
+            </div>
+            <span class="text-2xl">🚀</span>
+          </button>
+
+          <button onclick="app.startGame('zen')" class="w-full bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white p-4 rounded-2xl shadow-lg border-b-4 border-teal-800 text-left transition transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-between">
+            <div>
+              <div class="text-xl font-black flex items-center gap-2">🌴 Oasis Zen (60s)</div>
+              <div class="text-xs text-teal-100 mt-0.5">Relaxed pace for practice and building high combos.</div>
+            </div>
+            <span class="text-2xl">🕊️</span>
+          </button>
+        </div>
+
+        <button onclick="app.showScreen('view-main-menu')" class="mt-6 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold py-2.5 px-6 rounded-xl border-2 border-amber-500 transition">
+          ⬅️ Back to Menu
+        </button>
+      </div>
+    </div>
+
+    <div id="view-gameplay" class="hidden flex-1 flex flex-col justify-between game-cursor">
+      
+      <!-- Gameplay Top HUD -->
+      <div class="bg-amber-900/80 backdrop-blur-md text-amber-100 p-3 sm:p-4 rounded-2xl shadow-xl border-2 border-amber-500 flex items-center justify-between gap-2 mb-4">
+        
+        <!-- Score Counter -->
+        <div class="flex items-center gap-2">
+          <div class="bg-amber-800/80 p-2 rounded-xl border border-amber-600">
+            <span class="text-xs text-amber-300 uppercase font-extrabold block">SCORE</span>
+            <span id="hud-score" class="text-2xl sm:text-3xl font-black text-amber-300 tracking-wider">0</span>
+          </div>
+          <!-- Combo Badge -->
+          <div id="hud-combo-badge" class="bg-gradient-to-r from-yellow-500 to-amber-600 px-3 py-1.5 rounded-xl border border-yellow-300 text-amber-950 font-black text-sm sm:text-base hidden animate-bounce">
+            🔥 <span id="hud-combo-count">2</span>x COMBO!
+          </div>
+        </div>
+
+        <!-- Timer Center -->
+        <div class="flex-1 max-w-[180px] sm:max-w-xs px-2">
+          <div class="flex justify-between text-xs font-black text-amber-200 mb-1">
+            <span>TIME LEFT</span>
+            <span id="hud-timer-text">30s</span>
+          </div>
+          <div class="w-full bg-amber-950 h-4 rounded-full overflow-hidden p-0.5 border border-amber-600">
+            <div id="hud-timer-bar" class="bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 h-full rounded-full transition-all duration-300 w-full"></div>
+          </div>
+        </div>
+
+        <!-- Pause Button -->
+        <button onclick="app.pauseGame()" class="bg-amber-700 hover:bg-amber-600 text-amber-100 p-2.5 sm:px-4 rounded-xl border-2 border-amber-400 font-bold hover:scale-105 active:scale-95 transition flex items-center gap-1">
+          <span>⏸️</span> <span class="hidden sm:inline">Pause</span>
+        </button>
+      </div>
+
+      <!-- 3x3 Oasis Mole Grid -->
+      <div class="relative bg-gradient-to-b from-amber-300 to-amber-500 p-4 sm:p-6 rounded-3xl shadow-2xl border-4 border-amber-600 my-auto">
+        
+        <!-- Oasis Water Decorative Centerpiece -->
+        <div class="absolute inset-x-12 inset-y-12 bg-cyan-400/20 rounded-full blur-2xl pointer-events-none"></div>
+
+        <!-- 3x3 Grid Layout -->
+        <div class="grid grid-cols-3 gap-3 sm:gap-6 relative z-10 max-w-md mx-auto aspect-square">
+          
+          <!-- Hole 0 to 8 -->
+          <div class="hole-container relative aspect-square" data-index="0">
+            <div class="absolute bottom-0 w-full h-3/4 bg-amber-950 rounded-full hole-shadow border-2 border-amber-800/80 overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-amber-950 to-amber-900"></div>
+            </div>
+            <!-- Mole Sprite Mount -->
+            <div class="mole-wrapper absolute inset-0 flex items-end justify-center overflow-hidden pb-1">
+              <div class="mole-element hidden cursor-pointer transform transition-transform" onclick="app.whackMole(0, event)"></div>
+            </div>
+            <!-- Dirt mound overlay -->
+            <div class="absolute -bottom-2 inset-x-0 h-1/3 bg-amber-700/90 rounded-b-2xl border-t-2 border-amber-600 pointer-events-none flex justify-center items-center">
+              <span class="text-xs text-amber-300/40">🌿</span>
+            </div>
+          </div>
+
+          <div class="hole-container relative aspect-square" data-index="1">
+            <div class="absolute bottom-0 w-full h-3/4 bg-amber-950 rounded-full hole-shadow border-2 border-amber-800/80 overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-amber-950 to-amber-900"></div>
+            </div>
+            <div class="mole-wrapper absolute inset-0 flex items-end justify-center overflow-hidden pb-1">
+              <div class="mole-element hidden cursor-pointer transform transition-transform" onclick="app.whackMole(1, event)"></div>
+            </div>
+            <div class="absolute -bottom-2 inset-x-0 h-1/3 bg-amber-700/90 rounded-b-2xl border-t-2 border-amber-600 pointer-events-none flex justify-center items-center">
+              <span class="text-xs text-amber-300/40">🌵</span>
+            </div>
+          </div>
+
+          <div class="hole-container relative aspect-square" data-index="2">
+            <div class="absolute bottom-0 w-full h-3/4 bg-amber-950 rounded-full hole-shadow border-2 border-amber-800/80 overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-amber-950 to-amber-900"></div>
+            </div>
+            <div class="mole-wrapper absolute inset-0 flex items-end justify-center overflow-hidden pb-1">
+              <div class="mole-element hidden cursor-pointer transform transition-transform" onclick="app.whackMole(2, event)"></div>
+            </div>
+            <div class="absolute -bottom-2 inset-x-0 h-1/3 bg-amber-700/90 rounded-b-2xl border-t-2 border-amber-600 pointer-events-none flex justify-center items-center">
+              <span class="text-xs text-amber-300/40">🌿</span>
+            </div>
+          </div>
+
+          <div class="hole-container relative aspect-square" data-index="3">
+            <div class="absolute bottom-0 w-full h-3/4 bg-amber-950 rounded-full hole-shadow border-2 border-amber-800/80 overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-amber-950 to-amber-900"></div>
+            </div>
+            <div class="mole-wrapper absolute inset-0 flex items-end justify-center overflow-hidden pb-1">
+              <div class="mole-element hidden cursor-pointer transform transition-transform" onclick="app.whackMole(3, event)"></div>
+            </div>
+            <div class="absolute -bottom-2 inset-x-0 h-1/3 bg-amber-700/90 rounded-b-2xl border-t-2 border-amber-600 pointer-events-none flex justify-center items-center">
+              <span class="text-xs text-amber-300/40">🪨</span>
+            </div>
+          </div>
+
+          <div class="hole-container relative aspect-square" data-index="4">
+            <div class="absolute bottom-0 w-full h-3/4 bg-amber-950 rounded-full hole-shadow border-2 border-amber-800/80 overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-amber-950 to-amber-900"></div>
+            </div>
+            <div class="mole-wrapper absolute inset-0 flex items-end justify-center overflow-hidden pb-1">
+              <div class="mole-element hidden cursor-pointer transform transition-transform" onclick="app.whackMole(4, event)"></div>
+            </div>
+            <div class="absolute -bottom-2 inset-x-0 h-1/3 bg-amber-700/90 rounded-b-2xl border-t-2 border-amber-600 pointer-events-none flex justify-center items-center">
+              <span class="text-xs text-cyan-300/60">💧</span>
+            </div>
+          </div>
+
+          <div class="hole-container relative aspect-square" data-index="5">
+            <div class="absolute bottom-0 w-full h-3/4 bg-amber-950 rounded-full hole-shadow border-2 border-amber-800/80 overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-amber-950 to-amber-900"></div>
+            </div>
+            <div class="mole-wrapper absolute inset-0 flex items-end justify-center overflow-hidden pb-1">
+              <div class="mole-element hidden cursor-pointer transform transition-transform" onclick="app.whackMole(5, event)"></div>
+            </div>
+            <div class="absolute -bottom-2 inset-x-0 h-1/3 bg-amber-700/90 rounded-b-2xl border-t-2 border-amber-600 pointer-events-none flex justify-center items-center">
+              <span class="text-xs text-amber-300/40">🪨</span>
+            </div>
+          </div>
+
+          <div class="hole-container relative aspect-square" data-index="6">
+            <div class="absolute bottom-0 w-full h-3/4 bg-amber-950 rounded-full hole-shadow border-2 border-amber-800/80 overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-amber-950 to-amber-900"></div>
+            </div>
+            <div class="mole-wrapper absolute inset-0 flex items-end justify-center overflow-hidden pb-1">
+              <div class="mole-element hidden cursor-pointer transform transition-transform" onclick="app.whackMole(6, event)"></div>
+            </div>
+            <div class="absolute -bottom-2 inset-x-0 h-1/3 bg-amber-700/90 rounded-b-2xl border-t-2 border-amber-600 pointer-events-none flex justify-center items-center">
+              <span class="text-xs text-amber-300/40">🌿</span>
+            </div>
+          </div>
+
+          <div class="hole-container relative aspect-square" data-index="7">
+            <div class="absolute bottom-0 w-full h-3/4 bg-amber-950 rounded-full hole-shadow border-2 border-amber-800/80 overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-amber-950 to-amber-900"></div>
+            </div>
+            <div class="mole-wrapper absolute inset-0 flex items-end justify-center overflow-hidden pb-1">
+              <div class="mole-element hidden cursor-pointer transform transition-transform" onclick="app.whackMole(7, event)"></div>
+            </div>
+            <div class="absolute -bottom-2 inset-x-0 h-1/3 bg-amber-700/90 rounded-b-2xl border-t-2 border-amber-600 pointer-events-none flex justify-center items-center">
+              <span class="text-xs text-amber-300/40">🌵</span>
+            </div>
+          </div>
+
+          <div class="hole-container relative aspect-square" data-index="8">
+            <div class="absolute bottom-0 w-full h-3/4 bg-amber-950 rounded-full hole-shadow border-2 border-amber-800/80 overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-amber-950 to-amber-900"></div>
+            </div>
+            <div class="mole-wrapper absolute inset-0 flex items-end justify-center overflow-hidden pb-1">
+              <div class="mole-element hidden cursor-pointer transform transition-transform" onclick="app.whackMole(8, event)"></div>
+            </div>
+            <div class="absolute -bottom-2 inset-x-0 h-1/3 bg-amber-700/90 rounded-b-2xl border-t-2 border-amber-600 pointer-events-none flex justify-center items-center">
+              <span class="text-xs text-amber-300/40">🌿</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="text-center text-xs font-bold text-amber-900/70 mt-3">
+        💡 Tip: Whack <span class="text-amber-800 font-extrabold">Golden Moles</span> for extra points and avoid <span class="text-red-700 font-extrabold">Cactus Moles</span>!
+      </div>
+    </div>
+
+    <div id="view-high-scores" class="hidden flex-1 flex flex-col items-center justify-center py-6">
+      <div class="modal-panel bg-amber-100/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-500 w-full max-w-lg">
+        <h2 class="text-3xl font-extrabold text-amber-950 mb-4 flex items-center justify-center gap-2">
+          <span>🏆</span> HIGH SCORES
+        </h2>
+
+        <div class="space-y-3 mb-6">
+          <div class="bg-amber-200/80 p-4 rounded-2xl border border-amber-400 flex justify-between items-center">
+            <span class="font-bold text-amber-900 flex items-center gap-2">🥇 All-Time High Score</span>
+            <span id="hs-high-score" class="text-2xl font-black text-amber-800">0</span>
+          </div>
+          <div class="bg-amber-200/80 p-4 rounded-2xl border border-amber-400 flex justify-between items-center">
+            <span class="font-bold text-amber-900 flex items-center gap-2">🔥 Highest Combo</span>
+            <span id="hs-high-combo" class="text-2xl font-black text-amber-800">0x</span>
+          </div>
+          <div class="bg-amber-200/80 p-4 rounded-2xl border border-amber-400 flex justify-between items-center">
+            <span class="font-bold text-amber-900 flex items-center gap-2">🎯 Best Accuracy</span>
+            <span id="hs-best-acc" class="text-2xl font-black text-amber-800">0%</span>
+          </div>
+          <div class="bg-amber-200/80 p-4 rounded-2xl border border-amber-400 flex justify-between items-center">
+            <span class="font-bold text-amber-900 flex items-center gap-2">⚡ Rapid Rush Best</span>
+            <span id="hs-rapid-score" class="text-2xl font-black text-amber-800">0</span>
+          </div>
+        </div>
+
+        <button onclick="app.showScreen('view-main-menu')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-amber-800 transition">
+          ⬅️ Back to Main Menu
+        </button>
+      </div>
+    </div>
+
+    <div id="view-settings" class="hidden flex-1 flex flex-col items-center justify-center py-6">
+      <div class="modal-panel bg-amber-100/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-500 w-full max-w-lg">
+        <h2 class="text-3xl font-extrabold text-amber-950 mb-4 flex items-center justify-center gap-2">
+          <span>⚙️</span> GAME SETTINGS
+        </h2>
+
+        <div class="space-y-4 mb-6 text-left">
+          <!-- Music Toggle -->
+          <div class="flex items-center justify-between bg-amber-200/70 p-3 rounded-2xl border border-amber-400">
+            <div>
+              <div class="font-bold text-amber-950">🎵 Desert Oasis Music</div>
+              <div class="text-xs text-amber-800">Background synth tunes</div>
+            </div>
+            <input type="checkbox" id="setting-music" onchange="app.updateSettings()" class="w-6 h-6 accent-amber-600 rounded cursor-pointer">
+          </div>
+
+          <!-- SFX Toggle -->
+          <div class="flex items-center justify-between bg-amber-200/70 p-3 rounded-2xl border border-amber-400">
+            <div>
+              <div class="font-bold text-amber-950">🔊 Sound Effects</div>
+              <div class="text-xs text-amber-800">Whacks, chimes & alerts</div>
+            </div>
+            <input type="checkbox" id="setting-sfx" onchange="app.updateSettings()" class="w-6 h-6 accent-amber-600 rounded cursor-pointer">
+          </div>
+
+          <!-- Screen Shake -->
+          <div class="flex items-center justify-between bg-amber-200/70 p-3 rounded-2xl border border-amber-400">
+            <div>
+              <div class="font-bold text-amber-950">📳 Screen Shake</div>
+              <div class="text-xs text-amber-800">Vibrate screen on big hits</div>
+            </div>
+            <input type="checkbox" id="setting-shake" onchange="app.updateSettings()" class="w-6 h-6 accent-amber-600 rounded cursor-pointer">
+          </div>
+
+          <!-- Particle FX -->
+          <div class="flex items-center justify-between bg-amber-200/70 p-3 rounded-2xl border border-amber-400">
+            <div>
+              <div class="font-bold text-amber-950">✨ Particle Effects</div>
+              <div class="text-xs text-amber-800">Dust & sparkle bursts</div>
+            </div>
+            <input type="checkbox" id="setting-particles" onchange="app.updateSettings()" class="w-6 h-6 accent-amber-600 rounded cursor-pointer">
+          </div>
+
+          <!-- Reset Button -->
+          <div class="pt-2">
+            <button onclick="app.resetData()" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl border-b-2 border-red-800 text-sm transition">
+              🗑️ Reset All Saved Data
+            </button>
+          </div>
+        </div>
+
+        <button onclick="app.showScreen('view-main-menu')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-amber-800 transition">
+          ⬅️ Back to Main Menu
+        </button>
+      </div>
+    </div>
+
+    <div id="view-accessibility" class="hidden flex-1 flex flex-col items-center justify-center py-6">
+      <div class="modal-panel bg-amber-100/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-500 w-full max-w-lg">
+        <h2 class="text-3xl font-extrabold text-amber-950 mb-4 flex items-center justify-center gap-2">
+          <span>♿</span> ACCESSIBILITY
+        </h2>
+
+        <div class="space-y-4 mb-6 text-left">
+          <!-- High Contrast -->
+          <div class="flex items-center justify-between bg-amber-200/70 p-3 rounded-2xl border border-amber-400">
+            <div>
+              <div class="font-bold text-amber-950">👁️ High Contrast Mode</div>
+              <div class="text-xs text-amber-800">Stark dark theme & solid borders</div>
+            </div>
+            <input type="checkbox" id="acc-contrast" onchange="app.updateAccessibility()" class="w-6 h-6 accent-amber-600 rounded cursor-pointer">
+          </div>
+
+          <!-- Color-Blind Friendly -->
+          <div class="flex items-center justify-between bg-amber-200/70 p-3 rounded-2xl border border-amber-400">
+            <div>
+              <div class="font-bold text-amber-950">🎨 Color-Blind Badges</div>
+              <div class="text-xs text-amber-800">Adds clear text tags to all critters</div>
+            </div>
+            <input type="checkbox" id="acc-colorblind" onchange="app.updateAccessibility()" class="w-6 h-6 accent-amber-600 rounded cursor-pointer">
+          </div>
+
+          <!-- Reduced Motion -->
+          <div class="flex items-center justify-between bg-amber-200/70 p-3 rounded-2xl border border-amber-400">
+            <div>
+              <div class="font-bold text-amber-950">🛑 Reduced Motion</div>
+              <div class="text-xs text-amber-800">Disables swaying & intense bounce animations</div>
+            </div>
+            <input type="checkbox" id="acc-motion" onchange="app.updateAccessibility()" class="w-6 h-6 accent-amber-600 rounded cursor-pointer">
+          </div>
+
+          <!-- Large Text / UI -->
+          <div class="flex items-center justify-between bg-amber-200/70 p-3 rounded-2xl border border-amber-400">
+            <div>
+              <div class="font-bold text-amber-950">🔍 Large UI Mode</div>
+              <div class="text-xs text-amber-800">Enlarges text & interactive targets</div>
+            </div>
+            <input type="checkbox" id="acc-largeui" onchange="app.updateAccessibility()" class="w-6 h-6 accent-amber-600 rounded cursor-pointer">
+          </div>
+
+          <!-- Speed Adjuster -->
+          <div class="bg-amber-200/70 p-3 rounded-2xl border border-amber-400">
+            <div class="font-bold text-amber-950 mb-1">⏱️ Game Speed Multiplier</div>
+            <div class="flex items-center gap-3">
+              <input type="range" id="acc-speed" min="0.7" max="1.3" step="0.1" value="1.0" onchange="app.updateAccessibility()" class="w-full accent-amber-600">
+              <span id="acc-speed-val" class="font-black text-amber-900 w-12 text-right">1.0x</span>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="app.showScreen('view-main-menu')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-amber-800 transition">
+          ⬅️ Back to Main Menu
+        </button>
+      </div>
+    </div>
+
+    <div id="view-how-to-play" class="hidden flex-1 flex flex-col items-center justify-center py-6">
+      <div class="modal-panel bg-amber-100/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-500 w-full max-w-lg">
+        <h2 class="text-3xl font-extrabold text-amber-950 mb-3 flex items-center justify-center gap-2">
+          <span>📖</span> HOW TO PLAY
+        </h2>
+
+        <div class="space-y-3 mb-6 text-left text-sm">
+          <div class="bg-amber-200/80 p-3 rounded-xl border border-amber-400 flex items-center gap-3">
+            <span class="text-3xl">🐹</span>
+            <div>
+              <div class="font-bold text-amber-950">Standard Mole (+100 Pts)</div>
+              <div class="text-xs text-amber-800">Click or tap them quickly before they burrow back down!</div>
+            </div>
+          </div>
+
+          <div class="bg-amber-200/80 p-3 rounded-xl border border-amber-400 flex items-center gap-3">
+            <span class="text-3xl">👑</span>
+            <div>
+              <div class="font-bold text-amber-950">Golden Mole (+250 Pts)</div>
+              <div class="text-xs text-amber-800">Super quick! Gives bonus points and extra combo boost.</div>
+            </div>
+          </div>
+
+          <div class="bg-amber-200/80 p-3 rounded-xl border border-amber-400 flex items-center gap-3">
+            <span class="text-3xl">🥥</span>
+            <div>
+              <div class="font-bold text-amber-950">Coconut Berry Mole (+150 Pts + Time)</div>
+              <div class="text-xs text-amber-800">Adds +2 seconds to your remaining game timer!</div>
+            </div>
+          </div>
+
+          <div class="bg-red-200/80 p-3 rounded-xl border border-red-400 flex items-center gap-3">
+            <span class="text-3xl">🌵</span>
+            <div>
+              <div class="font-bold text-red-950">Prickly Cactus Mole (-100 Pts)</div>
+              <div class="text-xs text-red-900">DO NOT WHACK! Penalizes your score and breaks your combo streak.</div>
+            </div>
+          </div>
+
+          <div class="bg-amber-200/80 p-3 rounded-xl border border-amber-400">
+            <div class="font-bold text-amber-950">🔥 Combo Streak System</div>
+            <div class="text-xs text-amber-800 mt-0.5">Consecutive hits build multiplier up to 5x! Missing a mole or hitting a cactus resets the combo.</div>
+          </div>
+        </div>
+
+        <button onclick="app.showScreen('view-main-menu')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-amber-800 transition">
+          ⬅️ Back to Main Menu
+        </button>
+      </div>
+    </div>
+
+    <div id="view-achievements" class="hidden flex-1 flex flex-col items-center justify-center py-6">
+      <div class="modal-panel bg-amber-100/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-500 w-full max-w-lg">
+        <h2 class="text-3xl font-extrabold text-amber-950 mb-1 flex items-center justify-center gap-2">
+          <span>⭐</span> ACHIEVEMENTS
+        </h2>
+        <div id="achievements-progress-text" class="text-xs font-bold text-amber-800 mb-4">Completion: 0%</div>
+
+        <div id="achievements-list" class="space-y-3 mb-6 max-h-64 overflow-y-auto pr-1 text-left">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <button onclick="app.showScreen('view-main-menu')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-amber-800 transition">
+          ⬅️ Back to Main Menu
+        </button>
+      </div>
+    </div>
+
+    <div id="view-stats" class="hidden flex-1 flex flex-col items-center justify-center py-6">
+      <div class="modal-panel bg-amber-100/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-500 w-full max-w-lg">
+        <h2 class="text-3xl font-extrabold text-amber-950 mb-4 flex items-center justify-center gap-2">
+          <span>📊</span> LIFETIME STATS
+        </h2>
+
+        <div class="grid grid-cols-2 gap-3 mb-6 text-left text-sm">
+          <div class="bg-amber-200/80 p-3 rounded-xl border border-amber-400">
+            <div class="text-xs text-amber-800">Games Played</div>
+            <div id="stat-games" class="text-xl font-black text-amber-950">0</div>
+          </div>
+          <div class="bg-amber-200/80 p-3 rounded-xl border border-amber-400">
+            <div class="text-xs text-amber-800">Total Whacks</div>
+            <div id="stat-whacks" class="text-xl font-black text-amber-950">0</div>
+          </div>
+          <div class="bg-amber-200/80 p-3 rounded-xl border border-amber-400">
+            <div class="text-xs text-amber-800">Golden Moles Caught</div>
+            <div id="stat-golden" class="text-xl font-black text-amber-950">0</div>
+          </div>
+          <div class="bg-amber-200/80 p-3 rounded-xl border border-amber-400">
+            <div class="text-xs text-amber-800">Cactus Hits Avoided</div>
+            <div id="stat-cacti" class="text-xl font-black text-amber-950">0</div>
+          </div>
+          <div class="bg-amber-200/80 p-3 rounded-xl border border-amber-400 col-span-2">
+            <div class="text-xs text-amber-800">Total Playtime</div>
+            <div id="stat-time" class="text-xl font-black text-amber-950">0s</div>
+          </div>
+        </div>
+
+        <button onclick="app.showScreen('view-main-menu')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-amber-800 transition">
+          ⬅️ Back to Main Menu
+        </button>
+      </div>
+    </div>
+
+    <div id="view-about" class="hidden flex-1 flex flex-col items-center justify-center py-6">
+      <div class="modal-panel bg-amber-100/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-500 w-full max-w-lg">
+        <h2 class="text-3xl font-extrabold text-amber-950 mb-3 flex items-center justify-center gap-2">
+          <span>ℹ️</span> ABOUT THE GAME
+        </h2>
+
+        <div class="space-y-3 mb-6 text-left text-xs sm:text-sm text-amber-900 leading-relaxed max-h-64 overflow-y-auto pr-1">
+          <p>
+            <strong>Concept & Theme:</strong> <span class="italic">Oasis Mole Mayhem</span> is a desert-themed arcade reaction game designed for players aged 8-12. Set in a lush desert oasis surrounded by golden sand dunes, palm trees, and cool turquoise water springs.
+          </p>
+          <p>
+            <strong>Gameplay Loop:</strong> Cheeky oasis critters pop up randomly across a 3x3 grid. Players test their reflexes by clicking or tapping the moles within 30 seconds while avoiding prickly cacti hazards!
+          </p>
+          <p>
+            <strong>Inspiration:</strong> Inspired by classic arcade Whack-a-Mole games, recreated with vibrant vector art, procedural Web Audio synth music, combo dynamics, and full accessibility options.
+          </p>
+        </div>
+
+        <button onclick="app.showScreen('view-main-menu')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-amber-800 transition">
+          ⬅️ Back to Main Menu
+        </button>
+      </div>
+    </div>
+
+    <div id="view-credits" class="hidden flex-1 flex flex-col items-center justify-center py-6">
+      <div class="modal-panel bg-amber-100/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-500 w-full max-w-lg text-center">
+        <h2 class="text-3xl font-extrabold text-amber-950 mb-4 flex items-center justify-center gap-2">
+          <span>📜</span> CREDITS
+        </h2>
+
+        <div class="my-8 p-6 bg-amber-200/80 rounded-2xl border-2 border-amber-400 space-y-3">
+          <p id="mandatory-credits-text" class="text-base sm:text-lg font-black text-amber-950 leading-snug">
+            Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved.
+          </p>
+          <div class="text-2xl animate-sway inline-block">🌴 🏜️ 🌴</div>
+        </div>
+
+        <button onclick="app.showScreen('view-main-menu')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-amber-800 transition">
+          ⬅️ Back to Main Menu
+        </button>
+      </div>
+    </div>
+
+    <div id="modal-pause" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="modal-panel bg-amber-100 p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-500 max-w-sm w-full text-center space-y-3">
+        <h3 class="text-3xl font-extrabold text-amber-950 mb-4">⏸️ GAME PAUSED</h3>
+
+        <button onclick="app.resumeGame()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-emerald-800 transition">
+          ▶️ Resume
+        </button>
+        <button onclick="app.restartGame()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-amber-800 transition">
+          🔄 Restart
+        </button>
+        <button onclick="app.showScreen('view-how-to-play')" class="w-full bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold py-2.5 rounded-xl border border-amber-400 transition">
+          📖 How to Play
+        </button>
+        <button onclick="app.showScreen('view-settings')" class="w-full bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold py-2.5 rounded-xl border border-amber-400 transition">
+          ⚙️ Settings
+        </button>
+        <button onclick="app.quitToMainMenu()" class="w-full bg-red-500 hover:bg-red-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-red-800 transition">
+          🏠 Main Menu
+        </button>
+      </div>
+    </div>
+
+    <div id="modal-game-over" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="modal-panel bg-amber-100 p-6 sm:p-8 rounded-3xl shadow-2xl border-4 border-amber-500 max-w-md w-full text-center space-y-4 relative overflow-hidden">
+        
+        <div id="go-new-high-badge" class="hidden bg-gradient-to-r from-yellow-400 to-amber-500 text-amber-950 text-xs font-black py-1 px-4 rounded-full uppercase tracking-widest shadow-md mx-auto inline-block animate-bounce">
+          🎉 NEW HIGH SCORE! 🎉
+        </div>
+
+        <h3 class="text-4xl font-black text-amber-950">TIME'S UP! ⏰</h3>
+
+        <div class="bg-amber-200/80 p-4 rounded-2xl border-2 border-amber-400 space-y-2">
+          <div class="text-xs text-amber-800 uppercase font-black">FINAL SCORE</div>
+          <div id="go-final-score" class="text-5xl font-black text-amber-900">0</div>
+          
+          <div class="grid grid-cols-2 gap-2 pt-2 text-xs font-bold text-amber-900 border-t border-amber-300">
+            <div>Best Combo: <span id="go-best-combo" class="text-amber-800 font-black">0x</span></div>
+            <div>Accuracy: <span id="go-accuracy" class="text-amber-800 font-black">0%</span></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 pt-2">
+          <button onclick="app.restartGame()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-emerald-800 transition flex items-center justify-center gap-2">
+            🔄 Play Again
+          </button>
+          <button onclick="app.shareScore()" class="bg-cyan-500 hover:bg-cyan-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-cyan-800 transition flex items-center justify-center gap-2">
+            🔗 Share
+          </button>
+        </div>
+
+        <button onclick="app.quitToMainMenu()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 rounded-2xl border-b-4 border-amber-800 transition">
+          🏠 Main Menu
+        </button>
+      </div>
+    </div>
+
+    <footer class="text-center text-xs font-bold text-amber-900/80 py-2">
+      Oasis Mole Mayhem &copy; 2026 | Whack-a-Mole Desert Arcade
+    </footer>
+  </div>
+
+  <!-- JAVASCRIPT GAME ENGINE -->
+  <script>
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.musicInterval = null;
+        this.enabledSFX = true;
+        this.enabledMusic = true;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playHit() {
+        if (!this.enabledSFX || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(350, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.12);
+          gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.12);
+        } catch (e) {}
+      }
+
+      playGolden() {
+        if (!this.enabledSFX || !this.ctx) return;
+        try {
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.05);
+            gain.gain.setValueAtTime(0.3, this.ctx.currentTime + i * 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.05 + 0.15);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + i * 0.05);
+            osc.stop(this.ctx.currentTime + i * 0.05 + 0.15);
+          });
+        } catch (e) {}
+      }
+
+      playCactus() {
+        if (!this.enabledSFX || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(60, this.ctx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.2);
+        } catch (e) {}
+      }
+
+      playClick() {
+        if (!this.enabledSFX || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.04);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.04);
+        } catch (e) {}
+      }
+
+      startMusic() {
+        if (this.musicInterval) return;
+        let step = 0;
+        const notes = [261.63, 293.66, 329.63, 392.00, 440.00]; // Pentatonic desert scale
+        this.musicInterval = setInterval(() => {
+          if (!this.enabledMusic || !this.ctx) return;
+          try {
+            const freq = notes[step % notes.length];
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.25);
+            step++;
+          } catch (e) {}
+        }, 350);
+      }
+
+      stopMusic() {
+        if (this.musicInterval) {
+          clearInterval(this.musicInterval);
+          this.musicInterval = null;
+        }
+      }
+    }
+
+    class OasisApp {
+      constructor() {
+        this.sound = new SoundEngine();
+        this.canvas = document.getElementById('particle-canvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        // Game Settings & Preferences
+        this.settings = {
+          music: true,
+          sfx: true,
+          shake: true,
+          particles: true
+        };
+
+        this.accessibility = {
+          contrast: false,
+          colorblind: false,
+          motion: false,
+          largeui: false,
+          speed: 1.0
+        };
+
+        // Saved Records & Stats
+        this.records = {
+          highScore: 0,
+          highCombo: 0,
+          bestAccuracy: 0,
+          rapidScore: 0,
+          gamesPlayed: 0,
+          totalWhacks: 0,
+          goldenCaught: 0,
+          cactiAvoided: 0,
+          totalPlaytime: 0
+        };
+
+        this.achievements = [
+          { id: 'first_whack', title: '🏜️ First Desert Whack', desc: 'Hit your very first mole.', unlocked: false },
+          { id: 'combo_5', title: '🔥 Hot Streak', desc: 'Reach a 5x combo streak!', unlocked: false },
+          { id: 'golden_hunter', title: '👑 Golden Prospector', desc: 'Catch 3 Golden Moles in one game.', unlocked: false },
+          { id: 'score_1000', title: '⭐ Oasis Legend', desc: 'Score over 1,000 points in a single match.', unlocked: false },
+          { id: 'sniper', title: '🎯 Sharp Eye', desc: 'Finish a match with 80%+ accuracy.', unlocked: false }
+        ];
+
+        // Active Game State
+        this.gameState = {
+          active: false,
+          paused: false,
+          mode: 'classic',
+          duration: 30,
+          timeLeft: 30,
+          score: 0,
+          combo: 0,
+          maxCombo: 0,
+          hits: 0,
+          misses: 0,
+          goldenCount: 0,
+          cactiCount: 0,
+          spawnTimer: null,
+          gameTimer: null,
+          holes: Array(9).fill().map(() => ({ type: null, timer: null }))
+        };
+
+        this.particles = [];
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
+
+        this.loadStorage();
+        this.initDOM();
+        this.renderCanvas();
+      }
+
+      loadStorage() {
+        try {
+          const s = localStorage.getItem('oasis_whack_settings');
+          if (s) this.settings = Object.assign(this.settings, JSON.parse(s));
+
+          const a = localStorage.getItem('oasis_whack_acc');
+          if (a) this.accessibility = Object.assign(this.accessibility, JSON.parse(a));
+
+          const r = localStorage.getItem('oasis_whack_records');
+          if (r) this.records = Object.assign(this.records, JSON.parse(r));
+
+          const ach = localStorage.getItem('oasis_whack_achievements');
+          if (ach) {
+            const savedAch = JSON.parse(ach);
+            this.achievements.forEach(item => {
+              if (savedAch[item.id]) item.unlocked = true;
+            });
+          }
+        } catch (e) {}
+      }
+
+      saveStorage() {
+        try {
+          localStorage.setItem('oasis_whack_settings', JSON.stringify(this.settings));
+          localStorage.setItem('oasis_whack_acc', JSON.stringify(this.accessibility));
+          localStorage.setItem('oasis_whack_records', JSON.stringify(this.records));
+          
+          const achObj = {};
+          this.achievements.forEach(a => achObj[a.id] = a.unlocked);
+          localStorage.setItem('oasis_whack_achievements', JSON.stringify(achObj));
+        } catch (e) {}
+      }
+
+      initDOM() {
+        // Sync checkboxes
+        document.getElementById('setting-music').checked = this.settings.music;
+        document.getElementById('setting-sfx').checked = this.settings.sfx;
+        document.getElementById('setting-shake').checked = this.settings.shake;
+        document.getElementById('setting-particles').checked = this.settings.particles;
+
+        document.getElementById('acc-contrast').checked = this.accessibility.contrast;
+        document.getElementById('acc-colorblind').checked = this.accessibility.colorblind;
+        document.getElementById('acc-motion').checked = this.accessibility.motion;
+        document.getElementById('acc-largeui').checked = this.accessibility.largeui;
+        document.getElementById('acc-speed').value = this.accessibility.speed;
+        document.getElementById('acc-speed-val').innerText = `${this.accessibility.speed}x`;
+
+        this.applyAccessibilityClasses();
+        this.sound.enabledSFX = this.settings.sfx;
+        this.sound.enabledMusic = this.settings.music;
+
+        // Button sound listeners
+        document.querySelectorAll('button').forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.sound.init();
+            this.sound.playClick();
+          });
+        });
+
+        // Key listeners
+        window.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && this.gameState.active) {
+            if (this.gameState.paused) this.resumeGame();
+            else this.pauseGame();
+          }
+        });
+      }
+
+      resizeCanvas() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+      }
+
+      showScreen(screenId) {
+        const screens = [
+          'view-main-menu', 'view-mode-select', 'view-gameplay',
+          'view-high-scores', 'view-settings', 'view-accessibility',
+          'view-how-to-play', 'view-achievements', 'view-stats',
+          'view-about', 'view-credits'
+        ];
+
+        screens.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('hidden');
+        });
+
+        const target = document.getElementById(screenId);
+        if (target) target.classList.remove('hidden');
+
+        // Pause game if navigating away
+        if (screenId !== 'view-gameplay' && this.gameState.active && !this.gameState.paused) {
+          this.pauseGame();
+        }
+
+        // Screen specific updates
+        if (screenId === 'view-high-scores') this.updateHighScoresUI();
+        if (screenId === 'view-achievements') this.updateAchievementsUI();
+        if (screenId === 'view-stats') this.updateStatsUI();
+
+        if (screenId === 'view-main-menu' && this.settings.music) {
+          this.sound.init();
+          this.sound.startMusic();
+        }
+      }
+
+      showModeSelect() {
+        this.showScreen('view-mode-select');
+      }
+
+      applyAccessibilityClasses() {
+        document.body.classList.toggle('high-contrast', this.accessibility.contrast);
+        document.body.classList.toggle('cb-friendly', this.accessibility.colorblind);
+        document.body.classList.toggle('reduced-motion', this.accessibility.motion);
+        document.body.classList.toggle('large-ui', this.accessibility.largeui);
+      }
+
+      updateSettings() {
+        this.settings.music = document.getElementById('setting-music').checked;
+        this.settings.sfx = document.getElementById('setting-sfx').checked;
+        this.settings.shake = document.getElementById('setting-shake').checked;
+        this.settings.particles = document.getElementById('setting-particles').checked;
+
+        this.sound.enabledSFX = this.settings.sfx;
+        this.sound.enabledMusic = this.settings.music;
+        if (!this.settings.music) this.sound.stopMusic();
+        else if (!this.gameState.active) this.sound.startMusic();
+
+        this.saveStorage();
+        this.showToast('⚙️ Settings Saved');
+      }
+
+      updateAccessibility() {
+        this.accessibility.contrast = document.getElementById('acc-contrast').checked;
+        this.accessibility.colorblind = document.getElementById('acc-colorblind').checked;
+        this.accessibility.motion = document.getElementById('acc-motion').checked;
+        this.accessibility.largeui = document.getElementById('acc-largeui').checked;
+        this.accessibility.speed = parseFloat(document.getElementById('acc-speed').value);
+        document.getElementById('acc-speed-val').innerText = `${this.accessibility.speed}x`;
+
+        this.applyAccessibilityClasses();
+        this.saveStorage();
+        this.showToast('♿ Accessibility Updated');
+      }
+
+      resetData() {
+        if (confirm("Reset all high scores, stats, and achievements?")) {
+          localStorage.clear();
+          this.records = { highScore: 0, highCombo: 0, bestAccuracy: 0, rapidScore: 0, gamesPlayed: 0, totalWhacks: 0, goldenCaught: 0, cactiAvoided: 0, totalPlaytime: 0 };
+          this.achievements.forEach(a => a.unlocked = false);
+          this.saveStorage();
+          this.showToast('🗑️ Data Reset Complete');
+          this.showScreen('view-main-menu');
+        }
+      }
+
+      showToast(text, icon = '✨') {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-icon').innerText = icon;
+        document.getElementById('toast-text').innerText = text;
+        toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+        setTimeout(() => {
+          toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+        }, 2200);
+      }
+
+      startGame(mode = 'classic') {
+        this.sound.init();
+        this.sound.startMusic();
+
+        this.gameState.mode = mode;
+        this.gameState.duration = mode === 'rapid' ? 20 : (mode === 'zen' ? 60 : 30);
+        this.gameState.timeLeft = this.gameState.duration;
+        this.gameState.score = 0;
+        this.gameState.combo = 0;
+        this.gameState.maxCombo = 0;
+        this.gameState.hits = 0;
+        this.gameState.misses = 0;
+        this.gameState.goldenCount = 0;
+        this.gameState.cactiCount = 0;
+        this.gameState.active = true;
+        this.gameState.paused = false;
+
+        this.clearAllHoles();
+        this.showScreen('view-gameplay');
+        this.updateHUD();
+
+        // Start Timers
+        if (this.gameState.gameTimer) clearInterval(this.gameState.gameTimer);
+        this.gameState.gameTimer = setInterval(() => this.gameTick(), 1000);
+
+        this.scheduleNextSpawn();
+      }
+
+      gameTick() {
+        if (!this.gameState.active || this.gameState.paused) return;
+
+        this.gameState.timeLeft--;
+        this.records.totalPlaytime++;
+        this.updateHUD();
+
+        if (this.gameState.timeLeft <= 0) {
+          this.endGame();
+        }
+      }
+
+      scheduleNextSpawn() {
+        if (!this.gameState.active || this.gameState.paused) return;
+
+        // Base spawn interval depends on mode and time remaining
+        let baseDelay = this.gameState.mode === 'rapid' ? 450 : 700;
+        baseDelay /= this.accessibility.speed; // speed adjuster
+
+        const randomOffset = Math.random() * 300;
+        this.gameState.spawnTimer = setTimeout(() => {
+          this.spawnMole();
+          this.scheduleNextSpawn();
+        }, baseDelay + randomOffset);
+      }
+
+      spawnMole() {
+        if (!this.gameState.active || this.gameState.paused) return;
+
+        // Find available hole
+        const emptyIndices = [];
+        this.gameState.holes.forEach((h, idx) => {
+          if (!h.type) emptyIndices.push(idx);
+        });
+
+        if (emptyIndices.length === 0) return;
+
+        const holeIdx = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+        
+        // Critter probabilities: Standard (65%), Golden (15%), Coconut (10%), Cactus (10%)
+        const rand = Math.random();
+        let type = 'standard';
+        if (rand > 0.9) type = 'cactus';
+        else if (rand > 0.8) type = 'coconut';
+        else if (rand > 0.65) type = 'golden';
+
+        this.gameState.holes[holeIdx].type = type;
+        this.renderMole(holeIdx, type);
+
+        // Auto retreat timer
+        let stayDuration = type === 'golden' ? 900 : 1300;
+        stayDuration /= this.accessibility.speed;
+
+        this.gameState.holes[holeIdx].timer = setTimeout(() => {
+          this.clearHole(holeIdx);
+        }, stayDuration);
+      }
+
+      renderMole(holeIdx, type) {
+        const container = document.querySelector(`.hole-container[data-index="${holeIdx}"] .mole-element`);
+        if (!container) return;
+
+        let content = '';
+        if (type === 'standard') {
+          content = `
+            <div class="mole-enter flex flex-col items-center">
+              <span class="cb-badge bg-amber-900 text-amber-100 text-[10px] px-1 rounded font-black mb-1">+100</span>
+              <div class="w-16 h-16 sm:w-20 sm:h-20 bg-amber-800 rounded-t-full border-4 border-amber-950 flex flex-col items-center justify-center shadow-lg relative">
+                <div class="flex gap-2 mb-1">
+                  <div class="w-2.5 h-2.5 bg-black rounded-full"></div>
+                  <div class="w-2.5 h-2.5 bg-black rounded-full"></div>
+                </div>
+                <div class="w-5 h-3 bg-pink-300 rounded-full border border-pink-500"></div>
+                <div class="absolute -top-3 text-lg">🕶️</div>
+              </div>
+            </div>
+          `;
+        } else if (type === 'golden') {
+          content = `
+            <div class="mole-enter flex flex-col items-center animate-glow">
+              <span class="cb-badge bg-yellow-400 text-yellow-950 text-[10px] px-1 rounded font-black mb-1">⭐ BONUS</span>
+              <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-yellow-500 to-amber-300 rounded-t-full border-4 border-yellow-200 flex flex-col items-center justify-center shadow-2xl relative">
+                <div class="flex gap-2 mb-1">
+                  <div class="w-2.5 h-2.5 bg-black rounded-full"></div>
+                  <div class="w-2.5 h-2.5 bg-black rounded-full"></div>
+                </div>
+                <div class="w-5 h-3 bg-yellow-200 rounded-full border border-yellow-600"></div>
+                <div class="absolute -top-4 text-xl">👑</div>
+              </div>
+            </div>
+          `;
+        } else if (type === 'coconut') {
+          content = `
+            <div class="mole-enter flex flex-col items-center">
+              <span class="cb-badge bg-teal-800 text-teal-100 text-[10px] px-1 rounded font-black mb-1">+2 SEC</span>
+              <div class="w-16 h-16 sm:w-20 sm:h-20 bg-amber-900 rounded-t-full border-4 border-amber-700 flex flex-col items-center justify-center shadow-lg relative">
+                <div class="flex gap-2 mb-1">
+                  <div class="w-2 h-2 bg-amber-200 rounded-full"></div>
+                  <div class="w-2 h-2 bg-amber-200 rounded-full"></div>
+                </div>
+                <div class="w-4 h-2 bg-amber-700 rounded-full"></div>
+                <div class="absolute -top-3 text-lg">🥥</div>
+              </div>
+            </div>
+          `;
+        } else if (type === 'cactus') {
+          content = `
+            <div class="mole-enter flex flex-col items-center">
+              <span class="cb-badge bg-red-600 text-white text-[10px] px-1 rounded font-black mb-1">❌ DANGER</span>
+              <div class="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-700 rounded-t-full border-4 border-emerald-900 flex flex-col items-center justify-center shadow-lg relative">
+                <div class="flex gap-2 mb-1">
+                  <div class="text-xs font-black text-red-400">😡</div>
+                </div>
+                <div class="absolute -top-3 text-xl">🌵</div>
+              </div>
+            </div>
+          `;
+        }
+
+        container.innerHTML = content;
+        container.classList.remove('hidden');
+      }
+
+      clearHole(holeIdx) {
+        if (this.gameState.holes[holeIdx].timer) {
+          clearTimeout(this.gameState.holes[holeIdx].timer);
+        }
+        this.gameState.holes[holeIdx].type = null;
+        
+        const container = document.querySelector(`.hole-container[data-index="${holeIdx}"] .mole-element`);
+        if (container) {
+          container.classList.add('hidden');
+          container.innerHTML = '';
+        }
+      }
+
+      clearAllHoles() {
+        for (let i = 0; i < 9; i++) this.clearHole(i);
+        if (this.gameState.spawnTimer) clearTimeout(this.gameState.spawnTimer);
+      }
+
+      whackMole(holeIdx, event) {
+        if (!this.gameState.active || this.gameState.paused) return;
+
+        const hole = this.gameState.holes[holeIdx];
+        if (!hole.type) {
+          // Missed click
+          this.gameState.combo = 0;
+          this.gameState.misses++;
+          this.updateHUD();
+          return;
+        }
+
+        const type = hole.type;
+        this.clearHole(holeIdx);
+
+        // Particle Burst
+        const rect = event.currentTarget.getBoundingClientRect();
+        this.addParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, type);
+
+        if (type === 'cactus') {
+          // Penalize Cactus Hit
+          this.sound.playCactus();
+          if (this.settings.shake) this.triggerShake();
+          this.gameState.score = Math.max(0, this.gameState.score - 100);
+          this.gameState.combo = 0;
+          this.gameState.cactiCount++;
+          this.showFloatingText(rect.left, rect.top, '-100 🌵', 'text-red-600');
+        } else {
+          // Successful Whack
+          this.gameState.hits++;
+          this.records.totalWhacks++;
+          this.gameState.combo++;
+          if (this.gameState.combo > this.gameState.maxCombo) {
+            this.gameState.maxCombo = this.gameState.combo;
+          }
+
+          let basePts = 100;
+          if (type === 'golden') {
+            basePts = 250;
+            this.gameState.goldenCount++;
+            this.records.goldenCaught++;
+            this.sound.playGolden();
+          } else if (type === 'coconut') {
+            basePts = 150;
+            this.gameState.timeLeft += 2;
+            this.sound.playHit();
+            this.showFloatingText(rect.left, rect.top, '+2 SEC ⏳', 'text-teal-600');
+          } else {
+            this.sound.playHit();
+          }
+
+          const comboMult = Math.min(5, 1 + Math.floor(this.gameState.combo / 3));
+          const earned = basePts * comboMult;
+          this.gameState.score += earned;
+
+          this.showFloatingText(rect.left, rect.top, `+${earned}`, type === 'golden' ? 'text-yellow-500' : 'text-amber-800');
+        }
+
+        this.checkAchievementsMidGame();
+        this.updateHUD();
+      }
+
+      triggerShake() {
+        document.body.classList.add('animate-bounce');
+        setTimeout(() => document.body.classList.remove('animate-bounce'), 300);
+      }
+
+      showFloatingText(x, y, text, colorClass) {
+        const el = document.createElement('div');
+        el.className = `fixed font-black text-2xl z-50 pointer-events-none transition-all duration-700 ${colorClass}`;
+        el.innerText = text;
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+        document.body.appendChild(el);
+
+        setTimeout(() => {
+          el.style.transform = 'translateY(-40px) scale(1.2)';
+          el.style.opacity = '0';
+        }, 50);
+
+        setTimeout(() => el.remove(), 750);
+      }
+
+      addParticles(x, y, type) {
+        if (!this.settings.particles) return;
+
+        const count = type === 'golden' ? 20 : 10;
+        const color = type === 'golden' ? '#f59e0b' : (type === 'cactus' ? '#059669' : '#d97706');
+
+        for (let i = 0; i < count; i++) {
+          this.particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 8,
+            vy: (Math.random() - 0.5) * 8,
+            size: Math.random() * 6 + 3,
+            color: color,
+            alpha: 1,
+            life: 30
+          });
+        }
+      }
+
+      renderCanvas() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= 1 / p.life;
+
+          this.ctx.save();
+          this.ctx.globalAlpha = Math.max(0, p.alpha);
+          this.ctx.fillStyle = p.color;
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.restore();
+
+          if (p.alpha <= 0) this.particles.splice(i, 1);
+        }
+
+        requestAnimationFrame(() => this.renderCanvas());
+      }
+
+      updateHUD() {
+        document.getElementById('hud-score').innerText = this.gameState.score;
+        document.getElementById('hud-timer-text').innerText = `${this.gameState.timeLeft}s`;
+
+        const pct = Math.max(0, (this.gameState.timeLeft / this.gameState.duration) * 100);
+        document.getElementById('hud-timer-bar').style.width = `${pct}%`;
+
+        const comboBadge = document.getElementById('hud-combo-badge');
+        if (this.gameState.combo >= 2) {
+          document.getElementById('hud-combo-count').innerText = Math.min(5, 1 + Math.floor(this.gameState.combo / 3));
+          comboBadge.classList.remove('hidden');
+        } else {
+          comboBadge.classList.add('hidden');
+        }
+      }
+
+      pauseGame() {
+        if (!this.gameState.active) return;
+        this.gameState.paused = true;
+        document.getElementById('modal-pause').classList.remove('hidden');
+      }
+
+      resumeGame() {
+        this.gameState.paused = false;
+        document.getElementById('modal-pause').classList.add('hidden');
+      }
+
+      restartGame() {
+        document.getElementById('modal-pause').classList.add('hidden');
+        document.getElementById('modal-game-over').classList.add('hidden');
+        this.startGame(this.gameState.mode);
+      }
+
+      quitToMainMenu() {
+        this.gameState.active = false;
+        this.gameState.paused = false;
+        this.clearAllHoles();
+        if (this.gameState.gameTimer) clearInterval(this.gameState.gameTimer);
+
+        document.getElementById('modal-pause').classList.add('hidden');
+        document.getElementById('modal-game-over').classList.add('hidden');
+        this.showScreen('view-main-menu');
+      }
+
+      endGame() {
+        this.gameState.active = false;
+        this.clearAllHoles();
+        if (this.gameState.gameTimer) clearInterval(this.gameState.gameTimer);
+
+        this.records.gamesPlayed++;
+        let isNewHigh = false;
+
+        if (this.gameState.score > this.records.highScore) {
+          this.records.highScore = this.gameState.score;
+          isNewHigh = true;
+        }
+
+        if (this.gameState.mode === 'rapid' && this.gameState.score > this.records.rapidScore) {
+          this.records.rapidScore = this.gameState.score;
+        }
+
+        if (this.gameState.maxCombo > this.records.highCombo) {
+          this.records.highCombo = this.gameState.maxCombo;
+        }
+
+        const totalAttempts = this.gameState.hits + this.gameState.misses;
+        const accuracy = totalAttempts > 0 ? Math.round((this.gameState.hits / totalAttempts) * 100) : 0;
+        if (accuracy > this.records.bestAccuracy) {
+          this.records.bestAccuracy = accuracy;
+        }
+
+        this.checkEndGameAchievements(accuracy);
+        this.saveStorage();
+
+        // Show Game Over UI
+        document.getElementById('go-final-score').innerText = this.gameState.score;
+        document.getElementById('go-best-combo').innerText = `${this.gameState.maxCombo}x`;
+        document.getElementById('go-accuracy').innerText = `${accuracy}%`;
+
+        const badge = document.getElementById('go-new-high-badge');
+        if (isNewHigh) badge.classList.remove('hidden');
+        else badge.classList.add('hidden');
+
+        document.getElementById('modal-game-over').classList.remove('hidden');
+      }
+
+      checkAchievementsMidGame() {
+        if (this.gameState.hits >= 1) this.unlockAchievement('first_whack');
+        if (this.gameState.combo >= 5) this.unlockAchievement('combo_5');
+        if (this.gameState.goldenCount >= 3) this.unlockAchievement('golden_hunter');
+        if (this.gameState.score >= 1000) this.unlockAchievement('score_1000');
+      }
+
+      checkEndGameAchievements(accuracy) {
+        if (accuracy >= 80 && (this.gameState.hits + this.gameState.misses) >= 10) {
+          this.unlockAchievement('sniper');
+        }
+      }
+
+      unlockAchievement(id) {
+        const ach = this.achievements.find(a => a.id === id);
+        if (ach && !ach.unlocked) {
+          ach.unlocked = true;
+          this.saveStorage();
+          this.showToast(`🏆 Achievement: ${ach.title}`, '⭐');
+        }
+      }
+
+      updateHighScoresUI() {
+        document.getElementById('hs-high-score').innerText = this.records.highScore;
+        document.getElementById('hs-high-combo').innerText = `${this.records.highCombo}x`;
+        document.getElementById('hs-best-acc').innerText = `${this.records.bestAccuracy}%`;
+        document.getElementById('hs-rapid-score').innerText = this.records.rapidScore;
+      }
+
+      updateAchievementsUI() {
+        const list = document.getElementById('achievements-list');
+        list.innerHTML = '';
+
+        let unlockedCount = 0;
+        this.achievements.forEach(a => {
+          if (a.unlocked) unlockedCount++;
+
+          const card = document.createElement('div');
+          card.className = `p-3 rounded-2xl border flex items-center gap-3 ${a.unlocked ? 'bg-amber-200/90 border-amber-400' : 'bg-amber-300/30 border-amber-400/50 opacity-60'}`;
+          card.innerHTML = `
+            <span class="text-2xl">${a.unlocked ? '🏅' : '🔒'}</span>
+            <div>
+              <div class="font-bold text-amber-950">${a.title}</div>
+              <div class="text-xs text-amber-800">${a.desc}</div>
+            </div>
+          `;
+          list.appendChild(card);
+        });
+
+        const pct = Math.round((unlockedCount / this.achievements.length) * 100);
+        document.getElementById('achievements-progress-text').innerText = `Completion: ${pct}% (${unlockedCount}/${this.achievements.length})`;
+      }
+
+      updateStatsUI() {
+        document.getElementById('stat-games').innerText = this.records.gamesPlayed;
+        document.getElementById('stat-whacks').innerText = this.records.totalWhacks;
+        document.getElementById('stat-golden').innerText = this.records.goldenCaught;
+        document.getElementById('stat-cacti').innerText = this.records.cactiAvoided;
+        document.getElementById('stat-time').innerText = `${this.records.totalPlaytime}s`;
+      }
+
+      shareScore() {
+        const text = `🏜️ I scored ${this.gameState.score} points in Oasis Mole Mayhem! Can you beat my high score?`;
+        if (navigator.clipboard) {
+          document.execCommand('copy');
+          this.showToast('📋 Score copied to clipboard!');
+        } else {
+          this.showToast(`Scored ${this.gameState.score} pts!`);
+        }
+      }
+    }
+
+    // Initialize App
+    let app;
+    window.onload = () => {
+      app = new OasisApp();
+    };
+  </script>
+</body>
+</html>

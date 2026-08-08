@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Treasure Quest: Island Radar</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Luckiest+Guy&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            heading: ['"Luckiest Guy"', 'cursive'],
+            subheading: ['"Fredoka"', 'sans-serif'],
+            body: ['"Nunito"', 'sans-serif'],
+          },
+          colors: {
+            island: {
+              gold: '#FFD700',
+              amber: '#FF8C00',
+              teal: '#008080',
+              ocean: '#006994',
+              sand: '#F4A460',
+              wood: '#3B2314',
+              hot: '#EF4444',
+              warm: '#F59E0B',
+              cool: '#3B82F6',
+              cold: '#1D4ED8',
+            }
+          },
+          keyframes: {
+            pulseGlow: {
+              '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+              '50%': { transform: 'scale(1.05)', opacity: '0.85' },
+            },
+            radarSweep: {
+              '0%': { transform: 'rotate(0deg)' },
+              '100%': { transform: 'rotate(360deg)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-10px)' },
+            },
+            digBounce: {
+              '0%': { transform: 'scale(1)' },
+              '50%': { transform: 'scale(0.85) rotate(-5deg)' },
+              '100%': { transform: 'scale(1) rotate(0deg)' }
+            }
+          },
+          animation: {
+            'pulse-glow': 'pulseGlow 2s infinite ease-in-out',
+            'radar-sweep': 'radarSweep 4s linear infinite',
+            'float': 'float 3s ease-in-out infinite',
+            'dig-bounce': 'digBounce 0.3s ease-out',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    
+    .font-title {
+      font-family: 'Luckiest Guy', cursive;
+      letter-spacing: 0.05em;
+    }
+
+    .font-sub {
+      font-family: 'Fredoka', sans-serif;
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #F4A460;
+      border-radius: 4px;
+    }
+
+    /* Glassmorphic Cards */
+    .glass-card {
+      background: rgba(30, 20, 10, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 2px solid rgba(255, 215, 0, 0.3);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    /* Game Tile Hover Depth Effect */
+    .tile-btn {
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transform-style: preserve-3d;
+      perspective: 1000px;
+    }
+
+    .tile-btn:hover:not(:disabled) {
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
+    }
+
+    .tile-btn:active:not(:disabled) {
+      transform: translateY(2px) scale(0.97);
+    }
+
+    /* Accessibility High Contrast */
+    .high-contrast {
+      filter: contrast(150%) brightness(110%);
+    }
+
+    .high-contrast .glass-card {
+      background: #000000 !important;
+      border: 3px solid #FFFF00 !important;
+      color: #FFFFFF !important;
+    }
+
+    /* Colorblind Texture Patterns */
+    .cb-hot {
+      background-image: repeating-linear-gradient(45deg, #ef4444 0, #ef4444 10px, #b91c1c 10px, #b91c1c 20px) !important;
+    }
+    .cb-warm {
+      background-image: repeating-linear-gradient(-45deg, #f59e0b 0, #f59e0b 10px, #d97706 10px, #d97706 20px) !important;
+    }
+    .cb-cool {
+      background-image: radial-gradient(#3b82f6 20%, transparent 20%), radial-gradient(#1d4ed8 20%, transparent 20%) !important;
+      background-size: 15px 15px !important;
+      background-position: 0 0, 7.5px 7.5px !important;
+    }
+    .cb-cold {
+      background-image: linear-gradient(90deg, #1d4ed8 50%, #1e40af 50%) !important;
+      background-size: 10px 10px !important;
+    }
+
+    /* Reduced Motion */
+    .reduced-motion * {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    /* Large Text Mode */
+    .large-text {
+      font-size: 1.15rem;
+    }
+    .large-text .font-title {
+      font-size: 1.25em;
+    }
+
+    /* Background Canvas */
+    #bgCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen overflow-x-hidden relative flex flex-col justify-between">
+
+  <!-- Ambient Particle Canvas -->
+  <canvas id="bgCanvas"></canvas>
+
+  <!-- Notification Toast Overlay -->
+  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Main Container -->
+  <div id="app" class="relative z-10 min-h-screen flex flex-col justify-between p-3 sm:p-6 max-w-6xl mx-auto w-full">
+
+    <!-- Header Navigation Bar -->
+    <header class="flex justify-between items-center py-2 px-4 rounded-2xl glass-card border-amber-500/30 mb-4">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="switchScreen('menu')">
+        <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-slate-950 font-bold text-xl shadow-lg shadow-amber-500/30">
+          <i class="fa-solid fa-compass text-2xl animate-spin-slow"></i>
+        </div>
+        <div>
+          <h1 class="font-title text-xl sm:text-2xl text-amber-400 tracking-wide leading-none">TREASURE QUEST</h1>
+          <p class="font-sub text-xs text-amber-200/80">Island Radar Explorer</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btnQuickSound" onclick="toggleQuickAudio()" class="w-10 h-10 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-amber-400 transition" title="Toggle Sound">
+          <i id="quickSoundIcon" class="fa-solid fa-volume-high"></i>
+        </button>
+        <button id="btnPauseHeader" onclick="openPauseMenu()" class="hidden w-10 h-10 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold flex items-center justify-center transition shadow-lg shadow-amber-600/30">
+          <i class="fa-solid fa-pause text-lg"></i>
+        </button>
+      </div>
+    </header>
+
+    <main id="screenContainer" class="flex-grow flex items-center justify-center my-2">
+
+      <!-- ================= MAIN MENU SCREEN ================= -->
+      <section id="screen-menu" class="screen-view w-full max-w-xl text-center space-y-6">
+        <div class="space-y-3 animate-float">
+          <div class="inline-flex items-center justify-center p-4 bg-amber-500/20 border-2 border-amber-400/40 rounded-full mb-2">
+            <i class="fa-solid fa-gem text-5xl sm:text-6xl text-amber-400 drop-shadow-[0_0_15px_rgba(255,215,0,0.6)]"></i>
+          </div>
+          <h1 class="font-title text-4xl sm:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 drop-shadow-md">
+            PIRATE'S GOLD
+          </h1>
+          <p class="font-sub text-lg sm:text-xl text-amber-200/90 max-w-md mx-auto">
+            Use your high-tech Radar Detector to locate the hidden chest before running out of digs!
+          </p>
+        </div>
+
+        <!-- Main Action Buttons -->
+        <div class="glass-card p-6 rounded-3xl space-y-3 shadow-2xl border-amber-500/40">
+          <button onclick="startNewGame()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-title text-2xl shadow-xl shadow-amber-500/20 transform hover:-translate-y-1 active:translate-y-0 transition flex items-center justify-center gap-3">
+            <i class="fa-solid fa-play text-2xl"></i> START ADVENTURE
+          </button>
+
+          <div class="grid grid-cols-2 gap-3">
+            <button onclick="switchScreen('modes')" class="py-3 px-4 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-amber-500/30 text-amber-300 font-sub font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition">
+              <i class="fa-solid fa-map"></i> Game Modes
+            </button>
+            <button onclick="switchScreen('scores')" class="py-3 px-4 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-amber-500/30 text-amber-300 font-sub font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition">
+              <i class="fa-solid fa-trophy text-amber-400"></i> High Scores
+            </button>
+            <button onclick="switchScreen('achievements')" class="py-3 px-4 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-amber-500/30 text-amber-300 font-sub font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition">
+              <i class="fa-solid fa-medal text-yellow-400"></i> Badges
+            </button>
+            <button onclick="switchScreen('stats')" class="py-3 px-4 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-amber-500/30 text-amber-300 font-sub font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition">
+              <i class="fa-solid fa-chart-pie text-cyan-400"></i> Statistics
+            </button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 pt-2">
+            <button onclick="switchScreen('howToPlay')" class="py-2 px-3 rounded-lg bg-slate-800/60 hover:bg-slate-700 border border-slate-600 text-xs text-slate-300 font-sub flex flex-col items-center gap-1 transition">
+              <i class="fa-solid fa-book-open text-base text-amber-400"></i> How to Play
+            </button>
+            <button onclick="switchScreen('settings')" class="py-2 px-3 rounded-lg bg-slate-800/60 hover:bg-slate-700 border border-slate-600 text-xs text-slate-300 font-sub flex flex-col items-center gap-1 transition">
+              <i class="fa-solid fa-gear text-base text-slate-300"></i> Settings
+            </button>
+            <button onclick="switchScreen('accessibility')" class="py-2 px-3 rounded-lg bg-slate-800/60 hover:bg-slate-700 border border-slate-600 text-xs text-slate-300 font-sub flex flex-col items-center gap-1 transition">
+              <i class="fa-solid fa-universal-access text-base text-emerald-400"></i> Options
+            </button>
+          </div>
+
+          <div class="flex justify-between items-center pt-2 px-2 border-t border-slate-700/60">
+            <button onclick="switchScreen('about')" class="text-xs text-amber-200/70 hover:text-amber-300 transition">
+              <i class="fa-solid fa-circle-info"></i> About
+            </button>
+            <button onclick="switchScreen('credits')" class="text-xs text-amber-200/70 hover:text-amber-300 transition">
+              <i class="fa-solid fa-award"></i> Credits
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= GAMEPLAY SCREEN ================= -->
+      <section id="screen-game" class="screen-view hidden w-full max-w-4xl space-y-4">
+        <!-- Top Gameplay Bar Stats -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <!-- Digs Left -->
+          <div class="glass-card p-3 rounded-2xl border-amber-500/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-xl font-bold">
+              <i class="fa-solid fa-shovel"></i>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Digs Left</p>
+              <p id="statGuessesLeft" class="font-title text-2xl text-amber-400">5 / 5</p>
+            </div>
+          </div>
+
+          <!-- Radar Distance -->
+          <div class="glass-card p-3 rounded-2xl border-cyan-500/30 flex items-center gap-3">
+            <div id="radarSignalIconBg" class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-xl font-bold">
+              <i id="radarSignalIcon" class="fa-solid fa-wifi"></i>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Radar Signal</p>
+              <p id="statSignalText" class="font-sub font-bold text-lg text-cyan-300">Awaiting Dig...</p>
+            </div>
+          </div>
+
+          <!-- Current Score -->
+          <div class="glass-card p-3 rounded-2xl border-emerald-500/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-xl font-bold">
+              <i class="fa-solid fa-coins"></i>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Score</p>
+              <p id="statScore" class="font-title text-2xl text-emerald-400">0</p>
+            </div>
+          </div>
+
+          <!-- Grid Mode Info -->
+          <div class="glass-card p-3 rounded-2xl border-purple-500/30 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 text-xl font-bold">
+              <i class="fa-solid fa-border-all"></i>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Grid Mode</p>
+              <p id="statGridName" class="font-sub font-bold text-lg text-purple-300">5 x 5</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Radar Feedback Banner -->
+        <div id="hintBanner" class="glass-card p-4 rounded-2xl border-2 border-amber-500/40 transition-all duration-300 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div id="hintBadgeIcon" class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-2xl text-amber-400 border border-amber-400">
+              <i class="fa-solid fa-map-pin"></i>
+            </div>
+            <div>
+              <h2 id="hintTitle" class="font-title text-xl text-amber-300">SELECT A TILE TO DIG!</h2>
+              <p id="hintDesc" class="font-sub text-sm text-slate-300">Click any hidden square on the island map to scan for treasure.</p>
+            </div>
+          </div>
+          <!-- Sonar Thermometer Gauge -->
+          <div class="hidden sm:flex flex-col items-end min-w-[120px]">
+            <span class="text-xs font-bold text-slate-400 mb-1">RADAR TEMP</span>
+            <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-600">
+              <div id="tempGaugeBar" class="h-full bg-cyan-500 w-0 transition-all duration-500"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Game Board Canvas / HTML Grid Container -->
+        <div class="glass-card p-4 sm:p-6 rounded-3xl border-amber-500/40 relative flex justify-center items-center">
+          <div id="gridBoard" class="grid gap-2 sm:gap-3 w-full max-w-lg aspect-square">
+            <!-- Grid tiles generated dynamically in JS -->
+          </div>
+        </div>
+
+        <!-- Gameplay Control Actions -->
+        <div class="flex justify-between items-center gap-4">
+          <button onclick="openPauseMenu()" class="py-2 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm font-sub font-bold text-slate-300 transition flex items-center gap-2">
+            <i class="fa-solid fa-pause"></i> Pause
+          </button>
+          
+          <button onclick="restartCurrentGame()" class="py-2 px-5 rounded-xl bg-amber-600/80 hover:bg-amber-500 text-slate-950 text-sm font-sub font-bold transition flex items-center gap-2">
+            <i class="fa-solid fa-rotate-right"></i> Reset Dig site
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= GAME MODES SCREEN ================= -->
+      <section id="screen-modes" class="screen-view hidden w-full max-w-xl space-y-6">
+        <div class="text-center space-y-2">
+          <h2 class="font-title text-3xl sm:text-4xl text-amber-400">GAME MODES</h2>
+          <p class="font-sub text-slate-300">Select your island grid challenge level.</p>
+        </div>
+
+        <div class="glass-card p-6 rounded-3xl space-y-4 border-amber-500/40">
+          <!-- Mode 1: Classic 5x5 -->
+          <div onclick="selectMode('5x5')" class="p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border-2 border-emerald-500/50 cursor-pointer transition flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-400 text-2xl font-bold">
+                5x5
+              </div>
+              <div>
+                <h3 class="font-title text-xl text-emerald-400">Classic Map (5x5)</h3>
+                <p class="font-sub text-xs text-slate-300">25 Tiles • 5 Guesses • Perfect for beginners!</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-circle-check text-2xl text-emerald-400"></i>
+          </div>
+
+          <!-- Mode 2: Explorer 7x7 -->
+          <div onclick="selectMode('7x7')" class="p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border-2 border-amber-500/30 cursor-pointer transition flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-400 text-2xl font-bold">
+                7x7
+              </div>
+              <div>
+                <h3 class="font-title text-xl text-amber-400">Explorer Map (7x7)</h3>
+                <p class="font-sub text-xs text-slate-300">49 Tiles • 8 Guesses • Bigger island, richer loot!</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500"></i>
+          </div>
+
+          <!-- Mode 3: Master 9x9 -->
+          <div onclick="selectMode('9x9')" class="p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border-2 border-purple-500/30 cursor-pointer transition flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-400 flex items-center justify-center text-purple-400 text-2xl font-bold">
+                9x9
+              </div>
+              <div>
+                <h3 class="font-title text-xl text-purple-400">Master Map (9x9)</h3>
+                <p class="font-sub text-xs text-slate-300">81 Tiles • 12 Guesses • Ultimate Radar Challenge!</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500"></i>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button onclick="switchScreen('menu')" class="py-3 px-8 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 font-sub font-bold text-amber-300 transition">
+            <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= HIGH SCORES SCREEN ================= -->
+      <section id="screen-scores" class="screen-view hidden w-full max-w-xl space-y-6">
+        <div class="text-center space-y-2">
+          <h2 class="font-title text-3xl sm:text-4xl text-amber-400">HALL OF FAME</h2>
+          <p class="font-sub text-slate-300">Best treasure hunting records stored on your device.</p>
+        </div>
+
+        <div class="glass-card p-6 rounded-3xl space-y-4 border-amber-500/40">
+          <div id="highScoresList" class="space-y-3">
+            <!-- High Scores Rendered JS -->
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button onclick="switchScreen('menu')" class="py-3 px-8 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 font-sub font-bold text-amber-300 transition">
+            <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= ACHIEVEMENTS SCREEN ================= -->
+      <section id="screen-achievements" class="screen-view hidden w-full max-w-xl space-y-6">
+        <div class="text-center space-y-2">
+          <h2 class="font-title text-3xl sm:text-4xl text-amber-400">BADGES & TROPHIES</h2>
+          <p class="font-sub text-slate-300">Unlock special pirate badges through gameplay!</p>
+        </div>
+
+        <div class="glass-card p-6 rounded-3xl border-amber-500/40 max-h-[60vh] overflow-y-auto">
+          <div id="achievementsList" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Achievements dynamically rendered JS -->
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button onclick="switchScreen('menu')" class="py-3 px-8 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 font-sub font-bold text-amber-300 transition">
+            <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= STATISTICS SCREEN ================= -->
+      <section id="screen-stats" class="screen-view hidden w-full max-w-xl space-y-6">
+        <div class="text-center space-y-2">
+          <h2 class="font-title text-3xl sm:text-4xl text-amber-400">PIRATE STATS</h2>
+          <p class="font-sub text-slate-300">Your lifetime treasure hunting career achievements.</p>
+        </div>
+
+        <div class="glass-card p-6 rounded-3xl border-amber-500/40 grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+          <div class="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+            <p id="statGamesPlayed" class="font-title text-3xl text-amber-400">0</p>
+            <p class="font-sub text-xs text-slate-400">Games Played</p>
+          </div>
+          <div class="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+            <p id="statTreasuresFound" class="font-title text-3xl text-emerald-400">0</p>
+            <p class="font-sub text-xs text-slate-400">Treasures Found</p>
+          </div>
+          <div class="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+            <p id="statWinRate" class="font-title text-3xl text-cyan-400">0%</p>
+            <p class="font-sub text-xs text-slate-400">Win Rate</p>
+          </div>
+          <div class="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+            <p id="statBestStreak" class="font-title text-3xl text-purple-400">0</p>
+            <p class="font-sub text-xs text-slate-400">Best Win Streak</p>
+          </div>
+          <div class="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+            <p id="statTotalDigs" class="font-title text-3xl text-yellow-400">0</p>
+            <p class="font-sub text-xs text-slate-400">Total Digs</p>
+          </div>
+          <div class="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+            <p id="statBullseyes" class="font-title text-3xl text-red-400">0</p>
+            <p class="font-sub text-xs text-slate-400">First-Try Wins</p>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button onclick="switchScreen('menu')" class="py-3 px-8 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 font-sub font-bold text-amber-300 transition">
+            <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= SETTINGS SCREEN ================= -->
+      <section id="screen-settings" class="screen-view hidden w-full max-w-xl space-y-6">
+        <div class="text-center space-y-2">
+          <h2 class="font-title text-3xl sm:text-4xl text-amber-400">SETTINGS</h2>
+          <p class="font-sub text-slate-300">Customize audio, graphics, and gameplay settings.</p>
+        </div>
+
+        <div class="glass-card p-6 rounded-3xl space-y-5 border-amber-500/40">
+          <!-- Audio Controls -->
+          <div class="space-y-3">
+            <h3 class="font-sub font-bold text-amber-300 text-sm tracking-wider uppercase">Audio Preferences</h3>
+            <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl">
+              <span class="font-sub font-bold text-slate-200"><i class="fa-solid fa-music text-amber-400 mr-2"></i> Music</span>
+              <button id="toggleMusicBtn" onclick="toggleSetting('music')" class="py-1 px-4 rounded-lg bg-emerald-600 text-white font-bold text-sm">ON</button>
+            </div>
+            <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl">
+              <span class="font-sub font-bold text-slate-200"><i class="fa-solid fa-volume-high text-amber-400 mr-2"></i> Sound Effects</span>
+              <button id="toggleSfxBtn" onclick="toggleSetting('sfx')" class="py-1 px-4 rounded-lg bg-emerald-600 text-white font-bold text-sm">ON</button>
+            </div>
+          </div>
+
+          <!-- Visual Controls -->
+          <div class="space-y-3">
+            <h3 class="font-sub font-bold text-amber-300 text-sm tracking-wider uppercase">Visual Effects</h3>
+            <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl">
+              <span class="font-sub font-bold text-slate-200"><i class="fa-solid fa-burst text-amber-400 mr-2"></i> Screen Shake</span>
+              <button id="toggleShakeBtn" onclick="toggleSetting('shake')" class="py-1 px-4 rounded-lg bg-emerald-600 text-white font-bold text-sm">ON</button>
+            </div>
+            <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl">
+              <span class="font-sub font-bold text-slate-200"><i class="fa-solid fa-sparkles text-amber-400 mr-2"></i> Particles</span>
+              <button id="toggleParticlesBtn" onclick="toggleSetting('particles')" class="py-1 px-4 rounded-lg bg-emerald-600 text-white font-bold text-sm">ON</button>
+            </div>
+          </div>
+
+          <!-- Reset Storage -->
+          <div class="pt-2 border-t border-slate-700/80">
+            <button onclick="confirmResetData()" class="w-full py-3 px-4 rounded-xl bg-red-900/60 hover:bg-red-800 border border-red-500/50 text-red-200 font-sub font-bold text-sm transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-trash"></i> RESET SAVED DATA
+            </button>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button onclick="switchScreen('menu')" class="py-3 px-8 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 font-sub font-bold text-amber-300 transition">
+            <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= ACCESSIBILITY SCREEN ================= -->
+      <section id="screen-accessibility" class="screen-view hidden w-full max-w-xl space-y-6">
+        <div class="text-center space-y-2">
+          <h2 class="font-title text-3xl sm:text-4xl text-amber-400">ACCESSIBILITY</h2>
+          <p class="font-sub text-slate-300">Tailor the game experience for optimal visual legibility.</p>
+        </div>
+
+        <div class="glass-card p-6 rounded-3xl space-y-4 border-amber-500/40">
+          <!-- High Contrast -->
+          <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl">
+            <div>
+              <p class="font-sub font-bold text-slate-200">High Contrast Mode</p>
+              <p class="text-xs text-slate-400">Enhance border and text readability.</p>
+            </div>
+            <button id="toggleContrastBtn" onclick="toggleAccessibility('highContrast')" class="py-1 px-4 rounded-lg bg-slate-700 text-slate-300 font-bold text-sm">OFF</button>
+          </div>
+
+          <!-- Colorblind Friendly -->
+          <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl">
+            <div>
+              <p class="font-sub font-bold text-slate-200">Color-Blind Textures</p>
+              <p class="text-xs text-slate-400">Add icon patterns to warmer/colder feedback.</p>
+            </div>
+            <button id="toggleColorblindBtn" onclick="toggleAccessibility('colorblind')" class="py-1 px-4 rounded-lg bg-slate-700 text-slate-300 font-bold text-sm">OFF</button>
+          </div>
+
+          <!-- Reduced Motion -->
+          <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl">
+            <div>
+              <p class="font-sub font-bold text-slate-200">Reduced Motion</p>
+              <p class="text-xs text-slate-400">Disable floating and pulse animations.</p>
+            </div>
+            <button id="toggleMotionBtn" onclick="toggleAccessibility('reducedMotion')" class="py-1 px-4 rounded-lg bg-slate-700 text-slate-300 font-bold text-sm">OFF</button>
+          </div>
+
+          <!-- Large Text UI -->
+          <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl">
+            <div>
+              <p class="font-sub font-bold text-slate-200">Large UI Text</p>
+              <p class="text-xs text-slate-400">Increase text size across menus.</p>
+            </div>
+            <button id="toggleLargeTextBtn" onclick="toggleAccessibility('largeText')" class="py-1 px-4 rounded-lg bg-slate-700 text-slate-300 font-bold text-sm">OFF</button>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button onclick="switchScreen('menu')" class="py-3 px-8 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 font-sub font-bold text-amber-300 transition">
+            <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= HOW TO PLAY SCREEN ================= -->
+      <section id="screen-howToPlay" class="screen-view hidden w-full max-w-xl space-y-6">
+        <div class="text-center space-y-2">
+          <h2 class="font-title text-3xl sm:text-4xl text-amber-400">HOW TO PLAY</h2>
+          <p class="font-sub text-slate-300">Master the Sonar Radar & find the chest!</p>
+        </div>
+
+        <div class="glass-card p-6 rounded-3xl space-y-4 border-amber-500/40 font-sub">
+          <div class="flex items-start gap-3 bg-slate-800/80 p-3 rounded-2xl">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl flex-shrink-0">1</div>
+            <div>
+              <h4 class="font-bold text-amber-300">Click Any Tile to Dig</h4>
+              <p class="text-xs text-slate-300">You begin with 5 guesses on a 5x5 grid map. Tap any tile on the island to start scanning.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3 bg-slate-800/80 p-3 rounded-2xl">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xl flex-shrink-0">2</div>
+            <div>
+              <h4 class="font-bold text-cyan-300">Listen to Warmer / Colder Radar</h4>
+              <p class="text-xs text-slate-300">After each dig, your radar tells you if you got <strong>🔥 Warmer</strong> (closer to the gold) or <strong>❄️ Colder</strong> (further away)!</p>
+            </div>
+          </div>
+
+          <!-- Color Distance Guide -->
+          <div class="grid grid-cols-2 gap-2 text-xs pt-2">
+            <div class="p-2 rounded-xl bg-red-900/60 border border-red-500/50 flex items-center gap-2">
+              <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
+              <span class="text-red-200"><strong>Scorching:</strong> 1 tile away!</span>
+            </div>
+            <div class="p-2 rounded-xl bg-amber-900/60 border border-amber-500/50 flex items-center gap-2">
+              <span class="w-4 h-4 rounded-full bg-amber-500 inline-block"></span>
+              <span class="text-amber-200"><strong>Warm:</strong> 2 tiles away</span>
+            </div>
+            <div class="p-2 rounded-xl bg-blue-900/60 border border-blue-500/50 flex items-center gap-2">
+              <span class="w-4 h-4 rounded-full bg-blue-500 inline-block"></span>
+              <span class="text-blue-200"><strong>Cool:</strong> 3 tiles away</span>
+            </div>
+            <div class="p-2 rounded-xl bg-indigo-950/80 border border-indigo-600/50 flex items-center gap-2">
+              <span class="w-4 h-4 rounded-full bg-indigo-600 inline-block"></span>
+              <span class="text-indigo-200"><strong>Freezing:</strong> 4+ tiles away</span>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3 bg-slate-800/80 p-3 rounded-2xl">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xl flex-shrink-0">3</div>
+            <div>
+              <h4 class="font-bold text-emerald-300">Uncover the Gold!</h4>
+              <p class="text-xs text-slate-300">Find the chest before your digs run out to score massive points and keep your win streak alive!</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <button onclick="switchScreen('menu')" class="py-3 px-8 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 font-sub font-bold text-amber-300 transition">
+            <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= ABOUT SCREEN ================= -->
+      <section id="screen-about" class="screen-view hidden w-full max-w-xl space-y-6">
+        <div class="text-center space-y-2">
+          <h2 class="font-title text-3xl sm:text-4xl text-amber-400">ABOUT THE GAME</h2>
+          <p class="font-sub text-slate-300">Discover the story behind Pirate's Gold Radar.</p>
+        </div>
+
+        <div class="glass-card p-6 rounded-3xl space-y-4 border-amber-500/40 text-sm font-sub text-slate-300 leading-relaxed">
+          <p>
+            <strong>Pirate's Gold: Treasure Radar</strong> is an inspired-by, reimagined classic grid deduction puzzle created specifically for players aged 9–13 and puzzle enthusiasts of all ages.
+          </p>
+          <p>
+            Set on a mysterious tropical island, players use an advanced sonar detector to zero in on hidden pirate gold chests by interpreting dynamic distance signals and temperature feedback.
+          </p>
+          <p class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-amber-200 text-xs">
+            <i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i> Pro Tip: Try the 7x7 Explorer or 9x9 Master grid modes in Game Modes when 5x5 becomes too easy!
+          </p>
+        </div>
+
+        <div class="text-center">
+          <button onclick="switchScreen('menu')" class="py-3 px-8 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 font-sub font-bold text-amber-300 transition">
+            <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= CREDITS SCREEN ================= -->
+      <section id="screen-credits" class="screen-view hidden w-full max-w-xl space-y-6 text-center">
+        <div class="space-y-2">
+          <h2 class="font-title text-3xl sm:text-4xl text-amber-400">GAME CREDITS</h2>
+          <p class="font-sub text-slate-300">Created with passion for arcade game enthusiasts.</p>
+        </div>
+
+        <div class="glass-card p-8 rounded-3xl border-amber-500/40 space-y-6">
+          <div class="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-400 text-3xl mx-auto animate-bounce">
+            <i class="fa-solid fa-crown"></i>
+          </div>
+
+          <p class="font-sub font-bold text-lg text-amber-200 leading-relaxed">
+            "Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved."
+          </p>
+
+          <p class="text-xs text-slate-400">
+            Built using HTML5, Tailwind CSS, Web Audio API, and vanilla JavaScript canvas effects.
+          </p>
+        </div>
+
+        <div>
+          <button onclick="switchScreen('menu')" class="py-3 px-8 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 font-sub font-bold text-amber-300 transition">
+            <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-2 text-xs text-slate-500 font-sub">
+      Pirate's Gold: Treasure Radar &copy; 2026 • Single-File Web Arcade
+    </footer>
+  </div>
+
+  <!-- ================= PAUSE MODAL ================= -->
+  <div id="modalPause" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="glass-card p-6 sm:p-8 rounded-3xl max-w-md w-full border-2 border-amber-500/50 text-center space-y-4">
+      <h2 class="font-title text-3xl text-amber-400">GAME PAUSED</h2>
+      
+      <div class="space-y-2">
+        <button onclick="closePauseMenu()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-title text-xl text-white transition">RESUME</button>
+        <button onclick="restartCurrentGame(); closePauseMenu();" class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 font-title text-xl text-slate-950 transition">RESTART DIG</button>
+        <button onclick="closePauseMenu(); switchScreen('howToPlay');" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 font-sub font-bold text-slate-200 transition">HOW TO PLAY</button>
+        <button onclick="closePauseMenu(); switchScreen('settings');" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 font-sub font-bold text-slate-200 transition">SETTINGS</button>
+        <button onclick="closePauseMenu(); switchScreen('menu');" class="w-full py-3 rounded-xl bg-red-900/80 hover:bg-red-800 font-sub font-bold text-red-200 transition">MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= GAME OVER / VICTORY MODAL ================= -->
+  <div id="modalGameOver" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="glass-card p-6 sm:p-8 rounded-3xl max-w-md w-full border-2 border-amber-500/60 text-center space-y-5 animate-dig-bounce">
+      
+      <div id="resultIconBg" class="w-20 h-20 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-4xl text-amber-400 mx-auto shadow-xl">
+        <i id="resultIcon" class="fa-solid fa-gem"></i>
+      </div>
+
+      <div>
+        <h2 id="resultTitle" class="font-title text-3xl sm:text-4xl text-amber-400">TREASURE FOUND!</h2>
+        <p id="resultSubtitle" class="font-sub text-sm text-slate-300">You uncovered the pirate chest in 3 digs!</p>
+      </div>
+
+      <!-- Score Summary Card -->
+      <div class="bg-slate-900/90 p-4 rounded-2xl border border-slate-700 space-y-2 text-sm font-sub">
+        <div class="flex justify-between items-center text-slate-300">
+          <span>Points Earned:</span>
+          <span id="resultPoints" class="font-title text-lg text-emerald-400">+500</span>
+        </div>
+        <div class="flex justify-between items-center text-slate-300">
+          <span>Digs Remaining Bonus:</span>
+          <span id="resultDigsBonus" class="font-title text-lg text-amber-400">+200</span>
+        </div>
+        <div class="flex justify-between items-center border-t border-slate-800 pt-2 text-base font-bold">
+          <span class="text-amber-300">Final Score:</span>
+          <span id="resultFinalScore" class="font-title text-2xl text-amber-400">700</span>
+        </div>
+      </div>
+
+      <div id="newHighScoreBadge" class="hidden py-1 px-4 rounded-full bg-amber-500 text-slate-950 font-title text-xs inline-block animate-pulse">
+        ★ NEW HIGH SCORE! ★
+      </div>
+
+      <!-- Actions -->
+      <div class="space-y-2">
+        <button onclick="closeGameOverModal(); startNewGame();" class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 font-title text-xl text-slate-950 shadow-xl transition">
+          PLAY AGAIN
+        </button>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="shareScore()" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-sub font-bold text-xs transition flex items-center justify-center gap-1">
+            <i class="fa-solid fa-share-nodes"></i> SHARE SCORE
+          </button>
+          <button onclick="closeGameOverModal(); switchScreen('menu');" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-sub font-bold text-xs transition">
+            MAIN MENU
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT GAME LOGIC ================= -->
+  <script>
+    /* ==========================================================================
+       1. GAME STATE & LOCAL STORAGE CONFIGURATION
+       ========================================================================== */
+    const STORAGE_KEY_SETTINGS = 'pq_treasure_settings_2026';
+    const STORAGE_KEY_SCORES   = 'pq_treasure_scores_2026';
+    const STORAGE_KEY_STATS    = 'pq_treasure_stats_2026';
+    const STORAGE_KEY_BADGES   = 'pq_treasure_badges_2026';
+
+    // Game Default Configs
+    const GRID_CONFIGS = {
+      '5x5': { size: 5, guesses: 5, name: 'Classic (5x5)' },
+      '7x7': { size: 7, guesses: 8, name: 'Explorer (7x7)' },
+      '9x9': { size: 9, guesses: 12, name: 'Master (9x9)' }
+    };
+
+    let selectedGridMode = '5x5';
+    let currentGridSize = 5;
+    let maxGuesses = 5;
+    let guessesLeft = 5;
+    let currentScore = 0;
+    let currentStreak = 0;
+    let totalDigsInGame = 0;
+
+    let treasurePos = { x: 0, y: 0 };
+    let previousDistance = null;
+    let isGameOver = false;
+    let boardState = []; // Matrix tracking dug tiles
+
+    // Settings State
+    let settings = {
+      music: true,
+      sfx: true,
+      shake: true,
+      particles: true
+    };
+
+    // Accessibility State
+    let accessibility = {
+      highContrast: false,
+      colorblind: false,
+      reducedMotion: false,
+      largeText: false
+    };
+
+    // High Scores State
+    let highScores = {
+      '5x5': 0,
+      '7x7': 0,
+      '9x9': 0
+    };
+
+    // Statistics State
+    let stats = {
+      gamesPlayed: 0,
+      treasuresFound: 0,
+      totalDigs: 0,
+      bestStreak: 0,
+      bullseyes: 0
+    };
+
+    // Achievements Configuration
+    const ACHIEVEMENTS_DEF = [
+      { id: 'first_dig', title: 'First Dig', desc: 'Dig your first tile on the island.', icon: 'fa-shovel' },
+      { id: 'first_gold', title: 'Gold Digger', desc: 'Find your first treasure chest.', icon: 'fa-gem' },
+      { id: 'bullseye', title: 'Lucky Guess', desc: 'Find the treasure on your very first try!', icon: 'fa-bullseye' },
+      { id: 'streak_3', title: 'Treasure Master', desc: 'Achieve a win streak of 3 games.', icon: 'fa-fire' },
+      { id: 'explorer_win', title: 'Island Explorer', desc: 'Win a game on 7x7 grid mode.', icon: 'fa-compass' },
+      { id: 'master_win', title: 'Master Navigator', desc: 'Win a game on 9x9 grid mode.', icon: 'fa-crown' },
+    ];
+    let unlockedBadges = [];
+
+    /* ==========================================================================
+       2. AUDIO SYNTHESIZER (Web Audio API - No External Files)
+       ========================================================================== */
+    let audioCtx = null;
+    let bgmInterval = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSynthTone(freq, type = 'sine', duration = 0.15, gainVal = 0.1) {
+      if (!settings.sfx) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      try {
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        gainNode.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.debug(e);
+      }
+    }
+
+    function playSound(type) {
+      if (!settings.sfx) return;
+      initAudio();
+
+      switch (type) {
+        case 'click':
+          playSynthTone(440, 'sine', 0.08, 0.08);
+          break;
+        case 'dig':
+          playSynthTone(180, 'triangle', 0.2, 0.25);
+          break;
+        case 'warmer':
+          playSynthTone(587.33, 'sine', 0.12, 0.15); // D5
+          setTimeout(() => playSynthTone(880, 'sine', 0.18, 0.2), 100); // A5
+          break;
+        case 'colder':
+          playSynthTone(300, 'sawtooth', 0.15, 0.1);
+          setTimeout(() => playSynthTone(200, 'sawtooth', 0.2, 0.1), 120);
+          break;
+        case 'win':
+          // Victory Fanfare
+          const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
+          notes.forEach((note, idx) => {
+            setTimeout(() => playSynthTone(note, 'triangle', 0.3, 0.25), idx * 120);
+          });
+          break;
+        case 'lose':
+          // Game Over Chord
+          [350, 330, 310, 290].forEach((note, idx) => {
+            setTimeout(() => playSynthTone(note, 'sawtooth', 0.25, 0.15), idx * 140);
+          });
+          break;
+      }
+    }
+
+    function toggleQuickAudio() {
+      settings.sfx = !settings.sfx;
+      settings.music = settings.sfx;
+      saveStorage();
+      updateAudioIcons();
+      showToast(settings.sfx ? 'Audio Enabled' : 'Audio Muted', 'info');
+    }
+
+    function updateAudioIcons() {
+      const icon = document.getElementById('quickSoundIcon');
+      if (icon) {
+        icon.className = settings.sfx ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark text-red-400';
+      }
+      const musicBtn = document.getElementById('toggleMusicBtn');
+      if (musicBtn) {
+        musicBtn.textContent = settings.music ? 'ON' : 'OFF';
+        musicBtn.className = settings.music ? 'py-1 px-4 rounded-lg bg-emerald-600 text-white font-bold text-sm' : 'py-1 px-4 rounded-lg bg-slate-700 text-slate-400 font-bold text-sm';
+      }
+      const sfxBtn = document.getElementById('toggleSfxBtn');
+      if (sfxBtn) {
+        sfxBtn.textContent = settings.sfx ? 'ON' : 'OFF';
+        sfxBtn.className = settings.sfx ? 'py-1 px-4 rounded-lg bg-emerald-600 text-white font-bold text-sm' : 'py-1 px-4 rounded-lg bg-slate-700 text-slate-400 font-bold text-sm';
+      }
+    }
+
+    /* ==========================================================================
+       3. CANVAS PARTICLE EFFECTS ENGINE
+       ========================================================================== */
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas ? canvas.getContext('2d') : null;
+    let particles = [];
+
+    function resizeCanvas() {
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function createParticle(x, y, color = '#FFD700') {
+      if (!settings.particles) return;
+      particles.push({
+        x: x || Math.random() * canvas.width,
+        y: y || Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2 - 1,
+        radius: Math.random() * 3 + 1,
+        color: color,
+        alpha: 1,
+        life: Math.random() * 60 + 40
+      });
+    }
+
+    // Populate ambient particles
+    for (let i = 0; i < 30; i++) {
+      createParticle();
+    }
+
+    function animateParticles() {
+      if (ctx && canvas) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (settings.particles && !accessibility.reducedMotion) {
+          particles.forEach((p, idx) => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.alpha -= 1 / p.life;
+
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, p.alpha);
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            if (p.alpha <= 0) {
+              particles[idx] = {
+                x: Math.random() * canvas.width,
+                y: canvas.height + 10,
+                vx: (Math.random() - 0.5) * 1.5,
+                vy: -Math.random() * 2 - 0.5,
+                radius: Math.random() * 3 + 1,
+                color: ['#FFD700', '#008080', '#F4A460'][Math.floor(Math.random() * 3)],
+                alpha: 1,
+                life: Math.random() * 80 + 40
+              };
+            }
+          });
+        }
+      }
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    function triggerDigBurst(x, y, count = 15, color = '#FFD700') {
+      for (let i = 0; i < count; i++) {
+        createParticle(x, y, color);
+      }
+    }
+
+    /* ==========================================================================
+       4. LOCAL STORAGE & INITIALIZATION
+       ========================================================================== */
+    function loadStorage() {
+      try {
+        const s = localStorage.getItem(STORAGE_KEY_SETTINGS);
+        if (s) settings = { ...settings, ...JSON.parse(s) };
+
+        const sc = localStorage.getItem(STORAGE_KEY_SCORES);
+        if (sc) highScores = { ...highScores, ...JSON.parse(sc) };
+
+        const st = localStorage.getItem(STORAGE_KEY_STATS);
+        if (st) stats = { ...stats, ...JSON.parse(st) };
+
+        const bd = localStorage.getItem(STORAGE_KEY_BADGES);
+        if (bd) unlockedBadges = JSON.parse(bd);
+      } catch (e) {
+        console.warn('Storage read failed', e);
+      }
+      applyAccessibilityClasses();
+      updateAudioIcons();
+    }
+
+    function saveStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+        localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(highScores));
+        localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(stats));
+        localStorage.setItem(STORAGE_KEY_BADGES, JSON.stringify(unlockedBadges));
+      } catch (e) {
+        console.warn('Storage write failed', e);
+      }
+    }
+
+    /* ==========================================================================
+       5. SCREEN NAVIGATION SYSTEM
+       ========================================================================== */
+    function switchScreen(screenId) {
+      playSound('click');
+      document.querySelectorAll('.screen-view').forEach(s => s.classList.add('hidden'));
+
+      const target = document.getElementById(`screen-${screenId}`);
+      if (target) {
+        target.classList.remove('hidden');
+      }
+
+      // Show/hide header pause button
+      const pauseBtn = document.getElementById('btnPauseHeader');
+      if (pauseBtn) {
+        pauseBtn.className = (screenId === 'game') ? 'w-10 h-10 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold flex items-center justify-center transition shadow-lg shadow-amber-600/30' : 'hidden';
+      }
+
+      // Render content for specific screens
+      if (screenId === 'scores') renderHighScores();
+      if (screenId === 'achievements') renderAchievements();
+      if (screenId === 'stats') renderStats();
+    }
+
+    function selectMode(modeKey) {
+      if (GRID_CONFIGS[modeKey]) {
+        selectedGridMode = modeKey;
+        showToast(`Selected ${GRID_CONFIGS[modeKey].name}`, 'success');
+        startNewGame();
+      }
+    }
+
+    /* ==========================================================================
+       6. CORE TREASURE HUNT GAME ENGINE
+       ========================================================================== */
+    function startNewGame() {
+      const cfg = GRID_CONFIGS[selectedGridMode] || GRID_CONFIGS['5x5'];
+      currentGridSize = cfg.size;
+      maxGuesses = cfg.guesses;
+      guessesLeft = cfg.guesses;
+      currentScore = 0;
+      totalDigsInGame = 0;
+      previousDistance = null;
+      isGameOver = false;
+
+      // Randomly hide treasure chest
+      treasurePos = {
+        x: Math.floor(Math.random() * currentGridSize),
+        y: Math.floor(Math.random() * currentGridSize)
+      };
+
+      // Initialize empty board state matrix
+      boardState = Array(currentGridSize).fill(null).map(() => Array(currentGridSize).fill(false));
+
+      // Update UI elements
+      document.getElementById('statGuessesLeft').textContent = `${guessesLeft} / ${maxGuesses}`;
+      document.getElementById('statScore').textContent = '0';
+      document.getElementById('statGridName').textContent = `${currentGridSize} x ${currentGridSize}`;
+      
+      updateRadarBanner('AWAITING DIG...', 'Click any tile on the island to scan for treasure.', 'cyan', 'fa-compass');
+
+      renderBoardGrid();
+      switchScreen('game');
+
+      // Update stats
+      stats.gamesPlayed++;
+      saveStorage();
+      unlockAchievement('first_dig');
+    }
+
+    function renderBoardGrid() {
+      const gridBoard = document.getElementById('gridBoard');
+      if (!gridBoard) return;
+
+      gridBoard.innerHTML = '';
+      gridBoard.style.gridTemplateColumns = `repeat(${currentGridSize}, minmax(0, 1fr))`;
+
+      for (let r = 0; r < currentGridSize; r++) {
+        for (let c = 0; c < currentGridSize; c++) {
+          const btn = document.createElement('button');
+          btn.dataset.row = r;
+          btn.dataset.col = c;
+          
+          btn.className = `tile-btn relative aspect-square rounded-xl sm:rounded-2xl border-2 flex items-center justify-center font-title text-base sm:text-xl transition-all shadow-md
+            bg-gradient-to-br from-amber-700 via-amber-800 to-amber-950 border-amber-500/40 text-amber-200/60 hover:border-amber-300`;
+
+          // Coordinate label (A1, B2, etc.)
+          const colLabel = String.fromCharCode(65 + c);
+          btn.innerHTML = `<span class="opacity-70">${colLabel}${r + 1}</span>`;
+
+          btn.onclick = (e) => handleTileClick(r, c, btn, e);
+          gridBoard.appendChild(btn);
+        }
+      }
+    }
+
+    function handleTileClick(row, col, btnElement, event) {
+      if (isGameOver || boardState[row][col] || guessesLeft <= 0) return;
+
+      // Mark tile as dug
+      boardState[row][col] = true;
+      btnElement.disabled = true;
+      guessesLeft--;
+      totalDigsInGame++;
+      stats.totalDigs++;
+
+      // Trigger visual particles
+      if (event) {
+        const rect = btnElement.getBoundingClientRect();
+        triggerDigBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 12, '#F4A460');
+      }
+
+      // Calculate Manhattan distance: |x1 - x2| + |y1 - y2|
+      const distance = Math.abs(row - treasurePos.x) + Math.abs(col - treasurePos.y);
+
+      // Check WIN Condition
+      if (distance === 0) {
+        handleWin(btnElement);
+        return;
+      }
+
+      // Determine feedback signal
+      let hintColor = 'cool';
+      let iconClass = 'fa-snowflake';
+      let distText = '';
+
+      if (distance === 1) {
+        hintColor = 'hot';
+        iconClass = 'fa-fire-flame-curved';
+        distText = 'SCORCHING HOT! (1 tile away!)';
+      } else if (distance === 2) {
+        hintColor = 'warm';
+        iconClass = 'fa-temperature-high';
+        distText = 'WARM! (2 tiles away)';
+      } else if (distance === 3) {
+        hintColor = 'cool';
+        iconClass = 'fa-temperature-low';
+        distText = 'COOL (3 tiles away)';
+      } else {
+        hintColor = 'cold';
+        iconClass = 'fa-snowflake';
+        distText = 'FREEZING COLD! (4+ tiles away)';
+      }
+
+      // Comparative Warmer vs Colder feedback compared to last guess
+      let comparisonText = '';
+      if (previousDistance !== null) {
+        if (distance < previousDistance) {
+          comparisonText = '🔥 WARMER! (Getting closer!)';
+          playSound('warmer');
+        } else if (distance > previousDistance) {
+          comparisonText = '❄️ COLDER! (Moving further away!)';
+          playSound('colder');
+        } else {
+          comparisonText = '↔️ SAME DISTANCE!';
+          playSound('dig');
+        }
+      } else {
+        comparisonText = distText;
+        playSound('dig');
+      }
+
+      previousDistance = distance;
+
+      // Style revealed tile
+      applyTileStyle(btnElement, hintColor, distance);
+
+      // Update UI Header Stats
+      document.getElementById('statGuessesLeft').textContent = `${guessesLeft} / ${maxGuesses}`;
+      
+      const signalTextEl = document.getElementById('statSignalText');
+      signalTextEl.textContent = comparisonText;
+
+      updateRadarBanner(comparisonText, `${distText} • ${guessesLeft} digs remaining.`, hintColor, iconClass);
+
+      // Trigger Screen Shake if enabled
+      if (settings.shake && (distance <= 1)) {
+        triggerScreenShake();
+      }
+
+      // Check LOSE Condition
+      if (guessesLeft <= 0 && !isGameOver) {
+        handleLoss();
+      }
+
+      saveStorage();
+    }
+
+    function applyTileStyle(btn, heat, distance) {
+      let bgClasses = '';
+      let textContent = '';
+
+      switch (heat) {
+        case 'hot':
+          bgClasses = 'bg-red-600 border-red-400 text-white shadow-red-500/50';
+          if (accessibility.colorblind) bgClasses += ' cb-hot';
+          textContent = `<i class="fa-solid fa-fire text-2xl animate-bounce"></i>`;
+          break;
+        case 'warm':
+          bgClasses = 'bg-amber-500 border-amber-300 text-slate-950 shadow-amber-500/50';
+          if (accessibility.colorblind) bgClasses += ' cb-warm';
+          textContent = `<i class="fa-solid fa-temperature-high text-2xl"></i>`;
+          break;
+        case 'cool':
+          bgClasses = 'bg-blue-600 border-blue-400 text-white shadow-blue-500/50';
+          if (accessibility.colorblind) bgClasses += ' cb-cool';
+          textContent = `<i class="fa-solid fa-temperature-low text-xl"></i>`;
+          break;
+        case 'cold':
+          bgClasses = 'bg-indigo-900 border-indigo-500 text-indigo-200 shadow-indigo-900/50';
+          if (accessibility.colorblind) bgClasses += ' cb-cold';
+          textContent = `<i class="fa-solid fa-snowflake text-xl"></i>`;
+          break;
+      }
+
+      btn.className = `tile-btn relative aspect-square rounded-xl sm:rounded-2xl border-2 flex items-center justify-center font-title text-base sm:text-xl transition-all shadow-lg ${bgClasses}`;
+      btn.innerHTML = textContent;
+    }
+
+    function handleWin(winBtn) {
+      isGameOver = true;
+      playSound('win');
+
+      // Reveal Gold Chest on tile
+      winBtn.className = 'tile-btn relative aspect-square rounded-xl sm:rounded-2xl border-4 border-yellow-300 bg-gradient-to-tr from-yellow-500 via-amber-400 to-yellow-300 text-slate-950 shadow-2xl shadow-yellow-500/80 animate-bounce';
+      winBtn.innerHTML = `<i class="fa-solid fa-gem text-3xl sm:text-4xl text-slate-950 drop-shadow-md"></i>`;
+
+      // Calculate score
+      const basePoints = currentGridSize * 100;
+      const digsBonus = guessesLeft * 150;
+      currentScore = basePoints + digsBonus;
+
+      // Update statistics & streaks
+      stats.treasuresFound++;
+      currentStreak++;
+      if (currentStreak > stats.bestStreak) stats.bestStreak = currentStreak;
+
+      if (totalDigsInGame === 1) {
+        stats.bullseyes++;
+        unlockAchievement('bullseye');
+      }
+
+      unlockAchievement('first_gold');
+      if (currentStreak >= 3) unlockAchievement('streak_3');
+      if (selectedGridMode === '7x7') unlockAchievement('explorer_win');
+      if (selectedGridMode === '9x9') unlockAchievement('master_win');
+
+      // Check High Score
+      let isNewHigh = false;
+      if (currentScore > (highScores[selectedGridMode] || 0)) {
+        highScores[selectedGridMode] = currentScore;
+        isNewHigh = true;
+      }
+
+      document.getElementById('statScore').textContent = currentScore;
+      saveStorage();
+
+      // Show Victory Modal
+      setTimeout(() => {
+        showGameOverModal(true, currentScore, digsBonus, isNewHigh);
+      }, 600);
+    }
+
+    function handleLoss() {
+      isGameOver = true;
+      currentStreak = 0;
+      playSound('lose');
+
+      // Reveal true location of treasure chest
+      const gridBoard = document.getElementById('gridBoard');
+      if (gridBoard) {
+        const tiles = gridBoard.querySelectorAll('.tile-btn');
+        tiles.forEach(tile => {
+          const r = parseInt(tile.dataset.row);
+          const c = parseInt(tile.dataset.col);
+          if (r === treasurePos.x && c === treasurePos.y) {
+            tile.className = 'tile-btn relative aspect-square rounded-xl border-2 border-amber-400 bg-amber-500/40 text-amber-300 animate-pulse';
+            tile.innerHTML = `<i class="fa-solid fa-box-open text-2xl"></i>`;
+          }
+        });
+      }
+
+      updateRadarBanner('OUT OF DIGS!', `The treasure chest was at row ${treasurePos.x + 1}, column ${String.fromCharCode(65 + treasurePos.y)}.`, 'cold', 'fa-skull-crossbones');
+
+      setTimeout(() => {
+        showGameOverModal(false, 0, 0, false);
+      }, 800);
+    }
+
+    function updateRadarBanner(title, desc, heatColor, iconName) {
+      const titleEl = document.getElementById('hintTitle');
+      const descEl = document.getElementById('hintDesc');
+      const badgeIcon = document.getElementById('hintBadgeIcon');
+      const gaugeBar = document.getElementById('tempGaugeBar');
+
+      if (titleEl) titleEl.textContent = title;
+      if (descEl) descEl.textContent = desc;
+
+      if (badgeIcon) {
+        badgeIcon.innerHTML = `<i class="fa-solid ${iconName}"></i>`;
+      }
+
+      if (gaugeBar) {
+        if (heatColor === 'hot') gaugeBar.style.width = '100%';
+        else if (heatColor === 'warm') gaugeBar.style.width = '70%';
+        else if (heatColor === 'cool') gaugeBar.style.width = '40%';
+        else gaugeBar.style.width = '15%';
+      }
+    }
+
+    function triggerScreenShake() {
+      const app = document.getElementById('app');
+      if (app && !accessibility.reducedMotion) {
+        app.classList.add('animate-bounce');
+        setTimeout(() => app.classList.remove('animate-bounce'), 300);
+      }
+    }
+
+    /* ==========================================================================
+       7. MODAL DIALOGS & OVERLAYS
+       ========================================================================== */
+    function openPauseMenu() {
+      playSound('click');
+      document.getElementById('modalPause').classList.remove('hidden');
+    }
+
+    function closePauseMenu() {
+      playSound('click');
+      document.getElementById('modalPause').classList.add('hidden');
+    }
+
+    function showGameOverModal(won, totalScore, bonusPoints, isNewHigh) {
+      const modal = document.getElementById('modalGameOver');
+      const titleEl = document.getElementById('resultTitle');
+      const subTitleEl = document.getElementById('resultSubtitle');
+      const pointsEl = document.getElementById('resultPoints');
+      const bonusEl = document.getElementById('resultDigsBonus');
+      const finalScoreEl = document.getElementById('resultFinalScore');
+      const badgeEl = document.getElementById('newHighScoreBadge');
+      const iconEl = document.getElementById('resultIcon');
+
+      if (won) {
+        titleEl.textContent = 'TREASURE FOUND!';
+        subTitleEl.textContent = `You uncovered the island gold in ${totalDigsInGame} dig${totalDigsInGame > 1 ? 's' : ''}!`;
+        iconEl.className = 'fa-solid fa-gem text-yellow-400';
+      } else {
+        titleEl.textContent = 'OUT OF DIGS!';
+        subTitleEl.textContent = 'The treasure remained hidden this time. Try again!';
+        iconEl.className = 'fa-solid fa-skull text-slate-400';
+      }
+
+      pointsEl.textContent = `+${totalScore - bonusPoints}`;
+      bonusEl.textContent = `+${bonusPoints}`;
+      finalScoreEl.textContent = totalScore;
+
+      if (isNewHigh) {
+        badgeEl.classList.remove('hidden');
+      } else {
+        badgeEl.classList.add('hidden');
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeGameOverModal() {
+      playSound('click');
+      document.getElementById('modalGameOver').classList.add('hidden');
+    }
+
+    function restartCurrentGame() {
+      startNewGame();
+    }
+
+    function shareScore() {
+      const text = `🏴‍☠️ I scored ${currentScore} points on Pirate's Gold Treasure Radar (${selectedGridMode})! Can you beat my high score?`;
+      
+      // Use fallback clipboard command
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Score copied to clipboard!', 'success');
+      } catch (err) {
+        showToast('Could not copy score', 'error');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    /* ==========================================================================
+       8. SUB-MENU CONTENT RENDERERS
+       ========================================================================== */
+    function renderHighScores() {
+      const container = document.getElementById('highScoresList');
+      if (!container) return;
+
+      container.innerHTML = `
+        <div class="p-4 rounded-2xl bg-slate-800/80 border border-emerald-500/40 flex justify-between items-center">
+          <div>
+            <span class="font-title text-emerald-400">Classic (5x5)</span>
+            <p class="text-xs text-slate-400">5 Guesses Standard Mode</p>
+          </div>
+          <span class="font-title text-2xl text-amber-400">${highScores['5x5'] || 0} pts</span>
+        </div>
+        <div class="p-4 rounded-2xl bg-slate-800/80 border border-amber-500/40 flex justify-between items-center">
+          <div>
+            <span class="font-title text-amber-400">Explorer (7x7)</span>
+            <p class="text-xs text-slate-400">8 Guesses Medium Mode</p>
+          </div>
+          <span class="font-title text-2xl text-amber-400">${highScores['7x7'] || 0} pts</span>
+        </div>
+        <div class="p-4 rounded-2xl bg-slate-800/80 border border-purple-500/40 flex justify-between items-center">
+          <div>
+            <span class="font-title text-purple-400">Master (9x9)</span>
+            <p class="text-xs text-slate-400">12 Guesses Hard Mode</p>
+          </div>
+          <span class="font-title text-2xl text-amber-400">${highScores['9x9'] || 0} pts</span>
+        </div>
+      `;
+    }
+
+    function renderAchievements() {
+      const container = document.getElementById('achievementsList');
+      if (!container) return;
+
+      container.innerHTML = ACHIEVEMENTS_DEF.map(a => {
+        const isUnlocked = unlockedBadges.includes(a.id);
+        return `
+          <div class="p-3 rounded-2xl border ${isUnlocked ? 'bg-amber-500/10 border-amber-400/50' : 'bg-slate-900/60 border-slate-800 opacity-60'} flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl ${isUnlocked ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-500'} flex items-center justify-center font-bold text-xl flex-shrink-0">
+              <i class="fa-solid ${a.icon}"></i>
+            </div>
+            <div>
+              <h4 class="font-title text-sm ${isUnlocked ? 'text-amber-300' : 'text-slate-400'}">${a.title}</h4>
+              <p class="text-[11px] text-slate-400">${a.desc}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderStats() {
+      document.getElementById('statGamesPlayed').textContent = stats.gamesPlayed;
+      document.getElementById('statTreasuresFound').textContent = stats.treasuresFound;
+      document.getElementById('statTotalDigs').textContent = stats.totalDigs;
+      document.getElementById('statBestStreak').textContent = stats.bestStreak;
+      document.getElementById('statBullseyes').textContent = stats.bullseyes;
+
+      const rate = stats.gamesPlayed > 0 ? Math.round((stats.treasuresFound / stats.gamesPlayed) * 100) : 0;
+      document.getElementById('statWinRate').textContent = `${rate}%`;
+    }
+
+    function unlockAchievement(badgeId) {
+      if (!unlockedBadges.includes(badgeId)) {
+        unlockedBadges.push(badgeId);
+        saveStorage();
+        const badge = ACHIEVEMENTS_DEF.find(a => a.id === badgeId);
+        if (badge) {
+          showToast(`🏆 Badge Unlocked: ${badge.title}!`, 'success');
+        }
+      }
+    }
+
+    /* ==========================================================================
+       9. SETTINGS & ACCESSIBILITY HANDLERS
+       ========================================================================== */
+    function toggleSetting(key) {
+      playSound('click');
+      settings[key] = !settings[key];
+      saveStorage();
+      
+      const btnMap = {
+        shake: 'toggleShakeBtn',
+        particles: 'toggleParticlesBtn'
+      };
+      
+      if (btnMap[key]) {
+        const btn = document.getElementById(btnMap[key]);
+        if (btn) {
+          btn.textContent = settings[key] ? 'ON' : 'OFF';
+          btn.className = settings[key] ? 'py-1 px-4 rounded-lg bg-emerald-600 text-white font-bold text-sm' : 'py-1 px-4 rounded-lg bg-slate-700 text-slate-400 font-bold text-sm';
+        }
+      }
+      updateAudioIcons();
+    }
+
+    function toggleAccessibility(key) {
+      playSound('click');
+      accessibility[key] = !accessibility[key];
+      applyAccessibilityClasses();
+      
+      const btnMap = {
+        highContrast: 'toggleContrastBtn',
+        colorblind: 'toggleColorblindBtn',
+        reducedMotion: 'toggleMotionBtn',
+        largeText: 'toggleLargeTextBtn'
+      };
+
+      if (btnMap[key]) {
+        const btn = document.getElementById(btnMap[key]);
+        if (btn) {
+          btn.textContent = accessibility[key] ? 'ON' : 'OFF';
+          btn.className = accessibility[key] ? 'py-1 px-4 rounded-lg bg-emerald-600 text-white font-bold text-sm' : 'py-1 px-4 rounded-lg bg-slate-700 text-slate-400 font-bold text-sm';
+        }
+      }
+    }
+
+    function applyAccessibilityClasses() {
+      const body = document.body;
+      if (accessibility.highContrast) body.classList.add('high-contrast');
+      else body.classList.remove('high-contrast');
+
+      if (accessibility.reducedMotion) body.classList.add('reduced-motion');
+      else body.classList.remove('reduced-motion');
+
+      if (accessibility.largeText) body.classList.add('large-text');
+      else body.classList.remove('large-text');
+    }
+
+    function confirmResetData() {
+      if (window.confirm("Are you sure you want to reset all high scores and saved stats?")) {
+        localStorage.removeItem(STORAGE_KEY_SETTINGS);
+        localStorage.removeItem(STORAGE_KEY_SCORES);
+        localStorage.removeItem(STORAGE_KEY_STATS);
+        localStorage.removeItem(STORAGE_KEY_BADGES);
+        
+        highScores = { '5x5': 0, '7x7': 0, '9x9': 0 };
+        stats = { gamesPlayed: 0, treasuresFound: 0, totalDigs: 0, bestStreak: 0, bullseyes: 0 };
+        unlockedBadges = [];
+        
+        showToast('Saved data cleared successfully.', 'info');
+        switchScreen('menu');
+      }
+    }
+
+    /* ==========================================================================
+       10. UTILITY TOAST NOTIFICATION SYSTEM
+       ========================================================================== */
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      let typeBg = 'bg-slate-800 border-amber-500 text-amber-300';
+      if (type === 'success') typeBg = 'bg-emerald-900/90 border-emerald-400 text-emerald-200';
+      if (type === 'error') typeBg = 'bg-red-900/90 border-red-400 text-red-200';
+
+      toast.className = `py-3 px-5 rounded-2xl border-2 shadow-2xl font-sub font-bold text-sm transition-all duration-300 transform translate-x-10 opacity-0 ${typeBg}`;
+      toast.textContent = message;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-x-10', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-10');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    /* Keyboard Navigation Shortcuts */
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const pauseModal = document.getElementById('modalPause');
+        const gameScreen = document.getElementById('screen-game');
+        
+        if (pauseModal && !pauseModal.classList.contains('hidden')) {
+          closePauseMenu();
+        } else if (gameScreen && !gameScreen.classList.contains('hidden')) {
+          openPauseMenu();
+        }
+      }
+    });
+
+    window.onload = function() {
+      loadStorage();
+      switchScreen('menu');
+    };
+  </script>
+</body>
+</html>

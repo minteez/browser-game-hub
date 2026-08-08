@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Emoji Memory Match - Arcade Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        },
+                        arcade: {
+                            purple: '#6d28d9',
+                            pink: '#ec4899',
+                            blue: '#3b82f6',
+                            yellow: '#f59e0b',
+                            dark: '#0f172a',
+                            panel: '#1e293b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        display: ['Impact', 'Trebuchet MS', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Fredoka', 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            background-color: #0b0f19;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        /* 3D Card Flip Effects */
+        .card-container {
+            perspective: 1000px;
+        }
+        
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        body.reduced-motion .card-inner {
+            transition: transform 0.01s !important;
+        }
+
+        .card-inner.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border: 3px solid rgba(255,255,255,0.2);
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 3px solid #38bdf8;
+            transform: rotateY(180deg);
+        }
+
+        .matched .card-back {
+            background: linear-gradient(135deg, #15803d 0%, #052e16 100%);
+            border-color: #4ade80;
+            animation: pulse-glow 1.5s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 10px #4ade80; }
+            100% { box-shadow: 0 0 22px #4ade80, 0 0 30px #22c55e; }
+        }
+
+        /* Screen shake animation */
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-6px, 4px); }
+            40% { transform: translate(6px, -4px); }
+            60% { transform: translate(-4px, -2px); }
+            80% { transform: translate(4px, 2px); }
+        }
+        .animate-shake {
+            animation: shake 0.35s ease-in-out;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* High contrast mode overrides */
+        body.high-contrast {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+        }
+        body.high-contrast .bg-slate-800,
+        body.high-contrast .bg-slate-900,
+        body.high-contrast .bg-indigo-900\/50 {
+            background-color: #111111 !important;
+            border: 2px solid #ffffff !important;
+        }
+        body.high-contrast button {
+            border: 2px solid #ffffff !important;
+        }
+
+        /* Large text mode */
+        body.large-text {
+            font-size: 1.15rem;
+        }
+        body.large-text h1 { font-size: 2.75rem !important; }
+        body.large-text h2 { font-size: 2rem !important; }
+        body.large-text button { font-size: 1.25rem !important; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between select-none relative bg-slate-950 text-slate-100">
+
+    <canvas id="bg-canvas" class="fixed inset-0 pointer-events-none z-0 opacity-40"></canvas>
+
+    <!-- Main Container Wrapper -->
+    <div id="app-container" class="relative z-10 min-h-screen flex flex-col justify-between max-w-4xl mx-auto w-full p-3 sm:p-6">
+        
+        <!-- Header Bar (Shown during gameplay or global branding) -->
+        <header class="flex items-center justify-between py-2 border-b border-slate-800/80 mb-2">
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl sm:text-3xl animate-bounce">🧠</span>
+                <span class="font-extrabold text-xl sm:text-2xl bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-500 bg-clip-text text-transparent">
+                    Emoji Match
+                </span>
+            </div>
+            <div id="header-controls" class="flex items-center space-x-2">
+                <button id="btn-quick-pause" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold text-sm transition border border-slate-700 shadow flex items-center gap-1">
+                    ⏸️ <span class="hidden sm:inline">Pause</span>
+                </button>
+            </div>
+        </header>
+
+
+        <!-- 1. MAIN MENU SCREEN -->
+        <main id="screen-main-menu" class="flex-1 flex flex-col items-center justify-center my-auto py-6 text-center space-y-6">
+            <div class="relative group">
+                <div class="absolute -inset-1 bg-gradient-to-r from-pink-600 to-purple-600 rounded-3xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+                <div class="relative px-6 py-8 bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl max-w-md w-full mx-auto">
+                    <div class="text-6xl mb-3 flex justify-center space-x-3">
+                        <span class="transform hover:scale-125 transition">🦁</span>
+                        <span class="transform hover:scale-125 transition delay-75">🍕</span>
+                        <span class="transform hover:scale-125 transition delay-150">🚀</span>
+                        <span class="transform hover:scale-125 transition delay-200">🎨</span>
+                    </div>
+                    <h1 class="text-4xl sm:text-5xl font-black tracking-wider text-white drop-shadow-md">
+                        EMOJI MATCH
+                    </h1>
+                    <p class="text-slate-400 mt-2 text-sm sm:text-base font-medium">
+                        The Ultimate Brain Arcade Memory Challenge!
+                    </p>
+                </div>
+            </div>
+
+            <!-- Menu Navigation Buttons -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full max-w-md px-2">
+                <button id="btn-menu-play" class="sm:col-span-2 py-4 px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-extrabold text-xl rounded-2xl shadow-lg hover:shadow-green-500/30 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2 border border-green-400/30">
+                    ▶️ PLAY GAME
+                </button>
+                <button id="btn-menu-modes" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-base rounded-2xl shadow hover:scale-[1.02] active:scale-[0.98] transition border border-slate-700/80 flex items-center justify-center gap-2">
+                    🎮 Game Modes
+                </button>
+                <button id="btn-menu-scores" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-base rounded-2xl shadow hover:scale-[1.02] active:scale-[0.98] transition border border-slate-700/80 flex items-center justify-center gap-2">
+                    🏆 High Scores
+                </button>
+                <button id="btn-menu-achievements" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-base rounded-2xl shadow hover:scale-[1.02] active:scale-[0.98] transition border border-slate-700/80 flex items-center justify-center gap-2">
+                    🎖️ Achievements
+                </button>
+                <button id="btn-menu-stats" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-base rounded-2xl shadow hover:scale-[1.02] active:scale-[0.98] transition border border-slate-700/80 flex items-center justify-center gap-2">
+                    📊 Statistics
+                </button>
+                <button id="btn-menu-settings" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-base rounded-2xl shadow hover:scale-[1.02] active:scale-[0.98] transition border border-slate-700/80 flex items-center justify-center gap-2">
+                    ⚙️ Settings
+                </button>
+                <button id="btn-menu-access" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-base rounded-2xl shadow hover:scale-[1.02] active:scale-[0.98] transition border border-slate-700/80 flex items-center justify-center gap-2">
+                    ♿ Accessibility
+                </button>
+                <button id="btn-menu-how" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-base rounded-2xl shadow hover:scale-[1.02] active:scale-[0.98] transition border border-slate-700/80 flex items-center justify-center gap-2">
+                    ❓ How to Play
+                </button>
+                <button id="btn-menu-about" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-base rounded-2xl shadow hover:scale-[1.02] active:scale-[0.98] transition border border-slate-700/80 flex items-center justify-center gap-2">
+                    📖 About Game
+                </button>
+                <button id="btn-menu-credits" class="sm:col-span-2 py-3 px-4 bg-slate-900/80 hover:bg-slate-800 text-slate-300 font-semibold text-sm rounded-2xl shadow border border-slate-800 flex items-center justify-center gap-2">
+                    📜 Credits
+                </button>
+            </div>
+        </main>
+
+        <!-- 2. GAME SCREEN (The 4x4 Memory Grid) -->
+        <main id="screen-game" class="hidden flex-1 flex flex-col justify-between py-2">
+            <!-- HUD Stats Header -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 mb-4 flex items-center justify-between shadow-lg">
+                <div class="flex items-center space-x-4">
+                    <div>
+                        <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Moves</div>
+                        <div id="hud-moves" class="text-2xl sm:text-3xl font-black text-amber-400">0</div>
+                    </div>
+                    <div class="h-8 w-px bg-slate-800"></div>
+                    <div>
+                        <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Time</div>
+                        <div id="hud-timer" class="text-2xl sm:text-3xl font-black text-cyan-400">00:00</div>
+                    </div>
+                    <div class="h-8 w-px bg-slate-800"></div>
+                    <div>
+                        <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Pairs</div>
+                        <div id="hud-pairs" class="text-2xl sm:text-3xl font-black text-emerald-400">0 / 8</div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span id="hud-streak" class="inline-block px-2.5 py-1 bg-purple-900/50 border border-purple-500/40 text-purple-300 text-xs sm:text-sm font-bold rounded-lg">
+                        Combo: x1 🔥
+                    </span>
+                </div>
+            </div>
+
+            <!-- The 4x4 Card Grid (8 pairs = 16 cards total) -->
+            <div class="flex-1 flex items-center justify-center">
+                <div id="card-grid" class="grid grid-cols-4 gap-2 sm:gap-4 w-full max-w-md aspect-square p-1 sm:p-2 bg-slate-900/60 rounded-3xl border border-slate-800/80 shadow-2xl backdrop-blur-md">
+                    <!-- Cards are programmatically rendered here -->
+                </div>
+            </div>
+
+            <!-- In-game bottom navigation controls -->
+            <div class="mt-4 flex justify-between items-center px-2">
+                <button id="btn-game-restart" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold rounded-xl border border-slate-700 transition">
+                    🔄 Restart
+                </button>
+                <div id="game-mode-badge" class="text-xs font-semibold px-3 py-1 bg-slate-800/80 rounded-full text-slate-400 border border-slate-700">
+                    Mode: Classic 4x4
+                </div>
+                <button id="btn-game-pause" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold rounded-xl border border-slate-700 transition">
+                    ⏸️ Pause
+                </button>
+            </div>
+        </main>
+
+        <!-- 3. GAME MODES SCREEN -->
+        <main id="screen-modes" class="hidden flex-1 flex flex-col justify-between py-4 max-w-lg mx-auto w-full">
+            <div class="space-y-4">
+                <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                    Choose Game Mode & Theme
+                </h2>
+                
+                <div class="space-y-3">
+                    <p class="text-sm font-bold text-slate-400 uppercase tracking-wide">Select Mode:</p>
+                    <div id="mode-selector" class="grid grid-cols-1 gap-3">
+                        <button data-mode="classic" class="mode-opt p-4 rounded-2xl bg-slate-800 border-2 border-emerald-500 text-left transition flex items-center justify-between">
+                            <div>
+                                <div class="font-extrabold text-lg text-emerald-400">Classic 4x4 🧠</div>
+                                <div class="text-xs text-slate-300 mt-0.5">Take your time to match all 8 pairs in the fewest moves possible.</div>
+                            </div>
+                            <span class="text-xl">✅</span>
+                        </button>
+                        <button data-mode="time" class="mode-opt p-4 rounded-2xl bg-slate-800 border-2 border-slate-700 text-left transition flex items-center justify-between hover:border-slate-500">
+                            <div>
+                                <div class="font-extrabold text-lg text-amber-400">Time Attack ⏱️</div>
+                                <div class="text-xs text-slate-300 mt-0.5">Match all 8 pairs before the 60-second timer runs out!</div>
+                            </div>
+                            <span class="text-xl opacity-0">✅</span>
+                        </button>
+                        <button data-mode="zen" class="mode-opt p-4 rounded-2xl bg-slate-800 border-2 border-slate-700 text-left transition flex items-center justify-between hover:border-slate-500">
+                            <div>
+                                <div class="font-extrabold text-lg text-purple-400">Zen Mode 🧘</div>
+                                <div class="text-xs text-slate-300 mt-0.5">Relaxed matching with unlimited hints and zero pressure.</div>
+                            </div>
+                            <span class="text-xl opacity-0">✅</span>
+                        </button>
+                    </div>
+
+                    <p class="text-sm font-bold text-slate-400 uppercase tracking-wide pt-2">Select Card Theme:</p>
+                    <div id="theme-selector" class="grid grid-cols-2 gap-3">
+                        <button data-theme="animals" class="theme-opt p-3 rounded-2xl bg-slate-800 border-2 border-indigo-500 text-center font-bold">
+                            🦁 Cute Animals
+                            <div class="text-xs text-slate-400 mt-1">🐱 🐶 🐰 🦊</div>
+                        </button>
+                        <button data-theme="food" class="theme-opt p-3 rounded-2xl bg-slate-800 border-2 border-slate-700 text-center font-bold hover:border-slate-500">
+                            🍕 Yummy Treats
+                            <div class="text-xs text-slate-400 mt-1">🍩 🍕 🍦 🍓</div>
+                        </button>
+                        <button data-theme="space" class="theme-opt p-3 rounded-2xl bg-slate-800 border-2 border-slate-700 text-center font-bold hover:border-slate-500">
+                            🚀 Outer Space
+                            <div class="text-xs text-slate-400 mt-1">🚀 🛸 🪐 👾</div>
+                        </button>
+                        <button data-theme="sports" class="theme-opt p-3 rounded-2xl bg-slate-800 border-2 border-slate-700 text-center font-bold hover:border-slate-500">
+                            ⚽ Sports & Fun
+                            <div class="text-xs text-slate-400 mt-1">⚽ 🎨 🎮 🎸</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex space-x-3 pt-6">
+                <button class="btn-back flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700">
+                    ⬅️ Back
+                </button>
+                <button id="btn-start-mode-game" class="flex-1 py-3 bg-green-500 hover:bg-green-400 text-white font-extrabold rounded-2xl shadow-lg">
+                    Start Game ▶️
+                </button>
+            </div>
+        </main>
+
+
+        <!-- 4. HIGH SCORES SCREEN -->
+        <main id="screen-scores" class="hidden flex-1 flex flex-col justify-between py-4 max-w-lg mx-auto w-full">
+            <div class="space-y-4">
+                <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
+                    🏆 High Scores & Best Records
+                </h2>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4 shadow-xl">
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                        <span class="text-slate-400 font-semibold text-sm">Best Classic Moves:</span>
+                        <span id="score-best-moves" class="text-2xl font-black text-amber-400">-- moves</span>
+                    </div>
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                        <span class="text-slate-400 font-semibold text-sm">Best Time:</span>
+                        <span id="score-best-time" class="text-2xl font-black text-cyan-400">-- sec</span>
+                    </div>
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                        <span class="text-slate-400 font-semibold text-sm">Highest Combo Streak:</span>
+                        <span id="score-best-combo" class="text-2xl font-black text-purple-400">0x</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400 font-semibold text-sm">Best Accuracy:</span>
+                        <span id="score-best-accuracy" class="text-2xl font-black text-emerald-400">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-back py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700 mt-6">
+                ⬅️ Back to Main Menu
+            </button>
+        </main>
+
+        <!-- 5. ACHIEVEMENTS SCREEN -->
+        <main id="screen-achievements" class="hidden flex-1 flex flex-col justify-between py-4 max-w-lg mx-auto w-full">
+            <div class="space-y-4">
+                <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
+                    🎖️ Badges & Achievements
+                </h2>
+                <div id="achievements-list" class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                    <!-- Dynamic Achievement Cards -->
+                </div>
+            </div>
+
+            <button class="btn-back py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700 mt-4">
+                ⬅️ Back to Main Menu
+            </button>
+        </main>
+
+        <!-- 6. STATISTICS SCREEN -->
+        <main id="screen-stats" class="hidden flex-1 flex flex-col justify-between py-4 max-w-lg mx-auto w-full">
+            <div class="space-y-4">
+                <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                    📊 Lifetime Statistics
+                </h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center">
+                        <div class="text-slate-400 text-xs uppercase font-bold">Games Played</div>
+                        <div id="stat-games-played" class="text-3xl font-black text-white mt-1">0</div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center">
+                        <div class="text-slate-400 text-xs uppercase font-bold">Total Matches</div>
+                        <div id="stat-total-matches" class="text-3xl font-black text-emerald-400 mt-1">0</div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center">
+                        <div class="text-slate-400 text-xs uppercase font-bold">Total Flips</div>
+                        <div id="stat-total-flips" class="text-3xl font-black text-amber-400 mt-1">0</div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center">
+                        <div class="text-slate-400 text-xs uppercase font-bold">Play Time</div>
+                        <div id="stat-total-time" class="text-2xl font-black text-cyan-400 mt-1">0m</div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-back py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700 mt-6">
+                ⬅️ Back to Main Menu
+            </button>
+        </main>
+
+        <!-- 7. SETTINGS SCREEN -->
+        <main id="screen-settings" class="hidden flex-1 flex flex-col justify-between py-4 max-w-lg mx-auto w-full">
+            <div class="space-y-4">
+                <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-slate-200 to-slate-400 bg-clip-text text-transparent">
+                    ⚙️ Game Settings
+                </h2>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4 shadow-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-200">🎵 Music Sound</span>
+                        <input type="checkbox" id="setting-music" class="w-6 h-6 accent-emerald-500 rounded cursor-pointer" checked>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-200">🔊 Sound Effects (SFX)</span>
+                        <input type="checkbox" id="setting-sfx" class="w-6 h-6 accent-emerald-500 rounded cursor-pointer" checked>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-200">📳 Screen Shake</span>
+                        <input type="checkbox" id="setting-shake" class="w-6 h-6 accent-emerald-500 rounded cursor-pointer" checked>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-200">✨ Particle Effects</span>
+                        <input type="checkbox" id="setting-particles" class="w-6 h-6 accent-emerald-500 rounded cursor-pointer" checked>
+                    </div>
+                    <hr class="border-slate-800">
+                    <button id="btn-reset-data" class="w-full py-2 bg-red-900/40 hover:bg-red-900/70 border border-red-700/60 text-red-300 font-bold text-sm rounded-xl transition">
+                        🗑️ Reset All Saved Data
+                    </button>
+                </div>
+            </div>
+
+            <button class="btn-back py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700 mt-6">
+                ⬅️ Back to Main Menu
+            </button>
+        </main>
+
+        <!-- 8. ACCESSIBILITY SCREEN -->
+        <main id="screen-access" class="hidden flex-1 flex flex-col justify-between py-4 max-w-lg mx-auto w-full">
+            <div class="space-y-4">
+                <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-teal-300 to-emerald-400 bg-clip-text text-transparent">
+                    ♿ Accessibility Settings
+                </h2>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4 shadow-xl">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-slate-200">👁️ High Contrast Mode</div>
+                            <div class="text-xs text-slate-400">Sharper borders and pure black backdrop.</div>
+                        </div>
+                        <input type="checkbox" id="setting-contrast" class="w-6 h-6 accent-teal-500 rounded cursor-pointer">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-slate-200">🏷️ Color-Blind / Symbol Tags</div>
+                            <div class="text-xs text-slate-400">Adds letter badges (A-H) on cards.</div>
+                        </div>
+                        <input type="checkbox" id="setting-symbol-tags" class="w-6 h-6 accent-teal-500 rounded cursor-pointer">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-slate-200">🛑 Reduced Motion</div>
+                            <div class="text-xs text-slate-400">Disables 3D flip animation & particles.</div>
+                        </div>
+                        <input type="checkbox" id="setting-reduced-motion" class="w-6 h-6 accent-teal-500 rounded cursor-pointer">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-slate-200">🔍 Large Text / UI</div>
+                            <div class="text-xs text-slate-400">Increases font sizes for readability.</div>
+                        </div>
+                        <input type="checkbox" id="setting-large-text" class="w-6 h-6 accent-teal-500 rounded cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-back py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700 mt-6">
+                ⬅️ Back to Main Menu
+            </button>
+        </main>
+
+        <!-- 9. HOW TO PLAY SCREEN -->
+        <main id="screen-how" class="hidden flex-1 flex flex-col justify-between py-4 max-w-lg mx-auto w-full">
+            <div class="space-y-4">
+                <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-amber-300 to-yellow-500 bg-clip-text text-transparent">
+                    ❓ How to Play
+                </h2>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 text-sm text-slate-300 leading-relaxed shadow-xl">
+                    <div class="flex items-start space-x-3">
+                        <span class="text-2xl">1️⃣</span>
+                        <p><strong class="text-white">Tap or Click Cards:</strong> Click any card on the 4x4 grid to flip it face-up and reveal its emoji.</p>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <span class="text-2xl">2️⃣</span>
+                        <p><strong class="text-white">Find Matches:</strong> Tap a second card. If the emojis match, they stay face up!</p>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <span class="text-2xl">3️⃣</span>
+                        <p><strong class="text-white">Remember Locations:</strong> If they don't match, remember their positions and try again.</p>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <span class="text-2xl">4️⃣</span>
+                        <p><strong class="text-white">Build Combos:</strong> Matching cards consecutively without missing grants extra Combo points!</p>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-back py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700 mt-6">
+                ⬅️ Back to Main Menu
+            </button>
+        </main>
+
+        <!-- 10. ABOUT GAME SCREEN -->
+        <main id="screen-about" class="hidden flex-1 flex flex-col justify-between py-4 max-w-lg mx-auto w-full">
+            <div class="space-y-4">
+                <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-pink-400 to-rose-500 bg-clip-text text-transparent">
+                    📖 About Emoji Match
+                </h2>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-sm text-slate-300 space-y-3 leading-relaxed shadow-xl">
+                    <p>
+                        <strong class="text-white">Emoji Memory Match</strong> is an arcade brain-training game built specifically for kids aged 8–12!
+                    </p>
+                    <p>
+                        Featuring vibrant emoji art, responsive Web Audio synth effects, customizable card themes, and accessible controls, it offers a fun and active way to sharpen focus and visual memory.
+                    </p>
+                    <p class="text-xs text-slate-400 border-t border-slate-800 pt-3">
+                        Designed as a modern reimagining of classic memory card concentration games.
+                    </p>
+                </div>
+            </div>
+
+            <button class="btn-back py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700 mt-6">
+                ⬅️ Back to Main Menu
+            </button>
+        </main>
+
+        <!-- 11. CREDITS SCREEN -->
+        <main id="screen-credits" class="hidden flex-1 flex flex-col justify-between py-4 max-w-lg mx-auto w-full">
+            <div class="space-y-6 text-center my-auto">
+                <div class="text-5xl animate-bounce">🌟</div>
+                <h2 class="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 via-pink-400 to-purple-400 bg-clip-text text-transparent">
+                    Credits
+                </h2>
+                
+                <div class="bg-slate-900/90 border border-slate-800 p-6 rounded-3xl shadow-2xl space-y-4">
+                    <p class="text-lg font-bold text-slate-100">
+                        Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved.
+                    </p>
+                    <div class="text-xs text-slate-400">
+                        Built with HTML5, CSS3, Tailwind CSS, and Web Audio API.
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-back py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700 mt-6">
+                ⬅️ Back to Main Menu
+            </button>
+        </main>
+
+
+        <!-- PAUSE OVERLAY MODAL -->
+        <div id="modal-pause" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl">
+                <h3 class="text-3xl font-black text-amber-400">⏸️ Game Paused</h3>
+                <div class="space-y-2.5 pt-2">
+                    <button id="btn-pause-resume" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold rounded-2xl transition shadow">
+                        ▶️ Resume Game
+                    </button>
+                    <button id="btn-pause-restart" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700 transition">
+                        🔄 Restart Match
+                    </button>
+                    <button id="btn-pause-settings" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700 transition">
+                        ⚙️ Settings
+                    </button>
+                    <button id="btn-pause-quit" class="w-full py-3 bg-red-900/40 hover:bg-red-900/60 text-red-300 font-bold rounded-2xl border border-red-700/50 transition">
+                        🏠 Main Menu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VICTORY OVERLAY MODAL ("You Did It!") -->
+        <div id="modal-victory" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full text-center space-y-4 shadow-2xl relative overflow-hidden">
+                <!-- Glowing effect banner -->
+                <div class="absolute -top-12 -left-12 w-40 h-40 bg-yellow-500/20 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="absolute -bottom-12 -right-12 w-40 h-40 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none"></div>
+
+                <div id="victory-stars" class="text-5xl tracking-widest flex justify-center space-x-2">
+                    <span>⭐</span><span>⭐</span><span>⭐</span>
+                </div>
+
+                <h2 id="victory-title" class="text-4xl font-black text-amber-400 tracking-wide drop-shadow">
+                    YOU DID IT!
+                </h2>
+                <p id="victory-subtitle" class="text-slate-300 text-sm font-medium">
+                    Awesome job! You matched all 8 pairs!
+                </p>
+
+                <!-- Final Stats Summary -->
+                <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 grid grid-cols-2 gap-3 text-left">
+                    <div>
+                        <div class="text-xs text-slate-400 font-bold uppercase">Moves Taken</div>
+                        <div id="victory-moves" class="text-2xl font-black text-amber-400">12</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-400 font-bold uppercase">Time Elapsed</div>
+                        <div id="victory-time" class="text-2xl font-black text-cyan-400">00:28</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-400 font-bold uppercase">Best Combo</div>
+                        <div id="victory-combo" class="text-2xl font-black text-purple-400">3x</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-400 font-bold uppercase">Accuracy</div>
+                        <div id="victory-accuracy" class="text-2xl font-black text-emerald-400">80%</div>
+                    </div>
+                </div>
+
+                <div id="new-highscore-badge" class="hidden bg-amber-500/20 border border-amber-500/50 text-amber-300 font-extrabold text-sm py-1.5 px-3 rounded-xl animate-bounce">
+                    🎉 NEW BEST RECORD!
+                </div>
+
+                <div class="flex space-x-3 pt-2">
+                    <button id="btn-victory-again" class="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold text-lg rounded-2xl shadow-lg transition">
+                        Play Again 🔄
+                    </button>
+                    <button id="btn-victory-menu" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-lg rounded-2xl border border-slate-700 transition">
+                        Main Menu 🏠
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Footer Branding -->
+        <footer class="py-2 text-center text-xs text-slate-500 border-t border-slate-800/60 mt-2">
+            Emoji Memory Match • Arcade Edition 2026
+        </footer>
+    </div>
+
+    <script>
+        /* ===================================================================
+           1. WEB AUDIO SYNTHESIZER (No external sound files required)
+           =================================================================== */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        this.ctx = new AudioContext();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.1) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {
+                    // Audio context safe fallback
+                }
+            }
+
+            playFlip() {
+                this.playTone(400, 'sine', 0.08, 0.12);
+            }
+
+            playMatch() {
+                if (!this.enabled) return;
+                // Play upward arpeggio
+                const now = this.ctx ? this.ctx.currentTime : 0;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 'triangle', 0.15, 0.15), idx * 60);
+                });
+            }
+
+            playMismatch() {
+                if (!this.enabled) return;
+                this.playTone(220, 'sawtooth', 0.2, 0.1);
+                setTimeout(() => this.playTone(180, 'sawtooth', 0.2, 0.1), 100);
+            }
+
+            playVictory() {
+                if (!this.enabled) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 'sine', 0.3, 0.2), idx * 100);
+                });
+            }
+
+            playClick() {
+                this.playTone(600, 'sine', 0.05, 0.08);
+            }
+        }
+
+        const audio = new SoundEngine();
+
+        /* ===================================================================
+           2. GLOBAL GAME STATE & LOCAL STORAGE
+           =================================================================== */
+        const CARD_THEMES = {
+            animals: ['🦁', '🦊', '🐰', '🐼', '🐱', '🐶', '🐸', '🐵'],
+            food: ['🍕', '🍩', '🍦', '🍓', '🍔', '🍟', '🥑', '🍿'],
+            space: ['🚀', '🛸', '🪐', '👾', '🌟', '🌙', '☄️', '👨‍🚀'],
+            sports: ['⚽', '🎨', '🎮', '🎸', '🎲', '🧩', '🏆', '🛹']
+        };
+
+        const SYMBOL_TAGS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+        const DEFAULT_SETTINGS = {
+            sfx: true,
+            music: true,
+            shake: true,
+            particles: true,
+            highContrast: false,
+            symbolTags: false,
+            reducedMotion: false,
+            largeText: false,
+            selectedMode: 'classic',
+            selectedTheme: 'animals'
+        };
+
+        const DEFAULT_STATS = {
+            gamesPlayed: 0,
+            gamesWon: 0,
+            totalMoves: 0,
+            totalMatches: 0,
+            totalFlips: 0,
+            totalTimeSec: 0,
+            bestMoves: null,
+            bestTimeSec: null,
+            bestCombo: 0,
+            bestAccuracy: 0
+        };
+
+        let settings = { ...DEFAULT_SETTINGS };
+        let stats = { ...DEFAULT_STATS };
+        let achievements = {
+            firstMatch: false,
+            sharpshooter: false, // <= 12 moves
+            speedster: false,    // < 30 sec
+            comboKing: false     // 3x combo
+        };
+
+        // Load Saved Data
+        function loadSavedData() {
+            try {
+                const s = localStorage.getItem('emoji_match_settings');
+                if (s) settings = { ...DEFAULT_SETTINGS, ...JSON.parse(s) };
+
+                const st = localStorage.getItem('emoji_match_stats');
+                if (st) stats = { ...DEFAULT_STATS, ...JSON.parse(st) };
+
+                const ac = localStorage.getItem('emoji_match_achievements');
+                if (ac) achievements = { ...achievements, ...JSON.parse(ac) };
+            } catch (e) {
+                console.warn('LocalStorage error:', e);
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('emoji_match_settings', JSON.stringify(settings));
+                localStorage.setItem('emoji_match_stats', JSON.stringify(stats));
+                localStorage.setItem('emoji_match_achievements', JSON.stringify(achievements));
+            } catch (e) {
+                console.warn('LocalStorage save error:', e);
+            }
+        }
+
+        /* ===================================================================
+           3. BACKGROUND PARTICLE CANVAS SYSTEM
+           =================================================================== */
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.alpha = Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = '#60a5fa';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        for (let i = 0; i < 40; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateParticles() {
+            if (settings.particles && !settings.reducedMotion) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        /* ===================================================================
+           4. GAMEPLAY LOGIC (4x4 Memory Card Engine)
+           =================================================================== */
+        let cardsState = []; // 16 cards array
+        let flippedIndices = [];
+        let movesCount = 0;
+        let matchedPairsCount = 0;
+        let timerInterval = null;
+        let elapsedSeconds = 0;
+        let isBoardLocked = false;
+        let currentCombo = 0;
+        let maxComboThisGame = 0;
+        let gameActive = false;
+
+        function startNewGame() {
+            // Reset game variables
+            movesCount = 0;
+            matchedPairsCount = 0;
+            elapsedSeconds = 0;
+            currentCombo = 0;
+            maxComboThisGame = 0;
+            flippedIndices = [];
+            isBoardLocked = false;
+            gameActive = true;
+
+            // Update UI Counters
+            updateHUD();
+
+            // Prepare Emoji Cards (8 pairs = 16 cards)
+            const emojiPool = CARD_THEMES[settings.selectedTheme] || CARD_THEMES.animals;
+            let deck = [];
+            emojiPool.forEach((emoji, symbolIdx) => {
+                deck.push({ id: symbolIdx * 2, emoji, symbolTag: SYMBOL_TAGS[symbolIdx], matchId: symbolIdx });
+                deck.push({ id: symbolIdx * 2 + 1, emoji, symbolTag: SYMBOL_TAGS[symbolIdx], matchId: symbolIdx });
+            });
+
+            // Shuffle Deck
+            deck.sort(() => Math.random() - 0.5);
+            cardsState = deck.map(item => ({
+                ...item,
+                isFlipped: false,
+                isMatched: false
+            }));
+
+            // Render Card Grid
+            renderCardGrid();
+
+            // Start Timer
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (gameActive) {
+                    elapsedSeconds++;
+                    if (settings.selectedMode === 'time' && elapsedSeconds >= 60) {
+                        // Time attack over
+                        clearInterval(timerInterval);
+                        gameActive = false;
+                        showTimeUpModal();
+                    }
+                    updateHUD();
+                }
+            }, 1000);
+
+            // Update Lifetime Games Stat
+            stats.gamesPlayed++;
+            saveData();
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-moves').textContent = movesCount;
+            document.getElementById('hud-pairs').textContent = `${matchedPairsCount} / 8`;
+            
+            // Format Time 00:00
+            const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+            const secs = String(elapsedSeconds % 60).padStart(2, '0');
+            document.getElementById('hud-timer').textContent = `${mins}:${secs}`;
+
+            // Combo streak
+            const streakEl = document.getElementById('hud-streak');
+            if (currentCombo > 1) {
+                streakEl.textContent = `Combo: x${currentCombo} 🔥`;
+                streakEl.classList.remove('opacity-50');
+            } else {
+                streakEl.textContent = `Combo: x1`;
+                streakEl.classList.add('opacity-50');
+            }
+        }
+
+        function renderCardGrid() {
+            const gridEl = document.getElementById('card-grid');
+            gridEl.innerHTML = '';
+
+            cardsState.forEach((card, index) => {
+                const cardCol = document.createElement('div');
+                cardCol.className = 'card-container aspect-square cursor-pointer';
+                cardCol.setAttribute('data-index', index);
+
+                const cardInner = document.createElement('div');
+                cardInner.className = `card-inner ${card.isFlipped ? 'flipped' : ''} ${card.isMatched ? 'matched' : ''}`;
+
+                // Card Front (Face Down)
+                const cardFront = document.createElement('div');
+                cardFront.className = 'card-front text-3xl sm:text-4xl font-bold text-white/50 select-none';
+                cardFront.innerHTML = '❓';
+
+                // Card Back (Face Up Emoji)
+                const cardBack = document.createElement('div');
+                cardBack.className = 'card-back flex flex-col items-center justify-center relative';
+                
+                const emojiSpan = document.createElement('span');
+                emojiSpan.className = 'text-3xl sm:text-5xl select-none transform transition-transform hover:scale-110';
+                emojiSpan.textContent = card.emoji;
+                cardBack.appendChild(emojiSpan);
+
+                // Symbol Tag for accessibility/color blind mode
+                if (settings.symbolTags) {
+                    const tagSpan = document.createElement('span');
+                    tagSpan.className = 'absolute top-1 right-1 text-[10px] font-bold bg-slate-800 text-cyan-300 px-1 rounded border border-cyan-500/50';
+                    tagSpan.textContent = card.symbolTag;
+                    cardBack.appendChild(tagSpan);
+                }
+
+                cardInner.appendChild(cardFront);
+                cardInner.appendChild(cardBack);
+                cardCol.appendChild(cardInner);
+
+                // Click / Touch Event Handler
+                cardCol.addEventListener('click', () => handleCardClick(index));
+
+                gridEl.appendChild(cardCol);
+            });
+        }
+
+        function handleCardClick(index) {
+            if (!gameActive || isBoardLocked) return;
+            const card = cardsState[index];
+
+            // Ignore if already flipped or matched
+            if (card.isFlipped || card.isMatched) return;
+
+            // Audio Flip Effect
+            audio.playFlip();
+
+            // Flip Card
+            card.isFlipped = true;
+            flippedIndices.push(index);
+            stats.totalFlips++;
+
+            // Update UI card element directly
+            updateCardUI(index);
+
+            // If 2 cards are flipped
+            if (flippedIndices.length === 2) {
+                movesCount++;
+                stats.totalMoves++;
+                isBoardLocked = true;
+                updateHUD();
+
+                const [idx1, idx2] = flippedIndices;
+                const card1 = cardsState[idx1];
+                const card2 = cardsState[idx2];
+
+                // Check Match
+                if (card1.matchId === card2.matchId) {
+                    // MATCH!
+                    card1.isMatched = true;
+                    card2.isMatched = true;
+                    matchedPairsCount++;
+                    stats.totalMatches++;
+                    currentCombo++;
+                    if (currentCombo > maxComboThisGame) maxComboThisGame = currentCombo;
+
+                    // Audio & Feedback
+                    audio.playMatch();
+                    achievements.firstMatch = true;
+                    if (currentCombo >= 3) achievements.comboKing = true;
+
+                    setTimeout(() => {
+                        updateCardUI(idx1);
+                        updateCardUI(idx2);
+                        flippedIndices = [];
+                        isBoardLocked = false;
+                        updateHUD();
+
+                        // Check Victory Condition (All 8 pairs matched)
+                        if (matchedPairsCount === 8) {
+                            handleVictory();
+                        }
+                    }, 400);
+
+                } else {
+                    // MISMATCH
+                    audio.playMismatch();
+                    currentCombo = 0; // Reset combo
+
+                    if (settings.shake) {
+                        const grid = document.getElementById('card-grid');
+                        grid.classList.add('animate-shake');
+                        setTimeout(() => grid.classList.remove('animate-shake'), 350);
+                    }
+
+                    setTimeout(() => {
+                        card1.isFlipped = false;
+                        card2.isFlipped = false;
+                        updateCardUI(idx1);
+                        updateCardUI(idx2);
+                        flippedIndices = [];
+                        isBoardLocked = false;
+                        updateHUD();
+                    }, 900);
+                }
+            }
+        }
+
+        function updateCardUI(index) {
+            const cardCol = document.querySelector(`.card-container[data-index="${index}"]`);
+            if (!cardCol) return;
+            const cardInner = cardCol.querySelector('.card-inner');
+            const card = cardsState[index];
+
+            if (card.isFlipped) cardInner.classList.add('flipped');
+            else cardInner.classList.remove('flipped');
+
+            if (card.isMatched) cardInner.classList.add('matched');
+            else cardInner.classList.remove('matched');
+        }
+
+        /* ===================================================================
+           5. VICTORY & GAME OVER HANDLING
+           =================================================================== */
+        function handleVictory() {
+            clearInterval(timerInterval);
+            gameActive = false;
+            audio.playVictory();
+
+            stats.gamesWon++;
+            stats.totalTimeSec += elapsedSeconds;
+
+            // Accuracy % calculation
+            const accuracy = Math.round((8 / movesCount) * 100);
+
+            // Achievements check
+            if (movesCount <= 12) achievements.sharpshooter = true;
+            if (elapsedSeconds < 30) achievements.speedster = true;
+
+            // Highscores check
+            let isNewHigh = false;
+            if (stats.bestMoves === null || movesCount < stats.bestMoves) {
+                stats.bestMoves = movesCount;
+                isNewHigh = true;
+            }
+            if (stats.bestTimeSec === null || elapsedSeconds < stats.bestTimeSec) {
+                stats.bestTimeSec = elapsedSeconds;
+                isNewHigh = true;
+            }
+            if (maxComboThisGame > stats.bestCombo) stats.bestCombo = maxComboThisGame;
+            if (accuracy > stats.bestAccuracy) stats.bestAccuracy = accuracy;
+
+            saveData();
+
+            // Setup Victory Overlay
+            document.getElementById('victory-moves').textContent = movesCount;
+            const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+            const secs = String(elapsedSeconds % 60).padStart(2, '0');
+            document.getElementById('victory-time').textContent = `${mins}:${secs}`;
+            document.getElementById('victory-combo').textContent = `${maxComboThisGame}x`;
+            document.getElementById('victory-accuracy').textContent = `${accuracy}%`;
+
+            const badge = document.getElementById('new-highscore-badge');
+            if (isNewHigh) badge.classList.remove('hidden');
+            else badge.classList.add('hidden');
+
+            document.getElementById('modal-victory').classList.remove('hidden');
+        }
+
+        function showTimeUpModal() {
+            document.getElementById('victory-title').textContent = "TIME'S UP!";
+            document.getElementById('victory-subtitle').textContent = "Out of time! Give it another shot!";
+            document.getElementById('victory-moves').textContent = movesCount;
+            document.getElementById('victory-time').textContent = "60s";
+            document.getElementById('victory-combo').textContent = `${maxComboThisGame}x`;
+            document.getElementById('victory-accuracy').textContent = `--`;
+            document.getElementById('new-highscore-badge').classList.add('hidden');
+            document.getElementById('modal-victory').classList.remove('hidden');
+        }
+
+        /* ===================================================================
+           6. SCREEN MANAGER & NAVIGATION
+           =================================================================== */
+        const screens = {
+            mainMenu: document.getElementById('screen-main-menu'),
+            game: document.getElementById('screen-game'),
+            modes: document.getElementById('screen-modes'),
+            scores: document.getElementById('screen-scores'),
+            achievements: document.getElementById('screen-achievements'),
+            stats: document.getElementById('screen-stats'),
+            settings: document.getElementById('screen-settings'),
+            access: document.getElementById('screen-access'),
+            how: document.getElementById('screen-how'),
+            about: document.getElementById('screen-about'),
+            credits: document.getElementById('screen-credits')
+        };
+
+        function showScreen(targetKey) {
+            audio.playClick();
+            Object.keys(screens).forEach(key => {
+                if (key === targetKey) screens[key].classList.remove('hidden');
+                else screens[key].classList.add('hidden');
+            });
+
+            // Pause button in header visibility
+            const quickPause = document.getElementById('btn-quick-pause');
+            if (targetKey === 'game') quickPause.classList.remove('hidden');
+            else quickPause.classList.add('hidden');
+
+            // Render specific screens when opened
+            if (targetKey === 'scores') renderScoresScreen();
+            if (targetKey === 'achievements') renderAchievementsScreen();
+            if (targetKey === 'stats') renderStatsScreen();
+        }
+
+        function renderScoresScreen() {
+            document.getElementById('score-best-moves').textContent = stats.bestMoves ? `${stats.bestMoves} moves` : '--';
+            document.getElementById('score-best-time').textContent = stats.bestTimeSec ? `${stats.bestTimeSec} sec` : '--';
+            document.getElementById('score-best-combo').textContent = `${stats.bestCombo}x`;
+            document.getElementById('score-best-accuracy').textContent = `${stats.bestAccuracy}%`;
+        }
+
+        function renderAchievementsScreen() {
+            const list = document.getElementById('achievements-list');
+            list.innerHTML = '';
+
+            const achData = [
+                { id: 'firstMatch', title: 'First Match! 🧩', desc: 'Matched your first pair of emojis.' },
+                { id: 'sharpshooter', title: 'Eagle Eye 🦅', desc: 'Finished a game in 12 or fewer moves.' },
+                { id: 'speedster', title: 'Lightning Speed ⚡', desc: 'Matched all pairs in under 30 seconds.' },
+                { id: 'comboKing', title: 'Combo Master 🔥', desc: 'Got a 3x match streak without missing.' }
+            ];
+
+            achData.forEach(item => {
+                const unlocked = achievements[item.id];
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-2xl border flex items-center justify-between ${
+                    unlocked ? 'bg-slate-800/90 border-emerald-500/60' : 'bg-slate-900/60 border-slate-800 opacity-60'
+                }`;
+                card.innerHTML = `
+                    <div>
+                        <div class="font-extrabold ${unlocked ? 'text-emerald-400' : 'text-slate-400'}">${item.title}</div>
+                        <div class="text-xs text-slate-300 mt-0.5">${item.desc}</div>
+                    </div>
+                    <span class="text-xl">${unlocked ? '✅' : '🔒'}</span>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function renderStatsScreen() {
+            document.getElementById('stat-games-played').textContent = stats.gamesPlayed;
+            document.getElementById('stat-total-matches').textContent = stats.totalMatches;
+            document.getElementById('stat-total-flips').textContent = stats.totalFlips;
+            
+            const mins = Math.floor(stats.totalTimeSec / 60);
+            document.getElementById('stat-total-time').textContent = `${mins}m ${stats.totalTimeSec % 60}s`;
+        }
+
+        /* ===================================================================
+           7. EVENT BINDINGS & ACCESSIBILITY INITIALIZATION
+           =================================================================== */
+        function applyAccessibilitySettings() {
+            if (settings.highContrast) document.body.classList.add('high-contrast');
+            else document.body.classList.remove('high-contrast');
+
+            if (settings.reducedMotion) document.body.classList.add('reduced-motion');
+            else document.body.classList.remove('reduced-motion');
+
+            if (settings.largeText) document.body.classList.add('large-text');
+            else document.body.classList.remove('large-text');
+
+            audio.enabled = settings.sfx;
+        }
+
+        function bindEvents() {
+            // Main menu navigation
+            document.getElementById('btn-menu-play').addEventListener('click', () => {
+                showScreen('game');
+                startNewGame();
+            });
+            document.getElementById('btn-menu-modes').addEventListener('click', () => showScreen('modes'));
+            document.getElementById('btn-menu-scores').addEventListener('click', () => showScreen('scores'));
+            document.getElementById('btn-menu-achievements').addEventListener('click', () => showScreen('achievements'));
+            document.getElementById('btn-menu-stats').addEventListener('click', () => showScreen('stats'));
+            document.getElementById('btn-menu-settings').addEventListener('click', () => showScreen('settings'));
+            document.getElementById('btn-menu-access').addEventListener('click', () => showScreen('access'));
+            document.getElementById('btn-menu-how').addEventListener('click', () => showScreen('how'));
+            document.getElementById('btn-menu-about').addEventListener('click', () => showScreen('about'));
+            document.getElementById('btn-menu-credits').addEventListener('click', () => showScreen('credits'));
+
+            // Back buttons
+            document.querySelectorAll('.btn-back').forEach(btn => {
+                btn.addEventListener('click', () => showScreen('mainMenu'));
+            });
+
+            // Start game from Mode Screen
+            document.getElementById('btn-start-mode-game').addEventListener('click', () => {
+                showScreen('game');
+                startNewGame();
+            });
+
+            // Mode Selection UI
+            document.querySelectorAll('.mode-opt').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    audio.playClick();
+                    document.querySelectorAll('.mode-opt').forEach(b => {
+                        b.classList.remove('border-emerald-500');
+                        b.classList.add('border-slate-700');
+                        b.querySelector('span').classList.add('opacity-0');
+                    });
+                    btn.classList.remove('border-slate-700');
+                    btn.classList.add('border-emerald-500');
+                    btn.querySelector('span').classList.remove('opacity-0');
+                    settings.selectedMode = btn.getAttribute('data-mode');
+                    document.getElementById('game-mode-badge').textContent = `Mode: ${settings.selectedMode.toUpperCase()}`;
+                    saveData();
+                });
+            });
+
+            // Theme Selection UI
+            document.querySelectorAll('.theme-opt').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    audio.playClick();
+                    document.querySelectorAll('.theme-opt').forEach(b => {
+                        b.classList.remove('border-indigo-500');
+                        b.classList.add('border-slate-700');
+                    });
+                    btn.classList.remove('border-slate-700');
+                    btn.classList.add('border-indigo-500');
+                    settings.selectedTheme = btn.getAttribute('data-theme');
+                    saveData();
+                });
+            });
+
+            // Pause controls
+            const pauseModal = document.getElementById('modal-pause');
+            const openPause = () => {
+                audio.playClick();
+                gameActive = false;
+                pauseModal.classList.remove('hidden');
+            };
+            const closePause = () => {
+                audio.playClick();
+                gameActive = true;
+                pauseModal.classList.add('hidden');
+            };
+
+            document.getElementById('btn-game-pause').addEventListener('click', openPause);
+            document.getElementById('btn-quick-pause').addEventListener('click', openPause);
+            document.getElementById('btn-pause-resume').addEventListener('click', closePause);
+            document.getElementById('btn-pause-restart').addEventListener('click', () => {
+                closePause();
+                startNewGame();
+            });
+            document.getElementById('btn-game-restart').addEventListener('click', () => startNewGame());
+            document.getElementById('btn-pause-settings').addEventListener('click', () => {
+                closePause();
+                showScreen('settings');
+            });
+            document.getElementById('btn-pause-quit').addEventListener('click', () => {
+                closePause();
+                showScreen('mainMenu');
+            });
+
+            // Victory Modal buttons
+            document.getElementById('btn-victory-again').addEventListener('click', () => {
+                document.getElementById('modal-victory').classList.add('hidden');
+                startNewGame();
+            });
+            document.getElementById('btn-victory-menu').addEventListener('click', () => {
+                document.getElementById('modal-victory').classList.add('hidden');
+                showScreen('mainMenu');
+            });
+
+            // Settings checkboxes
+            document.getElementById('setting-sfx').addEventListener('change', e => {
+                settings.sfx = e.target.checked;
+                applyAccessibilitySettings();
+                saveData();
+            });
+            document.getElementById('setting-shake').addEventListener('change', e => {
+                settings.shake = e.target.checked;
+                saveData();
+            });
+            document.getElementById('setting-particles').addEventListener('change', e => {
+                settings.particles = e.target.checked;
+                saveData();
+            });
+
+            // Accessibility Checkboxes
+            document.getElementById('setting-contrast').addEventListener('change', e => {
+                settings.highContrast = e.target.checked;
+                applyAccessibilitySettings();
+                saveData();
+            });
+            document.getElementById('setting-symbol-tags').addEventListener('change', e => {
+                settings.symbolTags = e.target.checked;
+                saveData();
+            });
+            document.getElementById('setting-reduced-motion').addEventListener('change', e => {
+                settings.reducedMotion = e.target.checked;
+                applyAccessibilitySettings();
+                saveData();
+            });
+            document.getElementById('setting-large-text').addEventListener('change', e => {
+                settings.largeText = e.target.checked;
+                applyAccessibilitySettings();
+                saveData();
+            });
+
+            // Reset Saved Data
+            document.getElementById('btn-reset-data').addEventListener('click', () => {
+                settings = { ...DEFAULT_SETTINGS };
+                stats = { ...DEFAULT_STATS };
+                achievements = {
+                    firstMatch: false,
+                    sharpshooter: false,
+                    speedster: false,
+                    comboKing: false
+                };
+                saveData();
+                applyAccessibilitySettings();
+                alert('Saved data reset successfully!');
+            });
+        }
+
+        window.addEventListener('load', () => {
+            loadSavedData();
+            applyAccessibilitySettings();
+            bindEvents();
+            showScreen('mainMenu');
+        });
+    </script>
+</body>
+</html>

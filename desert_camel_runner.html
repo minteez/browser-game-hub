@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Desert Camel Runner - Oasis Dash</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Press+Start+2P&display=swap');
+
+        :root {
+            --bg-sand-light: #f6d365;
+            --bg-sand-dark: #fda085;
+            --accent-gold: #fbbf24;
+            --accent-orange: #f97316;
+            --accent-red: #ef4444;
+            --font-main: 'Outfit', sans-serif;
+            --font-arcade: 'Press Start 2P', cursive;
+        }
+
+        /* Accessibility Mode Overrides */
+        body.high-contrast {
+            --bg-sand-light: #ffffff;
+            --bg-sand-dark: #cccccc;
+            --accent-gold: #ffff00;
+            --accent-orange: #ff6600;
+            --accent-red: #ff0000;
+            filter: contrast(130%);
+        }
+
+        body.large-text {
+            font-size: 115% !important;
+        }
+
+        body.reduced-motion * {
+            animation-duration: 0.001s !important;
+            transition-duration: 0.001s !important;
+        }
+
+        /* Colorblind Palettes */
+        body.cb-deuteranopia {
+            filter: hue-rotate(30deg) saturate(120%);
+        }
+        body.cb-tritanopia {
+            filter: hue-rotate(180deg) saturate(110%);
+        }
+
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: #181210;
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(251, 191, 36, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(251, 191, 36, 0.8);
+        }
+
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(26, 18, 15, 0.82);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(251, 191, 36, 0.25);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        }
+
+        /* Arcade Buttons */
+        .btn-arcade {
+            position: relative;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border: 2px solid #fef3c7;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            font-weight: 800;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 0 #92400e, 0 10px 15px rgba(0,0,0,0.4);
+        }
+
+        .btn-arcade:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            box-shadow: 0 8px 0 #92400e, 0 12px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-arcade:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #92400e, 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .btn-arcade-secondary {
+            background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+            border-color: #9ca3af;
+            box-shadow: 0 6px 0 #111827, 0 10px 15px rgba(0,0,0,0.4);
+        }
+        .btn-arcade-secondary:hover {
+            background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+            box-shadow: 0 8px 0 #111827, 0 12px 20px rgba(156, 163, 175, 0.2);
+        }
+        .btn-arcade-secondary:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #111827, 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .btn-arcade-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-color: #fca5a5;
+            box-shadow: 0 6px 0 #991b1b, 0 10px 15px rgba(239, 68, 68, 0.3);
+        }
+        .btn-arcade-danger:hover {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            box-shadow: 0 8px 0 #991b1b, 0 12px 20px rgba(239, 68, 68, 0.5);
+        }
+        .btn-arcade-danger:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #991b1b;
+        }
+
+        /* Keyframes */
+        @keyframes floatTitle {
+            0%, 100% { transform: translateY(0) rotate(-1deg); }
+            50% { transform: translateY(-8px) rotate(1deg); }
+        }
+
+        .animate-float {
+            animation: floatTitle 4s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        .animate-pulse-glow {
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+
+        /* Screen Shake Animation */
+        .shake {
+            animation: shakeAnim 0.35s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shakeAnim {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        /* Canvas Overlay Blur */
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center relative overflow-hidden select-none">
+
+    <!-- Main Fullscreen Canvas Frame -->
+    <div id="gameContainer" class="relative w-full h-full max-w-[1400px] max-h-[900px] shadow-2xl overflow-hidden rounded-none md:rounded-2xl border-0 md:border-4 border-amber-600/40 my-auto">
+        
+        <!-- Canvas Element -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Gameplay HUD (Active during game) -->
+        <div id="hudOverlay" class="absolute top-0 left-0 w-full p-4 md:p-6 flex justify-between items-start pointer-events-none opacity-0 transition-opacity duration-300">
+            <!-- Distance & Score Counter -->
+            <div class="glass-panel px-5 py-3 rounded-2xl flex flex-col">
+                <span class="text-xs font-bold text-amber-400 tracking-wider uppercase">Distance Traveled</span>
+                <div class="flex items-baseline space-x-1">
+                    <span id="hudScore" class="text-3xl md:text-4xl font-extrabold text-white font-mono">0</span>
+                    <span class="text-lg font-bold text-amber-300">m</span>
+                </div>
+            </div>
+
+            <!-- Double Jump Status & Multiplier -->
+            <div class="flex flex-col items-end space-y-2">
+                <!-- Double Jump Status Indicator -->
+                <div id="doubleJumpBadge" class="glass-panel px-4 py-2 rounded-xl flex items-center space-x-2 border-emerald-500/40 transition-all duration-200">
+                    <div id="jumpIndicatorDot" class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
+                    <span id="jumpIndicatorText" class="text-xs font-extrabold tracking-wide uppercase text-emerald-300">Double Jump Ready</span>
+                </div>
+
+                <!-- Speed Bar Indicator -->
+                <div class="glass-panel px-3 py-1.5 rounded-lg flex items-center space-x-2 text-xs font-semibold text-amber-200">
+                    <span>Speed:</span>
+                    <div class="w-24 h-2 bg-gray-800 rounded-full overflow-hidden border border-amber-500/30">
+                        <div id="speedBarFill" class="h-full bg-gradient-to-r from-amber-500 to-red-500 w-1/4 transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- UI Screens Overlay Container -->
+        <div id="uiOverlay" class="absolute inset-0 flex items-center justify-center p-4 z-20">
+            
+            <!-- 1. MAIN MENU SCREEN -->
+            <div id="screenMainMenu" class="ui-screen w-full max-w-xl glass-panel p-6 md:p-8 rounded-3xl flex flex-col items-center text-center space-y-6 shadow-2xl transition-all duration-300">
+                <!-- Title Logo -->
+                <div class="space-y-1 animate-float">
+                    <div class="inline-block px-3 py-1 bg-amber-500/20 border border-amber-400/40 rounded-full text-xs font-extrabold text-amber-300 tracking-widest uppercase mb-1">
+                        Endless Desert Runner
+                    </div>
+                    <h1 class="text-4xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-amber-500 drop-shadow-md">
+                        DESERT CAMEL
+                    </h1>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-amber-200 tracking-wider">
+                        OASIS DASH
+                    </h2>
+                </div>
+
+                <!-- Core Play Button -->
+                <button id="btnPlay" class="btn-arcade w-full py-4 text-xl md:text-2xl rounded-2xl flex items-center justify-center space-x-3 tracking-wide">
+                    <svg class="w-7 h-7 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <span>START RUN</span>
+                </button>
+
+                <!-- Navigation Buttons Grid -->
+                <div class="grid grid-cols-2 gap-3 w-full">
+                    <button id="btnHowToPlay" class="btn-arcade btn-arcade-secondary py-3 px-4 rounded-xl text-sm md:text-base font-bold flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>How To Play</span>
+                    </button>
+                    <button id="btnHighScores" class="btn-arcade btn-arcade-secondary py-3 px-4 rounded-xl text-sm md:text-base font-bold flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                        <span>High Scores</span>
+                    </button>
+                    <button id="btnAchievements" class="btn-arcade btn-arcade-secondary py-3 px-4 rounded-xl text-sm md:text-base font-bold flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        <span>Achievements</span>
+                    </button>
+                    <button id="btnStatistics" class="btn-arcade btn-arcade-secondary py-3 px-4 rounded-xl text-sm md:text-base font-bold flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        <span>Statistics</span>
+                    </button>
+                    <button id="btnSettings" class="btn-arcade btn-arcade-secondary py-3 px-4 rounded-xl text-sm md:text-base font-bold flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <span>Settings</span>
+                    </button>
+                    <button id="btnAccessibility" class="btn-arcade btn-arcade-secondary py-3 px-4 rounded-xl text-sm md:text-base font-bold flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <span>Accessibility</span>
+                    </button>
+                </div>
+
+                <!-- Footer Menu Nav Buttons -->
+                <div class="flex justify-between w-full pt-2 border-t border-amber-500/20 text-xs text-amber-200/80">
+                    <button id="btnAbout" class="hover:text-amber-300 underline transition">About Game</button>
+                    <button id="btnCredits" class="hover:text-amber-300 underline transition">Credits</button>
+                </div>
+            </div>
+
+            <!-- 2. HOW TO PLAY SCREEN -->
+            <div id="screenHowToPlay" class="ui-screen hidden w-full max-w-xl glass-panel p-6 rounded-3xl flex flex-col space-y-5 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
+                    <h2 class="text-2xl font-extrabold text-amber-300">How To Play</h2>
+                    <span class="text-xs font-bold px-2.5 py-1 bg-amber-500/20 rounded-full text-amber-200">Guide</span>
+                </div>
+
+                <div class="space-y-4 text-sm text-gray-200">
+                    <!-- Controls Diagram -->
+                    <div class="bg-black/40 p-4 rounded-2xl border border-amber-500/20 space-y-3">
+                        <h3 class="font-bold text-amber-400 text-base">Controls & Movement</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="flex items-center space-x-3 bg-amber-950/40 p-2.5 rounded-xl border border-amber-500/20">
+                                <span class="px-2.5 py-1 bg-amber-500 font-mono font-black text-black rounded shadow">SPACE</span>
+                                <span class="text-xs">Tap to Jump</span>
+                            </div>
+                            <div class="flex items-center space-x-3 bg-amber-950/40 p-2.5 rounded-xl border border-amber-500/20">
+                                <span class="px-2 py-1 bg-amber-500 font-mono font-black text-black rounded shadow">TAP / CLICK</span>
+                                <span class="text-xs">Touch Screen Jump</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Double Jump Mechanic Highlight -->
+                    <div class="bg-gradient-to-r from-emerald-950/50 to-teal-950/50 p-4 rounded-2xl border border-emerald-500/30 space-y-2">
+                        <div class="flex items-center space-x-2 text-emerald-400 font-extrabold text-base">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            <span>Master the Double Jump!</span>
+                        </div>
+                        <p class="text-xs text-emerald-100/90 leading-relaxed">
+                            Press <strong class="text-amber-300">Spacebar</strong> or <strong class="text-amber-300">Tap</strong> a second time while in mid-air to execute a high whirlwind double jump! Use this to clear tall cacti and aerial eagles.
+                        </p>
+                    </div>
+
+                    <!-- Hazards & Progression -->
+                    <div class="bg-black/40 p-4 rounded-2xl border border-amber-500/20 space-y-2">
+                        <h3 class="font-bold text-amber-400 text-base">Hazards & Speed</h3>
+                        <ul class="list-disc list-inside space-y-1 text-xs text-gray-300">
+                            <li>Avoid desert cacti of varying sizes and eagle hazards flying overhead.</li>
+                            <li>Game speed gradually speeds up as your distance increases!</li>
+                            <li>Collect glowing desert dates along the way for bonus points!</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button class="btnBack btn-arcade btn-arcade-secondary w-full py-3 rounded-xl font-bold">BACK TO MENU</button>
+            </div>
+
+            <!-- 3. HIGH SCORES SCREEN -->
+            <div id="screenHighScores" class="ui-screen hidden w-full max-w-xl glass-panel p-6 rounded-3xl flex flex-col space-y-5">
+                <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
+                    <h2 class="text-2xl font-extrabold text-amber-300">High Scores</h2>
+                    <span class="text-xs font-bold px-2.5 py-1 bg-amber-500/20 rounded-full text-amber-200">Personal Bests</span>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="bg-gradient-to-r from-amber-500/20 to-orange-500/20 p-4 rounded-2xl border border-amber-500/40 flex justify-between items-center">
+                        <div>
+                            <span class="text-xs text-amber-300 font-bold block uppercase tracking-wider">Best Distance Record</span>
+                            <span id="scoreBestDistance" class="text-3xl font-black text-white font-mono">0 m</span>
+                        </div>
+                        <div class="text-4xl">🏆</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div class="bg-black/40 p-3 rounded-xl border border-amber-500/20">
+                            <span class="text-xs text-amber-400 font-semibold block">Longest Survival</span>
+                            <span id="scoreLongestTime" class="text-lg font-bold text-white font-mono">0s</span>
+                        </div>
+                        <div class="bg-black/40 p-3 rounded-xl border border-amber-500/20">
+                            <span class="text-xs text-amber-400 font-semibold block">Max Speed Reached</span>
+                            <span id="scoreMaxSpeed" class="text-lg font-bold text-white font-mono">1.0x</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btnBack btn-arcade btn-arcade-secondary w-full py-3 rounded-xl font-bold">BACK TO MENU</button>
+            </div>
+
+            <!-- 4. SETTINGS SCREEN -->
+            <div id="screenSettings" class="ui-screen hidden w-full max-w-xl glass-panel p-6 rounded-3xl flex flex-col space-y-5 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
+                    <h2 class="text-2xl font-extrabold text-amber-300">Game Settings</h2>
+                    <span class="text-xs font-bold px-2.5 py-1 bg-amber-500/20 rounded-full text-amber-200">Preferences</span>
+                </div>
+
+                <div class="space-y-4 text-sm">
+                    <!-- Music Volume -->
+                    <div class="flex items-center justify-between bg-black/40 p-3.5 rounded-2xl border border-amber-500/20">
+                        <div>
+                            <span class="font-bold text-white block">Music</span>
+                            <span class="text-xs text-gray-400">Synth desert background theme</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <input id="settingMusicVol" type="range" min="0" max="1" step="0.05" value="0.7" class="w-24 accent-amber-500 cursor-pointer">
+                            <button id="toggleMusicBtn" class="px-3 py-1 bg-amber-500/30 border border-amber-400/40 rounded-lg text-xs font-bold text-amber-300">ON</button>
+                        </div>
+                    </div>
+
+                    <!-- SFX Volume -->
+                    <div class="flex items-center justify-between bg-black/40 p-3.5 rounded-2xl border border-amber-500/20">
+                        <div>
+                            <span class="font-bold text-white block">Sound Effects</span>
+                            <span class="text-xs text-gray-400">Jumps, double-jumps, collisions</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <input id="settingSfxVol" type="range" min="0" max="1" step="0.05" value="0.8" class="w-24 accent-amber-500 cursor-pointer">
+                            <button id="toggleSfxBtn" class="px-3 py-1 bg-amber-500/30 border border-amber-400/40 rounded-lg text-xs font-bold text-amber-300">ON</button>
+                        </div>
+                    </div>
+
+                    <!-- Screen Shake Toggle -->
+                    <div class="flex items-center justify-between bg-black/40 p-3.5 rounded-2xl border border-amber-500/20">
+                        <div>
+                            <span class="font-bold text-white block">Screen Shake</span>
+                            <span class="text-xs text-gray-400">Vibration impact when bumping hazards</span>
+                        </div>
+                        <button id="toggleShakeBtn" class="px-3 py-1 bg-amber-500/30 border border-amber-400/40 rounded-lg text-xs font-bold text-amber-300">ON</button>
+                    </div>
+
+                    <!-- Particle Effects Toggle -->
+                    <div class="flex items-center justify-between bg-black/40 p-3.5 rounded-2xl border border-amber-500/20">
+                        <div>
+                            <span class="font-bold text-white block">Sand & Dust Particles</span>
+                            <span class="text-xs text-gray-400">Hoof sand clouds and jump rings</span>
+                        </div>
+                        <button id="toggleParticlesBtn" class="px-3 py-1 bg-amber-500/30 border border-amber-400/40 rounded-lg text-xs font-bold text-amber-300">ON</button>
+                    </div>
+
+                    <!-- Reset Saved Data Button -->
+                    <div class="pt-2">
+                        <button id="btnResetData" class="btn-arcade btn-arcade-danger w-full py-2.5 rounded-xl text-xs font-extrabold tracking-wider">RESET ALL SAVED DATA</button>
+                    </div>
+                </div>
+
+                <button class="btnBack btn-arcade btn-arcade-secondary w-full py-3 rounded-xl font-bold">BACK TO MENU</button>
+            </div>
+
+            <!-- 5. ACCESSIBILITY SCREEN -->
+            <div id="screenAccessibility" class="ui-screen hidden w-full max-w-xl glass-panel p-6 rounded-3xl flex flex-col space-y-5 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
+                    <h2 class="text-2xl font-extrabold text-amber-300">Accessibility</h2>
+                    <span class="text-xs font-bold px-2.5 py-1 bg-amber-500/20 rounded-full text-amber-200">Inclusive Options</span>
+                </div>
+
+                <div class="space-y-4 text-sm">
+                    <!-- High Contrast Mode -->
+                    <div class="flex items-center justify-between bg-black/40 p-3.5 rounded-2xl border border-amber-500/20">
+                        <div>
+                            <span class="font-bold text-white block">High Contrast Mode</span>
+                            <span class="text-xs text-gray-400">Increases contrast and edge borders</span>
+                        </div>
+                        <button id="toggleHighContrastBtn" class="px-3 py-1 bg-amber-500/30 border border-amber-400/40 rounded-lg text-xs font-bold text-amber-300">OFF</button>
+                    </div>
+
+                    <!-- Reduced Motion -->
+                    <div class="flex items-center justify-between bg-black/40 p-3.5 rounded-2xl border border-amber-500/20">
+                        <div>
+                            <span class="font-bold text-white block">Reduced Motion</span>
+                            <span class="text-xs text-gray-400">Disables rapid background parallax and UI wobbles</span>
+                        </div>
+                        <button id="toggleReducedMotionBtn" class="px-3 py-1 bg-amber-500/30 border border-amber-400/40 rounded-lg text-xs font-bold text-amber-300">OFF</button>
+                    </div>
+
+                    <!-- Large Text/UI -->
+                    <div class="flex items-center justify-between bg-black/40 p-3.5 rounded-2xl border border-amber-500/20">
+                        <div>
+                            <span class="font-bold text-white block">Large Text & UI</span>
+                            <span class="text-xs text-gray-400">Scales font sizing for improved readability</span>
+                        </div>
+                        <button id="toggleLargeTextBtn" class="px-3 py-1 bg-amber-500/30 border border-amber-400/40 rounded-lg text-xs font-bold text-amber-300">OFF</button>
+                    </div>
+
+                    <!-- Color Blind Modes -->
+                    <div class="bg-black/40 p-3.5 rounded-2xl border border-amber-500/20 space-y-2">
+                        <span class="font-bold text-white block">Color Blind Filter</span>
+                        <select id="selectColorBlind" class="w-full bg-amber-950/80 border border-amber-500/40 rounded-xl p-2 text-xs font-semibold text-amber-200 focus:outline-none">
+                            <option value="none">Standard Colors</option>
+                            <option value="deuteranopia">Deuteranopia Friendly</option>
+                            <option value="tritanopia">Tritanopia Friendly</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btnBack btn-arcade btn-arcade-secondary w-full py-3 rounded-xl font-bold">BACK TO MENU</button>
+            </div>
+
+            <!-- 6. ACHIEVEMENTS SCREEN -->
+            <div id="screenAchievements" class="ui-screen hidden w-full max-w-xl glass-panel p-6 rounded-3xl flex flex-col space-y-4 max-h-[90vh]">
+                <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
+                    <h2 class="text-2xl font-extrabold text-amber-300">Achievements</h2>
+                    <span id="achievementsUnlockedCount" class="text-xs font-bold px-2.5 py-1 bg-amber-500/20 rounded-full text-amber-200">0 / 5 Unlocked</span>
+                </div>
+
+                <div id="achievementsList" class="space-y-3 overflow-y-auto pr-1">
+                    <!-- Dynamic Achievement Items injected by JS -->
+                </div>
+
+                <button class="btnBack btn-arcade btn-arcade-secondary w-full py-3 rounded-xl font-bold mt-auto">BACK TO MENU</button>
+            </div>
+
+            <!-- 7. STATISTICS SCREEN -->
+            <div id="screenStatistics" class="ui-screen hidden w-full max-w-xl glass-panel p-6 rounded-3xl flex flex-col space-y-4">
+                <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
+                    <h2 class="text-2xl font-extrabold text-amber-300">Lifetime Statistics</h2>
+                    <span class="text-xs font-bold px-2.5 py-1 bg-amber-500/20 rounded-full text-amber-200">Career Records</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="bg-black/40 p-3 rounded-xl border border-amber-500/20">
+                        <span class="text-xs text-amber-400 font-semibold block">Total Runs Played</span>
+                        <span id="statTotalRuns" class="text-xl font-bold text-white font-mono">0</span>
+                    </div>
+                    <div class="bg-black/40 p-3 rounded-xl border border-amber-500/20">
+                        <span class="text-xs text-amber-400 font-semibold block">Total Distance Covered</span>
+                        <span id="statTotalDistance" class="text-xl font-bold text-white font-mono">0 m</span>
+                    </div>
+                    <div class="bg-black/40 p-3 rounded-xl border border-amber-500/20">
+                        <span class="text-xs text-amber-400 font-semibold block">Total Jumps Made</span>
+                        <span id="statTotalJumps" class="text-xl font-bold text-white font-mono">0</span>
+                    </div>
+                    <div class="bg-black/40 p-3 rounded-xl border border-amber-500/20">
+                        <span class="text-xs text-amber-400 font-semibold block">Total Double Jumps</span>
+                        <span id="statTotalDoubleJumps" class="text-xl font-bold text-white font-mono">0</span>
+                    </div>
+                    <div class="bg-black/40 p-3 rounded-xl border border-amber-500/20 col-span-2">
+                        <span class="text-xs text-amber-400 font-semibold block">Cacti Dodged</span>
+                        <span id="statCactiDodged" class="text-xl font-bold text-white font-mono">0</span>
+                    </div>
+                </div>
+
+                <button class="btnBack btn-arcade btn-arcade-secondary w-full py-3 rounded-xl font-bold">BACK TO MENU</button>
+            </div>
+
+            <!-- 8. ABOUT THE GAME SCREEN -->
+            <div id="screenAbout" class="ui-screen hidden w-full max-w-xl glass-panel p-6 rounded-3xl flex flex-col space-y-4">
+                <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
+                    <h2 class="text-2xl font-extrabold text-amber-300">About The Game</h2>
+                    <span class="text-xs font-bold px-2.5 py-1 bg-amber-500/20 rounded-full text-amber-200">Concept</span>
+                </div>
+
+                <div class="space-y-3 text-xs text-gray-200 leading-relaxed">
+                    <p>
+                        <strong class="text-amber-300">Desert Camel Runner: Oasis Dash</strong> is an inspired-by, reimagined endless-runner arcade game where players guide a brave camel across vibrant golden desert dunes, dodging cacti obstacles and airborne eagles.
+                    </p>
+                    <p>
+                        Designed for players aged 10-14 and arcade enthusiasts, it combines classic side-scrolling mechanics with dynamic physics, aerial double-jumping, procedural desert dynamic environments, and dynamic synthesized audio loops.
+                    </p>
+                    <div class="bg-black/40 p-3 rounded-xl border border-amber-500/20 text-amber-200/90 font-mono">
+                        Objective: Surpass your personal best distance, master timing double jumps, and unlock all desert achievements!
+                    </div>
+                </div>
+
+                <button class="btnBack btn-arcade btn-arcade-secondary w-full py-3 rounded-xl font-bold">BACK TO MENU</button>
+            </div>
+
+            <!-- 9. CREDITS SCREEN -->
+            <div id="screenCredits" class="ui-screen hidden w-full max-w-xl glass-panel p-6 rounded-3xl flex flex-col space-y-6 text-center">
+                <div class="border-b border-amber-500/30 pb-3">
+                    <h2 class="text-2xl font-extrabold text-amber-300">Credits</h2>
+                </div>
+
+                <div class="py-6 px-4 bg-black/40 rounded-2xl border border-amber-500/20 space-y-4">
+                    <div class="text-4xl animate-bounce">🐫</div>
+                    <p class="text-sm md:text-base font-extrabold text-amber-200 tracking-wide leading-relaxed">
+                        Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved.
+                    </p>
+                </div>
+
+                <button class="btnBack btn-arcade btn-arcade-secondary w-full py-3 rounded-xl font-bold">BACK TO MENU</button>
+            </div>
+
+            <!-- 10. PAUSE MENU SCREEN -->
+            <div id="screenPause" class="ui-screen hidden w-full max-w-md glass-panel p-6 rounded-3xl flex flex-col items-center text-center space-y-4 shadow-2xl">
+                <div class="space-y-1">
+                    <span class="text-xs font-bold text-amber-400 tracking-widest uppercase">Game Paused</span>
+                    <h2 class="text-3xl font-black text-white">PAUSED</h2>
+                </div>
+
+                <div class="w-full space-y-2.5">
+                    <button id="btnResume" class="btn-arcade w-full py-3 rounded-xl font-extrabold text-base">RESUME GAME</button>
+                    <button id="btnRestart" class="btn-arcade btn-arcade-secondary w-full py-3 rounded-xl font-extrabold text-base">RESTART RUN</button>
+                    <button id="btnPauseSettings" class="btn-arcade btn-arcade-secondary w-full py-3 rounded-xl font-extrabold text-base">SETTINGS</button>
+                    <button id="btnPauseHowToPlay" class="btn-arcade btn-arcade-secondary w-full py-3 rounded-xl font-extrabold text-base">HOW TO PLAY</button>
+                    <button id="btnQuitToMenu" class="btn-arcade btn-arcade-danger w-full py-3 rounded-xl font-extrabold text-base">MAIN MENU</button>
+                </div>
+            </div>
+
+            <!-- 11. GAME OVER SCREEN -->
+            <div id="screenGameOver" class="ui-screen hidden w-full max-w-md glass-panel p-6 rounded-3xl flex flex-col items-center text-center space-y-5 shadow-2xl">
+                <div class="space-y-1">
+                    <span class="text-xs font-bold text-red-400 tracking-widest uppercase">Run Complete</span>
+                    <h2 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-amber-500">GAME OVER</h2>
+                </div>
+
+                <!-- Distance Stats Box -->
+                <div class="w-full bg-black/50 p-4 rounded-2xl border border-amber-500/30 space-y-3">
+                    <div>
+                        <span class="text-xs text-amber-300 font-bold uppercase tracking-wider block">Distance Traveled</span>
+                        <div class="flex items-baseline justify-center space-x-1">
+                            <span id="finalScoreText" class="text-4xl font-black text-white font-mono">0</span>
+                            <span class="text-xl font-extrabold text-amber-400">m</span>
+                        </div>
+                    </div>
+
+                    <!-- New High Score Banner -->
+                    <div id="newHighScoreBanner" class="hidden py-1 px-3 bg-amber-500/30 border border-amber-400 rounded-full text-xs font-black text-amber-300 animate-pulse">
+                        🎉 NEW HIGH SCORE RECORD!
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-amber-500/20">
+                        <div>
+                            <span class="text-gray-400 block">Personal Best</span>
+                            <span id="goBestDistance" class="font-bold text-amber-300 font-mono">0 m</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400 block">Double Jumps Used</span>
+                            <span id="goDoubleJumps" class="font-bold text-teal-300 font-mono">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full space-y-2.5">
+                    <button id="btnPlayAgain" class="btn-arcade w-full py-3.5 rounded-xl font-extrabold text-lg flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                        <span>PLAY AGAIN</span>
+                    </button>
+                    <button id="btnShareScore" class="btn-arcade btn-arcade-secondary w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-2">
+                        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                        <span>SHARE SCORE</span>
+                    </button>
+                    <button id="btnGOMainMenu" class="btn-arcade btn-arcade-secondary w-full py-2.5 rounded-xl font-bold text-xs">MAIN MENU</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Custom Notification Toast -->
+        <div id="toastNotification" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-xl bg-amber-500 text-black font-extrabold text-xs shadow-2xl opacity-0 transition-all duration-300 pointer-events-none z-50">
+            Toast Message
+        </div>
+    </div>
+
+    <script>
+        // Game Engine Module
+        (function() {
+            // LocalStorage Keys
+            const STORAGE_KEY_SETTINGS = 'camel_runner_settings_v1';
+            const STORAGE_KEY_STATS = 'camel_runner_stats_v1';
+            const STORAGE_KEY_ACHIEVEMENTS = 'camel_runner_achievements_v1';
+
+            // State & Settings Defaults
+            let settings = {
+                musicVol: 0.7,
+                sfxVol: 0.8,
+                musicOn: true,
+                sfxOn: true,
+                screenShake: true,
+                particles: true,
+                highContrast: false,
+                reducedMotion: false,
+                largeText: false,
+                colorBlind: 'none'
+            };
+
+            let stats = {
+                bestDistance: 0,
+                longestTime: 0,
+                maxSpeed: 1.0,
+                totalRuns: 0,
+                totalDistance: 0,
+                totalJumps: 0,
+                totalDoubleJumps: 0,
+                cactiDodged: 0
+            };
+
+            let achievements = {
+                firstJump: false,      // "First Leap" - Make your first jump
+                doubleJumper: false,   // "Whirlwind Master" - Make 10 double jumps
+                marathoner: false,     // "Desert Marathon" - Reach 500m distance
+                speedDemon: false,     // "Dune Racer" - Reach 2.0x game speed
+                cactusDodger: false    // "Spike Dodger" - Dodge 25 cacti in a single run
+            };
+
+            const achievementListDef = [
+                { id: 'firstJump', title: 'First Leap', desc: 'Perform your very first jump in the desert.' },
+                { id: 'doubleJumper', title: 'Whirlwind Master', desc: 'Execute 10 double jumps in game.' },
+                { id: 'marathoner', title: 'Desert Marathon', desc: 'Reach a distance of 500 meters.' },
+                { id: 'speedDemon', title: 'Dune Racer', desc: 'Reach a top speed multiplier of 2.0x.' },
+                { id: 'cactusDodger', title: 'Spike Dodger', desc: 'Dodge 25 cacti in a single run.' }
+            ];
+
+            // Load Persisted Data
+            function loadStoredData() {
+                try {
+                    const savedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
+                    if (savedSettings) settings = Object.assign(settings, JSON.parse(savedSettings));
+
+                    const savedStats = localStorage.getItem(STORAGE_KEY_STATS);
+                    if (savedStats) stats = Object.assign(stats, JSON.parse(savedStats));
+
+                    const savedAch = localStorage.getItem(STORAGE_KEY_ACHIEVEMENTS);
+                    if (savedAch) achievements = Object.assign(achievements, JSON.parse(savedAch));
+                } catch(e) {
+                    console.warn("LocalStorage access issue:", e);
+                }
+            }
+
+            function saveSettings() {
+                try { localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings)); } catch(e){}
+            }
+            function saveStats() {
+                try { localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(stats)); } catch(e){}
+            }
+            function saveAchievements() {
+                try { localStorage.setItem(STORAGE_KEY_ACHIEVEMENTS, JSON.stringify(achievements)); } catch(e){}
+            }
+
+            // Web Audio API Synthesizer
+            let audioCtx = null;
+            let musicGainNode = null;
+            let sfxGainNode = null;
+            let musicInterval = null;
+
+            function initAudio() {
+                if (!audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        audioCtx = new AudioContext();
+                        
+                        musicGainNode = audioCtx.createGain();
+                        sfxGainNode = audioCtx.createGain();
+
+                        musicGainNode.connect(audioCtx.destination);
+                        sfxGainNode.connect(audioCtx.destination);
+
+                        updateAudioVolumes();
+                    }
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            }
+
+            function updateAudioVolumes() {
+                if (!audioCtx) return;
+                musicGainNode.gain.value = settings.musicOn ? settings.musicVol * 0.25 : 0;
+                sfxGainNode.gain.value = settings.sfxOn ? settings.sfxVol * 0.4 : 0;
+            }
+
+            // Synthesized SFX Generators
+            function playSound(type) {
+                if (!settings.sfxOn || !audioCtx) return;
+
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(sfxGainNode);
+
+                if (type === 'jump') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(580, now + 0.15);
+                    gain.gain.setValueAtTime(0.6, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'doubleJump') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
+                    gain.gain.setValueAtTime(0.7, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'collect') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, now); // D5
+                    osc.frequency.setValueAtTime(880, now + 0.08); // A5
+                    gain.gain.setValueAtTime(0.5, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'hit') {
+                    // Noise synth hit
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(40, now + 0.3);
+                    gain.gain.setValueAtTime(0.8, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                }
+            }
+
+            // Synthesized Desert Background Music Loop
+            const desertPentatonic = [220.00, 246.94, 277.18, 329.63, 370.00, 440.00]; // A, B, C#, E, F#
+            let noteStep = 0;
+
+            function startMusicLoop() {
+                if (musicInterval) clearInterval(musicInterval);
+                musicInterval = setInterval(() => {
+                    if (!settings.musicOn || !audioCtx || gamePaused || gameState !== 'PLAYING') return;
+
+                    const now = audioCtx.currentTime;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc.type = 'sine';
+                    const freq = desertPentatonic[noteStep % desertPentatonic.length];
+                    noteStep = (noteStep + 1) % desertPentatonic.length;
+
+                    osc.frequency.setValueAtTime(freq, now);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                    osc.connect(gain);
+                    gain.connect(musicGainNode);
+
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                }, 400);
+            }
+
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+
+            let canvasWidth = 800;
+            let canvasHeight = 450;
+
+            function resizeCanvas() {
+                const container = document.getElementById('gameContainer');
+                canvasWidth = container.clientWidth;
+                canvasHeight = container.clientHeight;
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // Game Constants & Variables
+            let gameState = 'MENU'; // MENU, PLAYING, PAUSED, GAMEOVER
+            let gamePaused = false;
+            let frameCount = 0;
+            let distance = 0;
+            let gameSpeed = 5;
+            let baseSpeed = 5;
+            let runTimeSeconds = 0;
+            let runCactiDodged = 0;
+            let runDoubleJumps = 0;
+
+            // Screen Shake effect tracking
+            let shakeDuration = 0;
+
+            // Camel Character Entity
+            const camel = {
+                x: 100,
+                y: 0,
+                width: 65,
+                height: 55,
+                velocityY: 0,
+                gravity: 0.65,
+                jumpStrength: -13.5,
+                doubleJumpStrength: -12.5,
+                isGrounded: false,
+                canDoubleJump: true,
+                groundY: 0,
+                legPhase: 0,
+                rotation: 0
+            };
+
+            // Game World Objects
+            let obstacles = []; // Cacti & Eagles
+            let collectibles = []; // Desert Dates
+            let particles = [];
+            let parallaxDunes = [];
+
+            // Initialize Parallax Desert Sand Dunes
+            function initParallax() {
+                parallaxDunes = [
+                    { speedMult: 0.1, color: '#f59e0b', points: [] },
+                    { speedMult: 0.3, color: '#d97706', points: [] },
+                    { speedMult: 0.6, color: '#b45309', points: [] }
+                ];
+            }
+            initParallax();
+
+            function createSandParticle(x, y) {
+                if (!settings.particles) return;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 2 - gameSpeed * 0.3,
+                    vy: (Math.random() - 1) * 2,
+                    size: Math.random() * 4 + 2,
+                    color: '#fef3c7',
+                    life: 1,
+                    decay: Math.random() * 0.05 + 0.03
+                });
+            }
+
+            function createDoubleJumpRing(x, y) {
+                if (!settings.particles) return;
+                for (let i = 0; i < 12; i++) {
+                    const angle = (Math.PI * 2 / 12) * i;
+                    particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * 4,
+                        vy: Math.sin(angle) * 4,
+                        size: Math.random() * 5 + 3,
+                        color: '#2dd4bf',
+                        life: 1,
+                        decay: 0.05
+                    });
+                }
+            }
+
+            function resetGame() {
+                distance = 0;
+                gameSpeed = baseSpeed;
+                runTimeSeconds = 0;
+                runCactiDodged = 0;
+                runDoubleJumps = 0;
+                obstacles = [];
+                collectibles = [];
+                particles = [];
+
+                camel.groundY = canvasHeight - 90;
+                camel.y = camel.groundY - camel.height;
+                camel.velocityY = 0;
+                camel.isGrounded = true;
+                camel.canDoubleJump = true;
+                camel.rotation = 0;
+
+                stats.totalRuns++;
+                saveStats();
+
+                updateHUD();
+            }
+
+            function triggerJump() {
+                if (gameState !== 'PLAYING' || gamePaused) return;
+
+                if (camel.isGrounded) {
+                    // First Jump
+                    camel.velocityY = camel.jumpStrength;
+                    camel.isGrounded = false;
+                    camel.canDoubleJump = true;
+                    playSound('jump');
+
+                    stats.totalJumps++;
+                    saveStats();
+
+                    // Dust particles
+                    for (let i = 0; i < 6; i++) {
+                        createSandParticle(camel.x + 20, camel.groundY);
+                    }
+
+                    // Unlock First Jump Achievement
+                    checkAchievement('firstJump');
+                    updateHUD();
+                } else if (camel.canDoubleJump) {
+                    // Double Jump
+                    camel.velocityY = camel.doubleJumpStrength;
+                    camel.canDoubleJump = false;
+                    runDoubleJumps++;
+                    stats.totalDoubleJumps++;
+                    saveStats();
+
+                    playSound('doubleJump');
+                    createDoubleJumpRing(camel.x + camel.width / 2, camel.y + camel.height);
+
+                    if (stats.totalDoubleJumps >= 10) {
+                        checkAchievement('doubleJumper');
+                    }
+
+                    updateHUD();
+                }
+            }
+
+            function spawnObstacle() {
+                const minGap = 220 + gameSpeed * 15;
+                const lastObstacle = obstacles[obstacles.length - 1];
+                if (lastObstacle && (canvasWidth - lastObstacle.x) < minGap) return;
+
+                const isEagle = Math.random() < 0.25 && distance > 150;
+
+                if (isEagle) {
+                    // Flying Eagle Hazard
+                    obstacles.push({
+                        type: 'eagle',
+                        x: canvasWidth + 50,
+                        y: camel.groundY - 75 - Math.random() * 40,
+                        width: 45,
+                        height: 30,
+                        wingPhase: 0,
+                        passed: false
+                    });
+                } else {
+                    // Ground Cactus Hazard (Single, Double, or Tall)
+                    const subType = Math.random() < 0.4 ? 'single' : (Math.random() < 0.7 ? 'double' : 'tall');
+                    let w = 30, h = 50;
+                    if (subType === 'double') { w = 50; h = 55; }
+                    if (subType === 'tall') { w = 35; h = 70; }
+
+                    obstacles.push({
+                        type: 'cactus',
+                        subType: subType,
+                        x: canvasWidth + 50,
+                        y: camel.groundY - h + 5,
+                        width: w,
+                        height: h,
+                        passed: false
+                    });
+                }
+
+                // Random Bonus Date Spawn
+                if (Math.random() < 0.3) {
+                    collectibles.push({
+                        x: canvasWidth + 120,
+                        y: camel.groundY - 100 - Math.random() * 40,
+                        width: 20,
+                        height: 20,
+                        collected: false
+                    });
+                }
+            }
+
+            function drawBackground() {
+                // Sky Gradient
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+                if (settings.highContrast) {
+                    skyGrad.addColorStop(0, '#0f172a');
+                    skyGrad.addColorStop(1, '#334155');
+                } else {
+                    skyGrad.addColorStop(0, '#78350f'); // Deep golden amber desert dusk
+                    skyGrad.addColorStop(0.5, '#d97706');
+                    skyGrad.addColorStop(1, '#fef3c7');
+                }
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                // Desert Glowing Sun
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(canvasWidth * 0.8, 100, 45, 0, Math.PI * 2);
+                ctx.fillStyle = '#fef08a';
+                ctx.shadowColor = '#f59e0b';
+                ctx.shadowBlur = 30;
+                ctx.fill();
+                ctx.restore();
+
+                // Parallax Dunes
+                parallaxDunes.forEach((dune, idx) => {
+                    ctx.fillStyle = dune.color;
+                    ctx.beginPath();
+                    ctx.moveTo(0, canvasHeight);
+                    
+                    const curveHeight = 40 + idx * 25;
+                    const freq = 0.002 - idx * 0.0005;
+                    const offset = (frameCount * dune.speedMult * (settings.reducedMotion ? 0.05 : 1)) % canvasWidth;
+
+                    for (let x = 0; x <= canvasWidth + 50; x += 20) {
+                        const y = canvasHeight - 120 + idx * 20 + Math.sin((x + offset) * freq) * curveHeight;
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.lineTo(canvasWidth, canvasHeight);
+                    ctx.fill();
+                });
+
+                // Ground Track Line
+                const groundY = camel.groundY;
+                ctx.fillStyle = '#b45309';
+                ctx.fillRect(0, groundY, canvasWidth, canvasHeight - groundY);
+
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(0, groundY, canvasWidth, 6);
+            }
+
+            // Draw Camel Character Procedurally
+            function drawCamel() {
+                ctx.save();
+                ctx.translate(camel.x + camel.width / 2, camel.y + camel.height / 2);
+
+                if (!camel.isGrounded) {
+                    camel.rotation = Math.min(Math.max(camel.velocityY * 0.04, -0.3), 0.3);
+                } else {
+                    camel.rotation = 0;
+                }
+                ctx.rotate(camel.rotation);
+
+                // Camel Colors
+                const bodyColor = settings.highContrast ? '#ffff00' : '#d97706';
+                const shadowColor = settings.highContrast ? '#999900' : '#b45309';
+
+                // Camel Body (Main Oval)
+                ctx.fillStyle = bodyColor;
+                ctx.beginPath();
+                ctx.ellipse(-5, 0, 22, 16, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Camel Hump
+                ctx.beginPath();
+                ctx.arc(-5, -16, 12, Math.PI, 0);
+                ctx.fill();
+
+                // Saddle & Blanket
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(-12, -18, 14, 6);
+                ctx.fillStyle = '#fbbf24';
+                ctx.fillRect(-10, -16, 10, 3);
+
+                // Neck & Head
+                ctx.fillStyle = bodyColor;
+                ctx.beginPath();
+                ctx.moveTo(10, -5);
+                ctx.lineTo(20, -22);
+                ctx.lineTo(28, -20);
+                ctx.lineTo(16, 5);
+                ctx.fill();
+
+                // Head
+                ctx.beginPath();
+                ctx.ellipse(25, -22, 9, 6, -0.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(28, -24, 1.8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ear
+                ctx.fillStyle = bodyColor;
+                ctx.beginPath();
+                ctx.ellipse(20, -27, 3, 2, -0.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tail
+                ctx.strokeStyle = bodyColor;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-26, -2);
+                ctx.quadraticCurveTo(-32, 5 + Math.sin(frameCount * 0.2) * 3, -28, 12);
+                ctx.stroke();
+
+                // Legs Animation
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = shadowColor;
+
+                const leg1Angle = Math.sin(camel.legPhase) * 0.5;
+                const leg2Angle = -Math.sin(camel.legPhase) * 0.5;
+
+                // Back Legs
+                ctx.beginPath();
+                ctx.moveTo(-18, 10);
+                ctx.lineTo(-18 + Math.sin(leg1Angle) * 15, 24);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(10, 10);
+                ctx.lineTo(10 + Math.sin(leg2Angle) * 15, 24);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            // Draw Cactus & Eagle Hazards
+            function drawObstacles() {
+                obstacles.forEach(obs => {
+                    if (obs.type === 'cactus') {
+                        ctx.fillStyle = settings.highContrast ? '#00ff00' : '#15803d';
+                        ctx.strokeStyle = '#166534';
+                        ctx.lineWidth = 2;
+
+                        // Main Cactus Stem
+                        ctx.beginPath();
+                        ctx.roundRect(obs.x + obs.width * 0.3, obs.y, obs.width * 0.4, obs.height, 6);
+                        ctx.fill();
+                        ctx.stroke();
+
+                        // Cactus Arms
+                        if (obs.subType === 'double' || obs.subType === 'tall') {
+                            ctx.beginPath();
+                            ctx.roundRect(obs.x, obs.y + obs.height * 0.3, obs.width * 0.4, 8, 3);
+                            ctx.roundRect(obs.x, obs.y + obs.height * 0.15, 8, obs.height * 0.2, 3);
+                            ctx.fill();
+                            ctx.stroke();
+                        }
+                        if (obs.subType === 'double') {
+                            ctx.beginPath();
+                            ctx.roundRect(obs.x + obs.width * 0.6, obs.y + obs.height * 0.4, obs.width * 0.4, 8, 3);
+                            ctx.roundRect(obs.x + obs.width - 8, obs.y + obs.height * 0.2, 8, obs.height * 0.25, 3);
+                            ctx.fill();
+                            ctx.stroke();
+                        }
+                    } else if (obs.type === 'eagle') {
+                        // Eagle / Vulture
+                        ctx.save();
+                        ctx.translate(obs.x + obs.width / 2, obs.y + obs.height / 2);
+                        ctx.fillStyle = '#451a03';
+
+                        const wingY = Math.sin(obs.wingPhase) * 12;
+
+                        // Wings
+                        ctx.beginPath();
+                        ctx.moveTo(-obs.width / 2, wingY);
+                        ctx.lineTo(0, -5);
+                        ctx.lineTo(obs.width / 2, wingY);
+                        ctx.lineTo(0, 5);
+                        ctx.fill();
+
+                        // Beak
+                        ctx.fillStyle = '#f59e0b';
+                        ctx.beginPath();
+                        ctx.arc(-obs.width / 2 + 4, 0, 3, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.restore();
+                    }
+                });
+            }
+
+            // Draw Bonus Dates
+            function drawCollectibles() {
+                collectibles.forEach(item => {
+                    ctx.save();
+                    ctx.translate(item.x + item.width / 2, item.y + item.height / 2);
+
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.shadowColor = '#f59e0b';
+                    ctx.shadowBlur = 10;
+
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, 8, 12, 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.restore();
+                });
+            }
+
+            // Draw Active Sand & Jump Particles
+            function drawParticles() {
+                particles.forEach(p => {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.globalAlpha = 1.0;
+            }
+
+            function updateGame() {
+                if (gameState !== 'PLAYING' || gamePaused) return;
+
+                frameCount++;
+
+                // Gradual Game Speed Increase
+                gameSpeed = baseSpeed + Math.floor(distance / 100) * 0.4;
+                gameSpeed = Math.min(gameSpeed, 14.0); // Cap max speed
+
+                if (gameSpeed > stats.maxSpeed) {
+                    stats.maxSpeed = parseFloat(gameSpeed.toFixed(1));
+                    if (stats.maxSpeed >= 2.0) checkAchievement('speedDemon');
+                    saveStats();
+                }
+
+                // Update Distance
+                distance += gameSpeed * 0.05;
+
+                // Check Marathon Achievement
+                if (distance >= 500) checkAchievement('marathoner');
+
+                // Camel Physics
+                camel.velocityY += camel.gravity;
+                camel.y += camel.velocityY;
+
+                if (camel.y >= camel.groundY - camel.height) {
+                    camel.y = camel.groundY - camel.height;
+                    camel.velocityY = 0;
+                    camel.isGrounded = true;
+                    camel.canDoubleJump = true;
+                }
+
+                // Leg Animation Phase
+                if (camel.isGrounded) {
+                    camel.legPhase += gameSpeed * 0.08;
+                    if (Math.random() < 0.4) {
+                        createSandParticle(camel.x + 10, camel.groundY);
+                    }
+                }
+
+                // Obstacle Spawning & Movement
+                spawnObstacle();
+
+                obstacles.forEach((obs, index) => {
+                    obs.x -= gameSpeed;
+
+                    if (obs.type === 'eagle') {
+                        obs.wingPhase += 0.15;
+                    }
+
+                    // Check Dodge Counter
+                    if (!obs.passed && obs.x + obs.width < camel.x) {
+                        obs.passed = true;
+                        runCactiDodged++;
+                        stats.cactiDodged++;
+                        saveStats();
+
+                        if (runCactiDodged >= 25) checkAchievement('cactusDodger');
+                    }
+
+                    // Collision Detection (Box Collision with padding)
+                    const padding = 8;
+                    if (
+                        camel.x + padding < obs.x + obs.width - padding &&
+                        camel.x + camel.width - padding > obs.x + padding &&
+                        camel.y + padding < obs.y + obs.height - padding &&
+                        camel.y + camel.height - padding > obs.y + padding
+                    ) {
+                        triggerGameOver();
+                    }
+                });
+
+                // Remove Offscreen Obstacles
+                obstacles = obstacles.filter(obs => obs.x + obs.width > -50);
+
+                // Collectibles Logic
+                collectibles.forEach(item => {
+                    item.x -= gameSpeed;
+
+                    if (!item.collected &&
+                        camel.x < item.x + item.width &&
+                        camel.x + camel.width > item.x &&
+                        camel.y < item.y + item.height &&
+                        camel.y + camel.height > item.y
+                    ) {
+                        item.collected = true;
+                        distance += 15; // Bonus distance points
+                        playSound('collect');
+                    }
+                });
+                collectibles = collectibles.filter(item => !item.collected && item.x > -50);
+
+                // Particles Update
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= p.decay;
+                });
+                particles = particles.filter(p => p.life > 0);
+
+                updateHUD();
+            }
+
+            function render() {
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+                ctx.save();
+                if (shakeDuration > 0 && settings.screenShake) {
+                    const shakeX = (Math.random() - 0.5) * 12;
+                    const shakeY = (Math.random() - 0.5) * 12;
+                    ctx.translate(shakeX, shakeY);
+                    shakeDuration--;
+                }
+
+                drawBackground();
+                drawObstacles();
+                drawCollectibles();
+                drawCamel();
+                drawParticles();
+
+                ctx.restore();
+            }
+
+            function gameLoop() {
+                updateGame();
+                render();
+                requestAnimationFrame(gameLoop);
+            }
+
+            function updateHUD() {
+                document.getElementById('hudScore').innerText = Math.floor(distance);
+
+                // Double Jump Badge State
+                const badge = document.getElementById('doubleJumpBadge');
+                const dot = document.getElementById('jumpIndicatorDot');
+                const text = document.getElementById('jumpIndicatorText');
+
+                if (camel.canDoubleJump) {
+                    badge.classList.remove('border-gray-600', 'opacity-50');
+                    badge.classList.add('border-emerald-500/40');
+                    dot.className = "w-3 h-3 rounded-full bg-emerald-400 animate-pulse";
+                    text.innerText = "Double Jump Ready";
+                    text.className = "text-xs font-extrabold tracking-wide uppercase text-emerald-300";
+                } else {
+                    badge.classList.remove('border-emerald-500/40');
+                    badge.classList.add('border-gray-600', 'opacity-50');
+                    dot.className = "w-3 h-3 rounded-full bg-gray-500";
+                    text.innerText = "Double Jump Used";
+                    text.className = "text-xs font-extrabold tracking-wide uppercase text-gray-400";
+                }
+
+                // Speed Fill Bar
+                const speedPct = Math.min(((gameSpeed - baseSpeed) / 9.0) * 100, 100);
+                document.getElementById('speedBarFill').style.width = `${Math.max(speedPct, 15)}%`;
+            }
+
+            function triggerGameOver() {
+                gameState = 'GAMEOVER';
+                playSound('hit');
+
+                if (settings.screenShake) shakeDuration = 15;
+
+                const finalDist = Math.floor(distance);
+                let isNewHigh = false;
+
+                if (finalDist > stats.bestDistance) {
+                    stats.bestDistance = finalDist;
+                    isNewHigh = true;
+                }
+                stats.totalDistance += finalDist;
+                saveStats();
+
+                // Show Game Over UI
+                document.getElementById('finalScoreText').innerText = finalDist;
+                document.getElementById('goBestDistance').innerText = `${stats.bestDistance} m`;
+                document.getElementById('goDoubleJumps').innerText = runDoubleJumps;
+
+                const newHighBanner = document.getElementById('newHighScoreBanner');
+                if (isNewHigh) {
+                    newHighBanner.classList.remove('hidden');
+                } else {
+                    newHighBanner.classList.add('hidden');
+                }
+
+                showScreen('screenGameOver');
+                document.getElementById('hudOverlay').classList.add('opacity-0');
+            }
+
+            function showScreen(screenId) {
+                document.querySelectorAll('.ui-screen').forEach(el => el.classList.add('hidden'));
+                const target = document.getElementById(screenId);
+                if (target) target.classList.remove('hidden');
+
+                if (screenId === 'screenMainMenu') {
+                    gameState = 'MENU';
+                    document.getElementById('hudOverlay').classList.add('opacity-0');
+                } else if (screenId === 'screenHighScores') {
+                    document.getElementById('scoreBestDistance').innerText = `${stats.bestDistance} m`;
+                    document.getElementById('scoreLongestTime').innerText = `${stats.longestTime}s`;
+                    document.getElementById('scoreMaxSpeed').innerText = `${stats.maxSpeed}x`;
+                } else if (screenId === 'screenStatistics') {
+                    document.getElementById('statTotalRuns').innerText = stats.totalRuns;
+                    document.getElementById('statTotalDistance').innerText = `${stats.totalDistance} m`;
+                    document.getElementById('statTotalJumps').innerText = stats.totalJumps;
+                    document.getElementById('statTotalDoubleJumps').innerText = stats.totalDoubleJumps;
+                    document.getElementById('statCactiDodged').innerText = stats.cactiDodged;
+                } else if (screenId === 'screenAchievements') {
+                    renderAchievementsUI();
+                }
+            }
+
+            function renderAchievementsUI() {
+                const listContainer = document.getElementById('achievementsList');
+                listContainer.innerHTML = '';
+
+                let unlockedCount = 0;
+                achievementListDef.forEach(ach => {
+                    const isUnlocked = achievements[ach.id];
+                    if (isUnlocked) unlockedCount++;
+
+                    const item = document.createElement('div');
+                    item.className = `p-3 rounded-2xl border flex items-center justify-between ${
+                        isUnlocked 
+                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-200' 
+                        : 'bg-black/30 border-gray-700/40 text-gray-400 opacity-60'
+                    }`;
+
+                    item.innerHTML = `
+                        <div class="space-y-0.5">
+                            <span class="font-bold text-sm block ${isUnlocked ? 'text-amber-300' : 'text-gray-400'}">${ach.title}</span>
+                            <span class="text-xs block">${ach.desc}</span>
+                        </div>
+                        <div class="text-xl pl-2">${isUnlocked ? '👑' : '🔒'}</div>
+                    `;
+                    listContainer.appendChild(item);
+                });
+
+                document.getElementById('achievementsUnlockedCount').innerText = `${unlockedCount} / ${achievementListDef.length} Unlocked`;
+            }
+
+            function checkAchievement(id) {
+                if (!achievements[id]) {
+                    achievements[id] = true;
+                    saveAchievements();
+                    showToast(`🏆 Achievement Unlocked: ${achievementListDef.find(a => a.id === id)?.title}`);
+                }
+            }
+
+            function showToast(msg) {
+                const toast = document.getElementById('toastNotification');
+                toast.innerText = msg;
+                toast.classList.remove('opacity-0');
+                toast.classList.add('opacity-100');
+                setTimeout(() => {
+                    toast.classList.remove('opacity-100');
+                    toast.classList.add('opacity-0');
+                }, 3000);
+            }
+
+            function setupEventListeners() {
+                // Key Bindings
+                window.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+                        e.preventDefault();
+                        initAudio();
+                        if (gameState === 'PLAYING') {
+                            triggerJump();
+                        }
+                    } else if (e.code === 'KeyP' || e.code === 'Escape') {
+                        if (gameState === 'PLAYING') {
+                            togglePause();
+                        }
+                    }
+                });
+
+                // Canvas Touch / Click to Jump
+                canvas.addEventListener('pointerdown', (e) => {
+                    initAudio();
+                    if (gameState === 'PLAYING') {
+                        triggerJump();
+                    }
+                });
+
+                // Main Menu Play Button
+                document.getElementById('btnPlay').addEventListener('click', () => {
+                    initAudio();
+                    playSound('click');
+                    showScreen('');
+                    document.getElementById('hudOverlay').classList.remove('opacity-0');
+                    resetGame();
+                    gameState = 'PLAYING';
+                    startMusicLoop();
+                });
+
+                // Menu Nav Buttons
+                document.getElementById('btnHowToPlay').addEventListener('click', () => { playSound('click'); showScreen('screenHowToPlay'); });
+                document.getElementById('btnHighScores').addEventListener('click', () => { playSound('click'); showScreen('screenHighScores'); });
+                document.getElementById('btnAchievements').addEventListener('click', () => { playSound('click'); showScreen('screenAchievements'); });
+                document.getElementById('btnStatistics').addEventListener('click', () => { playSound('click'); showScreen('screenStatistics'); });
+                document.getElementById('btnSettings').addEventListener('click', () => { playSound('click'); showScreen('screenSettings'); });
+                document.getElementById('btnAccessibility').addEventListener('click', () => { playSound('click'); showScreen('screenAccessibility'); });
+                document.getElementById('btnAbout').addEventListener('click', () => { playSound('click'); showScreen('screenAbout'); });
+                document.getElementById('btnCredits').addEventListener('click', () => { playSound('click'); showScreen('screenCredits'); });
+
+                // Back Buttons
+                document.querySelectorAll('.btnBack').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        playSound('click');
+                        showScreen('screenMainMenu');
+                    });
+                });
+
+                // Pause Menu Events
+                document.getElementById('btnResume').addEventListener('click', () => {
+                    playSound('click');
+                    togglePause();
+                });
+                document.getElementById('btnRestart').addEventListener('click', () => {
+                    playSound('click');
+                    gamePaused = false;
+                    showScreen('');
+                    document.getElementById('hudOverlay').classList.remove('opacity-0');
+                    resetGame();
+                    gameState = 'PLAYING';
+                });
+                document.getElementById('btnPauseSettings').addEventListener('click', () => { playSound('click'); showScreen('screenSettings'); });
+                document.getElementById('btnPauseHowToPlay').addEventListener('click', () => { playSound('click'); showScreen('screenHowToPlay'); });
+                document.getElementById('btnQuitToMenu').addEventListener('click', () => {
+                    playSound('click');
+                    gamePaused = false;
+                    showScreen('screenMainMenu');
+                });
+
+                // Game Over Buttons
+                document.getElementById('btnPlayAgain').addEventListener('click', () => {
+                    playSound('click');
+                    showScreen('');
+                    document.getElementById('hudOverlay').classList.remove('opacity-0');
+                    resetGame();
+                    gameState = 'PLAYING';
+                });
+                document.getElementById('btnGOMainMenu').addEventListener('click', () => {
+                    playSound('click');
+                    showScreen('screenMainMenu');
+                });
+                document.getElementById('btnShareScore').addEventListener('click', () => {
+                    playSound('click');
+                    const text = `🐫 I dashed ${Math.floor(distance)}m in Desert Camel Runner! Can you beat my distance?`;
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text);
+                    } else {
+                        const input = document.createElement('input');
+                        input.value = text;
+                        document.body.appendChild(input);
+                        input.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(input);
+                    }
+                    showToast("Score copied to clipboard!");
+                });
+
+                // Settings Controls Wiring
+                document.getElementById('settingMusicVol').addEventListener('input', (e) => {
+                    settings.musicVol = parseFloat(e.target.value);
+                    saveSettings();
+                    updateAudioVolumes();
+                });
+                document.getElementById('settingSfxVol').addEventListener('input', (e) => {
+                    settings.sfxVol = parseFloat(e.target.value);
+                    saveSettings();
+                    updateAudioVolumes();
+                });
+                document.getElementById('toggleMusicBtn').addEventListener('click', (e) => {
+                    settings.musicOn = !settings.musicOn;
+                    e.target.innerText = settings.musicOn ? 'ON' : 'OFF';
+                    saveSettings();
+                    updateAudioVolumes();
+                });
+                document.getElementById('toggleSfxBtn').addEventListener('click', (e) => {
+                    settings.sfxOn = !settings.sfxOn;
+                    e.target.innerText = settings.sfxOn ? 'ON' : 'OFF';
+                    saveSettings();
+                    updateAudioVolumes();
+                });
+                document.getElementById('toggleShakeBtn').addEventListener('click', (e) => {
+                    settings.screenShake = !settings.screenShake;
+                    e.target.innerText = settings.screenShake ? 'ON' : 'OFF';
+                    saveSettings();
+                });
+                document.getElementById('toggleParticlesBtn').addEventListener('click', (e) => {
+                    settings.particles = !settings.particles;
+                    e.target.innerText = settings.particles ? 'ON' : 'OFF';
+                    saveSettings();
+                });
+                document.getElementById('btnResetData').addEventListener('click', () => {
+                    if (confirm("Reset all saved high scores, statistics, and settings?")) {
+                        localStorage.clear();
+                        location.reload();
+                    }
+                });
+
+                // Accessibility Options Wiring
+                document.getElementById('toggleHighContrastBtn').addEventListener('click', (e) => {
+                    settings.highContrast = !settings.highContrast;
+                    e.target.innerText = settings.highContrast ? 'ON' : 'OFF';
+                    document.body.classList.toggle('high-contrast', settings.highContrast);
+                    saveSettings();
+                });
+                document.getElementById('toggleReducedMotionBtn').addEventListener('click', (e) => {
+                    settings.reducedMotion = !settings.reducedMotion;
+                    e.target.innerText = settings.reducedMotion ? 'ON' : 'OFF';
+                    document.body.classList.toggle('reduced-motion', settings.reducedMotion);
+                    saveSettings();
+                });
+                document.getElementById('toggleLargeTextBtn').addEventListener('click', (e) => {
+                    settings.largeText = !settings.largeText;
+                    e.target.innerText = settings.largeText ? 'ON' : 'OFF';
+                    document.body.classList.toggle('large-text', settings.largeText);
+                    saveSettings();
+                });
+                document.getElementById('selectColorBlind').addEventListener('change', (e) => {
+                    settings.colorBlind = e.target.value;
+                    document.body.classList.remove('cb-deuteranopia', 'cb-tritanopia');
+                    if (settings.colorBlind !== 'none') {
+                        document.body.classList.add(`cb-${settings.colorBlind}`);
+                    }
+                    saveSettings();
+                });
+            }
+
+            function togglePause() {
+                if (gameState !== 'PLAYING' && gameState !== 'PAUSED') return;
+
+                if (gamePaused) {
+                    gamePaused = false;
+                    gameState = 'PLAYING';
+                    showScreen('');
+                } else {
+                    gamePaused = true;
+                    gameState = 'PAUSED';
+                    showScreen('screenPause');
+                }
+            }
+
+            window.onload = function() {
+                loadStoredData();
+                setupEventListeners();
+                showScreen('screenMainMenu');
+                gameLoop();
+            };
+        })();
+    </script>
+</body>
+</html>

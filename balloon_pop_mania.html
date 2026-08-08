@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Balloon Pop Mania</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for arcade / fun visual style -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Quicksand', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .font-arcade {
+            font-family: 'Fredoka One', cursive;
+        }
+        
+        /* Custom scrollbar for menu screens */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Glassmorphism panel style */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            pointer-events: auto;
+        }
+
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Animated gradient text */
+        .text-gradient-gold {
+            background: linear-gradient(135deg, #FFE000 0%, #799F0C 50%, #FFE000 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        /* Responsive button interaction animations */
+        .btn-bounce {
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.15s ease;
+        }
+        .btn-bounce:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 20px -5px rgba(0,0,0,0.3);
+        }
+        .btn-bounce:active {
+            transform: translateY(2px) scale(0.97);
+        }
+
+        /* High contrast override class */
+        .high-contrast {
+            background: #000000 !important;
+            color: #FFFF00 !important;
+        }
+        .high-contrast .glass-panel {
+            background: #000000 !important;
+            border: 3px solid #FFFF00 !important;
+            box-shadow: none !important;
+        }
+        .high-contrast button {
+            background: #FFFF00 !important;
+            color: #000000 !important;
+            border: 2px solid #FFFFFF !important;
+            font-weight: bold !important;
+        }
+
+        /* Floating title animation */
+        @keyframes floatTitle {
+            0%, 100% { transform: translateY(0px) rotate(-1deg); }
+            50% { transform: translateY(-10px) rotate(1deg); }
+        }
+        .animate-float-title {
+            animation: floatTitle 3s ease-in-out infinite;
+        }
+
+        /* Screen shake animation */
+        .shake {
+            animation: shakeAnim 0.25s ease-in-out;
+        }
+        @keyframes shakeAnim {
+            0% { transform: translate(0, 0); }
+            20% { transform: translate(-8px, 5px); }
+            40% { transform: translate(8px, -5px); }
+            60% { transform: translate(-5px, 3px); }
+            80% { transform: translate(5px, -3px); }
+            100% { transform: translate(0, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-sky-400 via-indigo-300 to-pink-300 min-h-screen overflow-hidden select-none text-slate-800">
+
+    <!-- Full-screen Game Canvas for Balloons and Particles -->
+    <canvas id="gameCanvas" class="fixed inset-0 w-full h-full z-0 block cursor-crosshair"></canvas>
+
+    <!-- UI Overlay Wrapper -->
+    <div id="uiOverlay" class="fixed inset-0 z-10 flex flex-col justify-between pointer-events-none">
+        
+        <!-- TOP HUD (Visible during gameplay) -->
+        <header id="hud" class="p-4 flex justify-between items-center opacity-0 transition-opacity duration-300 pointer-events-auto">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/50 flex items-center gap-2">
+                    <i class="fa-solid fa-trophy text-amber-400 text-xl"></i>
+                    <div>
+                        <div class="text-xs uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">Score</div>
+                        <div id="hudScore" class="font-arcade text-2xl text-indigo-600 dark:text-indigo-400">0</div>
+                    </div>
+                </div>
+
+                <div id="comboBadge" class="hidden bg-gradient-to-r from-amber-400 to-orange-500 text-white font-arcade px-3 py-1.5 rounded-full text-sm shadow-md animate-bounce">
+                    <span id="hudCombo">2</span>x COMBO!
+                </div>
+            </div>
+
+            <!-- Timer Display -->
+            <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-5 py-2 rounded-2xl shadow-lg border border-white/50 flex items-center gap-3">
+                <i class="fa-solid fa-stopwatch text-rose-500 text-2xl animate-pulse"></i>
+                <div class="text-center">
+                    <div class="text-xs uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">Time Left</div>
+                    <div id="hudTimer" class="font-arcade text-2xl text-rose-600 dark:text-rose-400">45s</div>
+                </div>
+            </div>
+
+            <!-- Pause Button -->
+            <button id="btnPause" class="btn-bounce bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-white/50 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50">
+                <i class="fa-solid fa-pause text-xl"></i>
+            </button>
+        </header>
+
+        <!-- Dynamic Modal Container (Contains Menus) -->
+        <main id="modalContainer" class="flex-1 flex items-center justify-center p-4 pointer-events-none relative">
+            
+            <!-- 1. MAIN MENU -->
+            <div id="menuMain" class="glass-panel w-full max-w-md rounded-3xl p-6 md:p-8 text-center flex flex-col items-center gap-5 transition-all transform">
+                <div class="animate-float-title">
+                    <span class="inline-block px-3 py-1 bg-amber-300/80 text-amber-900 rounded-full text-xs font-bold uppercase tracking-widest mb-1 shadow-sm">Arcade Edition</span>
+                    <h1 class="font-arcade text-4xl md:text-5xl text-indigo-700 dark:text-white drop-shadow-md tracking-wide">
+                        BALLOON <span class="text-pink-500">POP</span>
+                    </h1>
+                </div>
+
+                <!-- Main Navigation Buttons -->
+                <div class="w-full space-y-3 mt-2">
+                    <button id="btnPlay" class="btn-bounce w-full py-4 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-white font-arcade text-xl rounded-2xl shadow-lg border-b-4 border-emerald-700 flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-play text-2xl"></i> PLAY GAME
+                    </button>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="showScreen('menuHowToPlay')" class="btn-bounce py-3 bg-white/70 dark:bg-slate-800/80 hover:bg-white text-indigo-700 dark:text-indigo-300 font-bold rounded-xl shadow border border-white/50 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-circle-question text-amber-500"></i> How to Play
+                        </button>
+                        <button onclick="showScreen('menuHighScores')" class="btn-bounce py-3 bg-white/70 dark:bg-slate-800/80 hover:bg-white text-indigo-700 dark:text-indigo-300 font-bold rounded-xl shadow border border-white/50 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-500"></i> High Scores
+                        </button>
+                        <button onclick="showScreen('menuAchievements')" class="btn-bounce py-3 bg-white/70 dark:bg-slate-800/80 hover:bg-white text-indigo-700 dark:text-indigo-300 font-bold rounded-xl shadow border border-white/50 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-medal text-amber-500"></i> Badges
+                        </button>
+                        <button onclick="showScreen('menuStats')" class="btn-bounce py-3 bg-white/70 dark:bg-slate-800/80 hover:bg-white text-indigo-700 dark:text-indigo-300 font-bold rounded-xl shadow border border-white/50 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-chart-bar text-amber-500"></i> Statistics
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="showScreen('menuSettings')" class="btn-bounce py-3 bg-white/70 dark:bg-slate-800/80 hover:bg-white text-indigo-700 dark:text-indigo-300 font-bold rounded-xl shadow border border-white/50 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-gear text-slate-500"></i> Settings
+                        </button>
+                        <button onclick="showScreen('menuAccessibility')" class="btn-bounce py-3 bg-white/70 dark:bg-slate-800/80 hover:bg-white text-indigo-700 dark:text-indigo-300 font-bold rounded-xl shadow border border-white/50 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-universal-access text-teal-500"></i> Access
+                        </button>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button onclick="showScreen('menuAbout')" class="btn-bounce flex-1 py-2.5 bg-slate-200/70 dark:bg-slate-700/70 hover:bg-slate-300 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl border border-white/30">
+                            <i class="fa-solid fa-circle-info"></i> About
+                        </button>
+                        <button onclick="showScreen('menuCredits')" class="btn-bounce flex-1 py-2.5 bg-slate-200/70 dark:bg-slate-700/70 hover:bg-slate-300 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl border border-white/30">
+                            <i class="fa-solid fa-heart text-rose-500"></i> Credits
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. HOW TO PLAY -->
+            <div id="menuHowToPlay" class="glass-panel hidden w-full max-w-lg rounded-3xl p-6 text-slate-800 dark:text-white max-h-[85vh] overflow-y-auto">
+                <h2 class="font-arcade text-3xl text-center text-indigo-600 dark:text-indigo-400 mb-4 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-gamepad"></i> How To Play
+                </h2>
+
+                <div class="space-y-4 text-sm leading-relaxed">
+                    <div class="bg-white/60 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-white/40 flex items-start gap-3">
+                        <div class="p-3 bg-indigo-100 text-indigo-600 rounded-xl text-xl font-bold">1</div>
+                        <div>
+                            <h3 class="font-bold text-indigo-700 dark:text-indigo-300">Pop Balloons!</h3>
+                            <p>Click or tap colorful balloons floating up from the bottom before they reach the top!</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-amber-100/80 dark:bg-amber-900/40 p-3.5 rounded-2xl border border-amber-300/50 flex items-start gap-3">
+                        <div class="p-3 bg-amber-400 text-white rounded-xl text-xl font-bold">
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-amber-800 dark:text-amber-300">Golden Balloon (+5 PTS)</h3>
+                            <p>Look out for the special shimmering <strong>Golden Balloon</strong>! Popping it grants 5 bonus points and shiny sparkles!</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/60 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-white/40 flex items-start gap-3">
+                        <div class="p-3 bg-teal-100 text-teal-600 rounded-xl text-xl font-bold"><i class="fa-solid fa-bolt"></i></div>
+                        <div>
+                            <h3 class="font-bold text-teal-700 dark:text-teal-300">Build Combos</h3>
+                            <p>Pop balloons quickly back-to-back to raise your Combo multiplier and skyrocket your score!</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/60 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-white/40 flex items-start gap-3">
+                        <div class="p-3 bg-rose-100 text-rose-600 rounded-xl text-xl font-bold"><i class="fa-solid fa-clock"></i></div>
+                        <div>
+                            <h3 class="font-bold text-rose-700 dark:text-rose-300">45 Seconds Rush</h3>
+                            <p>You have 45 seconds to score as many points as possible. Try to beat your highest score!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="showScreen('menuMain')" class="btn-bounce w-full mt-6 py-3 bg-indigo-600 text-white font-arcade rounded-xl shadow-md">
+                    <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+                </button>
+            </div>
+
+            <!-- 3. HIGH SCORES -->
+            <div id="menuHighScores" class="glass-panel hidden w-full max-w-md rounded-3xl p-6 text-slate-800 dark:text-white">
+                <h2 class="font-arcade text-3xl text-center text-amber-500 mb-4 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-trophy"></i> High Scores
+                </h2>
+
+                <div class="space-y-3">
+                    <div class="bg-gradient-to-r from-amber-400 to-yellow-500 text-white p-4 rounded-2xl shadow flex justify-between items-center">
+                        <span class="font-bold flex items-center gap-2"><i class="fa-solid fa-crown text-2xl"></i> Best Score</span>
+                        <span id="scoreBest" class="font-arcade text-3xl">0</span>
+                    </div>
+
+                    <div class="bg-white/60 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-white/40 flex justify-between items-center">
+                        <span class="font-bold text-slate-600 dark:text-slate-300"><i class="fa-solid fa-fire text-orange-500"></i> Max Combo</span>
+                        <span id="scoreBestCombo" class="font-arcade text-xl text-indigo-600 dark:text-indigo-300">0x</span>
+                    </div>
+
+                    <div class="bg-white/60 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-white/40 flex justify-between items-center">
+                        <span class="font-bold text-slate-600 dark:text-slate-300"><i class="fa-solid fa-bullseye text-emerald-500"></i> Most Pops in 1 Game</span>
+                        <span id="scoreMostPops" class="font-arcade text-xl text-indigo-600 dark:text-indigo-300">0</span>
+                    </div>
+                </div>
+
+                <button onclick="showScreen('menuMain')" class="btn-bounce w-full mt-6 py-3 bg-indigo-600 text-white font-arcade rounded-xl shadow-md">
+                    <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+                </button>
+            </div>
+
+            <!-- 4. ACHIEVEMENTS -->
+            <div id="menuAchievements" class="glass-panel hidden w-full max-w-md rounded-3xl p-6 text-slate-800 dark:text-white max-h-[85vh] overflow-y-auto">
+                <h2 class="font-arcade text-3xl text-center text-indigo-600 dark:text-indigo-400 mb-4 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-medal"></i> Achievements
+                </h2>
+
+                <div id="achievementsList" class="space-y-3">
+                    <!-- Dynamic Badges Inserted Here -->
+                </div>
+
+                <button onclick="showScreen('menuMain')" class="btn-bounce w-full mt-6 py-3 bg-indigo-600 text-white font-arcade rounded-xl shadow-md">
+                    <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+                </button>
+            </div>
+
+            <!-- 5. STATISTICS -->
+            <div id="menuStats" class="glass-panel hidden w-full max-w-md rounded-3xl p-6 text-slate-800 dark:text-white">
+                <h2 class="font-arcade text-3xl text-center text-indigo-600 dark:text-indigo-400 mb-4 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-chart-line"></i> Lifetime Stats
+                </h2>
+
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-white/60 dark:bg-slate-800/60 p-3 rounded-2xl border border-white/40">
+                        <div class="text-2xl text-indigo-600 dark:text-indigo-400 font-arcade" id="statGames">0</div>
+                        <div class="text-xs font-bold text-slate-500">Games Played</div>
+                    </div>
+                    <div class="bg-white/60 dark:bg-slate-800/60 p-3 rounded-2xl border border-white/40">
+                        <div class="text-2xl text-emerald-600 dark:text-emerald-400 font-arcade" id="statPops">0</div>
+                        <div class="text-xs font-bold text-slate-500">Total Popped</div>
+                    </div>
+                    <div class="bg-white/60 dark:bg-slate-800/60 p-3 rounded-2xl border border-white/40">
+                        <div class="text-2xl text-amber-500 font-arcade" id="statGold">0</div>
+                        <div class="text-xs font-bold text-slate-500">Golden Balloons</div>
+                    </div>
+                    <div class="bg-white/60 dark:bg-slate-800/60 p-3 rounded-2xl border border-white/40">
+                        <div class="text-2xl text-rose-500 font-arcade" id="statTime">0s</div>
+                        <div class="text-xs font-bold text-slate-500">Total Playtime</div>
+                    </div>
+                </div>
+
+                <button onclick="showScreen('menuMain')" class="btn-bounce w-full mt-6 py-3 bg-indigo-600 text-white font-arcade rounded-xl shadow-md">
+                    <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+                </button>
+            </div>
+
+            <!-- 6. SETTINGS -->
+            <div id="menuSettings" class="glass-panel hidden w-full max-w-md rounded-3xl p-6 text-slate-800 dark:text-white">
+                <h2 class="font-arcade text-3xl text-center text-slate-700 dark:text-slate-200 mb-4 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> Settings
+                </h2>
+
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 p-3 rounded-2xl">
+                        <span class="font-bold flex items-center gap-2"><i class="fa-solid fa-volume-high text-indigo-500"></i> Sound Effects</span>
+                        <input type="checkbox" id="settingSfx" class="w-6 h-6 accent-indigo-600 rounded cursor-pointer" checked>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 p-3 rounded-2xl">
+                        <span class="font-bold flex items-center gap-2"><i class="fa-solid fa-music text-indigo-500"></i> Music</span>
+                        <input type="checkbox" id="settingMusic" class="w-6 h-6 accent-indigo-600 rounded cursor-pointer" checked>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 p-3 rounded-2xl">
+                        <span class="font-bold flex items-center gap-2"><i class="fa-solid fa-mobile-screen-button text-indigo-500"></i> Screen Shake</span>
+                        <input type="checkbox" id="settingShake" class="w-6 h-6 accent-indigo-600 rounded cursor-pointer" checked>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 p-3 rounded-2xl">
+                        <span class="font-bold flex items-center gap-2"><i class="fa-solid fa-sparkles text-indigo-500"></i> Particle FX</span>
+                        <input type="checkbox" id="settingParticles" class="w-6 h-6 accent-indigo-600 rounded cursor-pointer" checked>
+                    </div>
+
+                    <button id="btnResetData" class="w-full py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-sm rounded-xl border border-rose-300">
+                        <i class="fa-solid fa-trash"></i> Reset All Saved Progress
+                    </button>
+                </div>
+
+                <button onclick="showScreen('menuMain')" class="btn-bounce w-full mt-6 py-3 bg-indigo-600 text-white font-arcade rounded-xl shadow-md">
+                    <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+                </button>
+            </div>
+
+            <!-- 7. ACCESSIBILITY -->
+            <div id="menuAccessibility" class="glass-panel hidden w-full max-w-md rounded-3xl p-6 text-slate-800 dark:text-white">
+                <h2 class="font-arcade text-3xl text-center text-teal-600 dark:text-teal-400 mb-4 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-universal-access"></i> Accessibility
+                </h2>
+
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 p-3 rounded-2xl">
+                        <div>
+                            <div class="font-bold">Color-Blind Shapes</div>
+                            <div class="text-xs text-slate-500">Adds distinct pattern symbols to balloons</div>
+                        </div>
+                        <input type="checkbox" id="accessColorblind" class="w-6 h-6 accent-teal-600 rounded cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 p-3 rounded-2xl">
+                        <div>
+                            <div class="font-bold">High Contrast Mode</div>
+                            <div class="text-xs text-slate-500">Increases menu readability</div>
+                        </div>
+                        <input type="checkbox" id="accessContrast" class="w-6 h-6 accent-teal-600 rounded cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 p-3 rounded-2xl">
+                        <div>
+                            <div class="font-bold">Slower Floating Speed</div>
+                            <div class="text-xs text-slate-500">Makes balloons float up 25% slower</div>
+                        </div>
+                        <input type="checkbox" id="accessSlower" class="w-6 h-6 accent-teal-600 rounded cursor-pointer">
+                    </div>
+                </div>
+
+                <button onclick="showScreen('menuMain')" class="btn-bounce w-full mt-6 py-3 bg-indigo-600 text-white font-arcade rounded-xl shadow-md">
+                    <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+                </button>
+            </div>
+
+            <!-- 8. ABOUT -->
+            <div id="menuAbout" class="glass-panel hidden w-full max-w-md rounded-3xl p-6 text-slate-800 dark:text-white">
+                <h2 class="font-arcade text-3xl text-center text-indigo-600 dark:text-indigo-400 mb-3">About The Game</h2>
+                <div class="text-sm space-y-3 leading-relaxed">
+                    <p><strong>Balloon Pop Mania</strong> is a fast, fun, color-filled arcade game designed for players of all ages!</p>
+                    <p>Test your reflexes by popping floaty balloons against the 45-second clock. Keep your eyes peeled for rare Golden Balloons worth 5x points!</p>
+                    <p class="text-xs text-slate-500 italic bg-white/40 dark:bg-slate-800/40 p-2.5 rounded-xl">An original arcade-style reimagined web experience built entirely with HTML5 Canvas & Synthesis Audio.</p>
+                </div>
+                <button onclick="showScreen('menuMain')" class="btn-bounce w-full mt-6 py-3 bg-indigo-600 text-white font-arcade rounded-xl shadow-md">
+                    <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+                </button>
+            </div>
+
+            <!-- 9. CREDITS -->
+            <div id="menuCredits" class="glass-panel hidden w-full max-w-md rounded-3xl p-6 text-center text-slate-800 dark:text-white">
+                <i class="fa-solid fa-ribbon text-5xl text-amber-400 mb-2 animate-bounce"></i>
+                <h2 class="font-arcade text-3xl text-indigo-600 dark:text-indigo-400 mb-4">Credits</h2>
+                
+                <div class="bg-white/60 dark:bg-slate-800/60 p-4 rounded-2xl border border-white/40 mb-4">
+                    <p class="font-bold text-base text-slate-800 dark:text-slate-100">
+                        Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved.
+                    </p>
+                </div>
+
+                <button onclick="showScreen('menuMain')" class="btn-bounce w-full py-3 bg-indigo-600 text-white font-arcade rounded-xl shadow-md">
+                    <i class="fa-solid fa-arrow-left"></i> BACK TO MENU
+                </button>
+            </div>
+
+            <!-- 10. PAUSE MENU -->
+            <div id="menuPause" class="glass-panel hidden w-full max-w-sm rounded-3xl p-6 text-center text-slate-800 dark:text-white">
+                <h2 class="font-arcade text-4xl text-indigo-600 dark:text-indigo-400 mb-6">GAME PAUSED</h2>
+
+                <div class="space-y-3">
+                    <button id="btnResume" class="btn-bounce w-full py-3 bg-emerald-500 text-white font-arcade rounded-2xl shadow-md text-lg">
+                        <i class="fa-solid fa-play"></i> RESUME
+                    </button>
+                    <button id="btnRestartPause" class="btn-bounce w-full py-3 bg-amber-500 text-white font-arcade rounded-2xl shadow-md text-lg">
+                        <i class="fa-solid fa-rotate-right"></i> RESTART
+                    </button>
+                    <button onclick="showScreen('menuHowToPlay')" class="btn-bounce w-full py-2.5 bg-white/70 dark:bg-slate-800/70 font-bold rounded-xl">
+                        How To Play
+                    </button>
+                    <button id="btnQuit" class="btn-bounce w-full py-2.5 bg-rose-500 text-white font-bold rounded-xl">
+                        Quit to Menu
+                    </button>
+                </div>
+            </div>
+
+            <!-- 11. GAME OVER / SCORE CELEBRATION -->
+            <div id="menuGameOver" class="glass-panel hidden w-full max-w-md rounded-3xl p-6 md:p-8 text-center text-slate-800 dark:text-white">
+                <div id="newHighBanner" class="hidden bg-amber-400 text-amber-950 font-arcade py-1 px-4 rounded-full text-xs uppercase tracking-widest mb-2 inline-block animate-pulse">
+                    🎉 NEW HIGH SCORE! 🎉
+                </div>
+
+                <h2 class="font-arcade text-4xl text-indigo-600 dark:text-indigo-300 mb-1">TIME'S UP!</h2>
+                <p id="gameOverSubtitle" class="text-slate-600 dark:text-slate-300 font-bold text-sm mb-4">Awesome popping, Super Popper!</p>
+
+                <div class="bg-white/70 dark:bg-slate-800/70 p-4 rounded-2xl border border-white/50 space-y-3 mb-6">
+                    <div>
+                        <div class="text-xs uppercase font-bold text-slate-400">Final Score</div>
+                        <div id="goFinalScore" class="font-arcade text-5xl text-indigo-600 dark:text-indigo-400">0</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-xs font-bold">
+                        <div>
+                            <span class="text-slate-400">Popped:</span>
+                            <span id="goTotalPops" class="text-slate-700 dark:text-slate-200 font-arcade">0</span>
+                        </div>
+                        <div>
+                            <span class="text-amber-500">Golden 5x:</span>
+                            <span id="goGoldenPops" class="text-amber-600 font-arcade">0</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400">Best Combo:</span>
+                            <span id="goMaxCombo" class="text-indigo-500 font-arcade">0x</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400">High Score:</span>
+                            <span id="goHighScore" class="text-emerald-500 font-arcade">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <button id="btnPlayAgain" class="btn-bounce w-full py-4 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 text-white font-arcade text-xl rounded-2xl shadow-lg border-b-4 border-emerald-700 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i> PLAY AGAIN
+                    </button>
+                    <button id="btnMenuFromGameOver" class="btn-bounce w-full py-3 bg-white/80 dark:bg-slate-800/80 font-bold text-slate-700 dark:text-slate-200 rounded-xl">
+                        MAIN MENU
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // Local Storage State
+        const STORAGE_KEY = 'BALLOON_POP_ARCADE_V1';
+        let gameData = {
+            highScore: 0,
+            bestCombo: 0,
+            mostPops: 0,
+            totalGames: 0,
+            totalPops: 0,
+            totalGoldPops: 0,
+            totalTimePlayed: 0,
+            achievements: {},
+            settings: {
+                sfx: true,
+                music: true,
+                shake: true,
+                particles: true,
+                colorblind: false,
+                contrast: false,
+                slower: false
+            }
+        };
+
+        // Load Saved Data
+        function loadData() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    gameData = Object.assign(gameData, JSON.parse(saved));
+                }
+            } catch(e) {
+                console.error("Storage error:", e);
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(gameData));
+            } catch(e) {}
+        }
+
+        loadData();
+
+        // Web Audio API Synthesizer (No external audio files required!)
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.musicInterval = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playPop(isGolden = false) {
+                if (!gameData.settings.sfx) return;
+                this.init();
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                if (isGolden) {
+                    // Chime pop for golden balloon
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.15);
+
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.25);
+                } else {
+                    // Pitch drop pop sound for normal balloon
+                    const freq = 300 + Math.random() * 200;
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.08);
+
+                    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.08);
+                }
+            }
+
+            playFanfare() {
+                if (!gameData.settings.sfx) return;
+                this.init();
+                const notes = [400, 500, 600, 800];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.1);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime + idx * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.1 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.1);
+                    osc.stop(this.ctx.currentTime + idx * 0.1 + 0.25);
+                });
+            }
+
+            startMusic() {
+                if (!gameData.settings.music || this.musicInterval) return;
+                this.init();
+                let noteIdx = 0;
+                const melody = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63]; // Happy major tune
+                this.musicInterval = setInterval(() => {
+                    if (!gameData.settings.music) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(melody[noteIdx % melody.length], this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.35);
+                    noteIdx++;
+                }, 400);
+            }
+
+            stopMusic() {
+                if (this.musicInterval) {
+                    clearInterval(this.musicInterval);
+                    this.musicInterval = null;
+                }
+            }
+        }
+
+        const sounds = new SoundEngine();
+
+        const ACHIEVEMENTS = [
+            { id: 'first_pop', title: 'First Pop!', desc: 'Pop your very first balloon.', icon: 'fa-child' },
+            { id: 'gold_finder', title: 'Golden Touch', desc: 'Pop a special Golden Balloon (+5 pts)!', icon: 'fa-star' },
+            { id: 'combo_5', title: 'Combo Cadet', desc: 'Reach a 5x Pop Combo.', icon: 'fa-bolt' },
+            { id: 'score_50', title: 'Party Popper', desc: 'Score 50 points in a single game.', icon: 'fa-cake-candles' },
+            { id: 'score_100', title: 'Master Popper', desc: 'Score 100 points in a single game.', icon: 'fa-crown' }
+        ];
+
+        function checkAchievements(state) {
+            let unlockedAny = false;
+            ACHIEVEMENTS.forEach(ach => {
+                if (!gameData.achievements[ach.id]) {
+                    let unlock = false;
+                    if (ach.id === 'first_pop' && state.totalPops >= 1) unlock = true;
+                    if (ach.id === 'gold_finder' && state.goldenPops >= 1) unlock = true;
+                    if (ach.id === 'combo_5' && state.maxCombo >= 5) unlock = true;
+                    if (ach.id === 'score_50' && state.score >= 50) unlock = true;
+                    if (ach.id === 'score_100' && state.score >= 100) unlock = true;
+
+                    if (unlock) {
+                        gameData.achievements[ach.id] = true;
+                        unlockedAny = true;
+                    }
+                }
+            });
+            if (unlockedAny) saveData();
+        }
+
+        function renderAchievements() {
+            const container = document.getElementById('achievementsList');
+            container.innerHTML = '';
+            ACHIEVEMENTS.forEach(ach => {
+                const isUnlocked = gameData.achievements[ach.id];
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-2xl border flex items-center gap-3 transition ${
+                    isUnlocked 
+                        ? 'bg-amber-100/90 dark:bg-amber-900/40 border-amber-300 text-slate-800 dark:text-white' 
+                        : 'bg-white/40 dark:bg-slate-800/40 border-slate-200/50 text-slate-400 opacity-60'
+                }`;
+                card.innerHTML = `
+                    <div class="p-3 rounded-xl ${isUnlocked ? 'bg-amber-400 text-white' : 'bg-slate-300 text-slate-500'} text-xl">
+                        <i class="fa-solid ${ach.icon}"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm">${ach.title} ${isUnlocked ? '✓' : ''}</div>
+                        <div class="text-xs">${ach.desc}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Balloon Color Palette
+        const BALLOON_TYPES = [
+            { color: '#FF4D6D', shape: '★', name: 'red' },
+            { color: '#4EA8DE', shape: '●', name: 'blue' },
+            { color: '#70E000', shape: '▲', name: 'green' },
+            { color: '#FFB703', shape: '■', name: 'yellow' },
+            { color: '#9D4EDD', shape: '◆', name: 'purple' },
+            { color: '#FF85A1', shape: '♥', name: 'pink' }
+        ];
+
+        // Game Runtime Variables
+        let gameRunning = false;
+        let isPaused = false;
+        let gameTimeLeft = 45;
+        let score = 0;
+        let combo = 0;
+        let maxCombo = 0;
+        let comboTimer = null;
+        let totalPopsThisGame = 0;
+        let goldenPopsThisGame = 0;
+        let lastFrameTime = performance.now();
+        let timerInterval = null;
+
+        let balloons = [];
+        let particles = [];
+        let popTextPopups = [];
+
+        class Balloon {
+            constructor(isGold = false) {
+                this.isGold = isGold;
+                this.radius = Math.random() * 12 + (isGold ? 32 : 28);
+                this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
+                this.y = canvas.height + this.radius + Math.random() * 50;
+
+                const speedModifier = gameData.settings.slower ? 0.75 : 1.0;
+                this.speedY = (Math.random() * 1.8 + 1.5) * speedModifier;
+                this.swingSpeed = Math.random() * 0.03 + 0.01;
+                this.swingAmount = Math.random() * 2 + 1;
+                this.swingOffset = Math.random() * Math.PI * 2;
+
+                if (isGold) {
+                    this.color = '#FFD700';
+                    this.typeInfo = { shape: '5★', name: 'gold' };
+                } else {
+                    const type = BALLOON_TYPES[Math.floor(Math.random() * BALLOON_TYPES.length)];
+                    this.color = type.color;
+                    this.typeInfo = type;
+                }
+            }
+
+            update() {
+                this.y -= this.speedY;
+                this.swingOffset += this.swingSpeed;
+                this.x += Math.sin(this.swingOffset) * this.swingAmount;
+            }
+
+            draw() {
+                ctx.save();
+
+                // Balloon Body
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                
+                if (this.isGold) {
+                    // Shimmering Golden Gradient
+                    const grad = ctx.createRadialGradient(this.x - this.radius * 0.3, this.y - this.radius * 0.3, 3, this.x, this.y, this.radius);
+                    grad.addColorStop(0, '#FFF59D');
+                    grad.addColorStop(0.5, '#FFD700');
+                    grad.addColorStop(1, '#FF8F00');
+                    ctx.fillStyle = grad;
+                } else {
+                    // Standard Glossy Radial Gradient
+                    const grad = ctx.createRadialGradient(this.x - this.radius * 0.3, this.y - this.radius * 0.3, 2, this.x, this.y, this.radius);
+                    grad.addColorStop(0, '#FFFFFF');
+                    grad.addColorStop(0.3, this.color);
+                    grad.addColorStop(1, adjustColor(this.color, -40));
+                    ctx.fillStyle = grad;
+                }
+                
+                ctx.fill();
+
+                // Shine Reflection
+                ctx.beginPath();
+                ctx.ellipse(this.x - this.radius * 0.35, this.y - this.radius * 0.35, this.radius * 0.25, this.radius * 0.15, -Math.PI / 4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.fill();
+
+                // Color-blind shape helper indicator
+                if (gameData.settings.colorblind) {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = 'bold 16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(this.typeInfo.shape, this.x, this.y);
+                }
+
+                // Balloon Knot
+                ctx.beginPath();
+                ctx.moveTo(this.x - 5, this.y + this.radius);
+                ctx.lineTo(this.x + 5, this.y + this.radius);
+                ctx.lineTo(this.x, this.y + this.radius + 6);
+                ctx.closePath();
+                ctx.fillStyle = this.isGold ? '#FF8F00' : this.color;
+                ctx.fill();
+
+                // Balloon String
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y + this.radius + 6);
+                ctx.quadraticCurveTo(this.x + Math.sin(this.swingOffset * 2) * 8, this.y + this.radius + 20, this.x, this.y + this.radius + 35);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
+        // Particle System for Pops
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.radius = Math.random() * 4 + 2;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8;
+                this.alpha = 1;
+                this.gravity = 0.15;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += this.gravity;
+                this.alpha -= 0.025;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Floating Score Popup Text (+1, +5, Combo)
+        class ScorePopup {
+            constructor(x, y, text, color) {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.color = color;
+                this.alpha = 1;
+            }
+
+            update() {
+                this.y -= 1.8;
+                this.alpha -= 0.02;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.font = '900 22px "Fredoka One", cursive';
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 4;
+                ctx.strokeText(this.text, this.x, this.y);
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+        // Helper Color Shading Function
+        function adjustColor(col, amt) {
+            let usePound = false;
+            if (col[0] === "#") {
+                col = col.slice(1);
+                usePound = true;
+            }
+            let num = parseInt(col, 16);
+            let r = (num >> 16) + amt;
+            if (r > 255) r = 255; else if (r < 0) r = 0;
+            let b = ((num >> 8) & 0x00FF) + amt;
+            if (b > 255) b = 255; else if (b < 0) b = 0;
+            let g = (num & 0x0000FF) + amt;
+            if (g > 255) g = 255; else if (g < 0) g = 0;
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16);
+        }
+
+        function showScreen(screenId) {
+            const screens = ['menuMain', 'menuHowToPlay', 'menuHighScores', 'menuAchievements', 'menuStats', 'menuSettings', 'menuAccessibility', 'menuAbout', 'menuCredits', 'menuPause', 'menuGameOver'];
+            screens.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+
+            if (screenId) {
+                const target = document.getElementById(screenId);
+                if (target) target.classList.remove('hidden');
+            }
+
+            // High contrast styling toggle
+            if (gameData.settings.contrast) {
+                document.body.classList.add('high-contrast');
+            } else {
+                document.body.classList.remove('high-contrast');
+            }
+
+            if (screenId === 'menuAchievements') renderAchievements();
+            if (screenId === 'menuHighScores') {
+                document.getElementById('scoreBest').innerText = gameData.highScore;
+                document.getElementById('scoreBestCombo').innerText = gameData.bestCombo + 'x';
+                document.getElementById('scoreMostPops').innerText = gameData.mostPops;
+            }
+            if (screenId === 'menuStats') {
+                document.getElementById('statGames').innerText = gameData.totalGames;
+                document.getElementById('statPops').innerText = gameData.totalPops;
+                document.getElementById('statGold').innerText = gameData.totalGoldPops;
+                document.getElementById('statTime').innerText = gameData.totalTimePlayed + 's';
+            }
+        }
+
+        function startGame() {
+            gameRunning = true;
+            isPaused = false;
+            gameTimeLeft = 45;
+            score = 0;
+            combo = 0;
+            maxCombo = 0;
+            totalPopsThisGame = 0;
+            goldenPopsThisGame = 0;
+
+            balloons = [];
+            particles = [];
+            popTextPopups = [];
+
+            updateHUD();
+            document.getElementById('hud').style.opacity = '1';
+            showScreen(null); // Hide all menu overlays
+
+            sounds.startMusic();
+
+            // Game Timer Clock
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!isPaused && gameRunning) {
+                    gameTimeLeft--;
+                    gameData.totalTimePlayed++;
+                    updateHUD();
+
+                    if (gameTimeLeft <= 0) {
+                        endGame();
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateHUD() {
+            document.getElementById('hudScore').innerText = score;
+            document.getElementById('hudTimer').innerText = gameTimeLeft + 's';
+            
+            const comboBadge = document.getElementById('comboBadge');
+            if (combo > 1) {
+                comboBadge.classList.remove('hidden');
+                document.getElementById('hudCombo').innerText = combo;
+            } else {
+                comboBadge.classList.add('hidden');
+            }
+        }
+
+        function triggerScreenShake() {
+            if (!gameData.settings.shake) return;
+            document.body.classList.add('shake');
+            setTimeout(() => document.body.classList.remove('shake'), 250);
+        }
+
+        function endGame() {
+            gameRunning = false;
+            clearInterval(timerInterval);
+            sounds.stopMusic();
+            sounds.playFanfare();
+
+            document.getElementById('hud').style.opacity = '0';
+
+            // Check high scores
+            let newHigh = false;
+            if (score > gameData.highScore) {
+                gameData.highScore = score;
+                newHigh = true;
+            }
+            if (maxCombo > gameData.bestCombo) gameData.bestCombo = maxCombo;
+            if (totalPopsThisGame > gameData.mostPops) gameData.mostPops = totalPopsThisGame;
+
+            gameData.totalGames++;
+            gameData.totalPops += totalPopsThisGame;
+            gameData.totalGoldPops += goldenPopsThisGame;
+            saveData();
+
+            checkAchievements({
+                totalPops: totalPopsThisGame,
+                goldenPops: goldenPopsThisGame,
+                maxCombo: maxCombo,
+                score: score
+            });
+
+            // Populate Game Over Screen
+            document.getElementById('goFinalScore').innerText = score;
+            document.getElementById('goTotalPops').innerText = totalPopsThisGame;
+            document.getElementById('goGoldenPops').innerText = goldenPopsThisGame;
+            document.getElementById('goMaxCombo').innerText = maxCombo + 'x';
+            document.getElementById('goHighScore').innerText = gameData.highScore;
+
+            if (newHigh) {
+                document.getElementById('newHighBanner').classList.remove('hidden');
+            } else {
+                document.getElementById('newHighBanner').classList.add('hidden');
+            }
+
+            showScreen('menuGameOver');
+
+            // Celebration balloon confetti explosion
+            for (let i = 0; i < 30; i++) {
+                balloons.push(new Balloon(i % 5 === 0));
+            }
+        }
+
+        function popBalloonAt(clickX, clickY) {
+            if (!gameRunning || isPaused) return;
+
+            // Calculate precise coordinates relative to the canvas rendering scale
+            const rect = canvas.getBoundingClientRect();
+            const canvasX = (clickX - rect.left) * (canvas.width / rect.width);
+            const canvasY = (clickY - rect.top) * (canvas.height / rect.height);
+
+            for (let i = balloons.length - 1; i >= 0; i--) {
+                const b = balloons[i];
+                const dist = Math.hypot(canvasX - b.x, canvasY - b.y);
+
+                if (dist < b.radius + 18) { // Generous touch padding for easy popping
+                    // Increase combo
+                    combo++;
+                    if (combo > maxCombo) maxCombo = combo;
+
+                    clearTimeout(comboTimer);
+                    comboTimer = setTimeout(() => { combo = 0; updateHUD(); }, 1200);
+
+                    // Score logic
+                    const basePts = b.isGold ? 5 : 1;
+                    const ptsEarned = basePts * (combo > 2 ? 2 : 1);
+                    score += ptsEarned;
+                    totalPopsThisGame++;
+                    if (b.isGold) {
+                        goldenPopsThisGame++;
+                        triggerScreenShake();
+                    }
+
+                    sounds.playPop(b.isGold);
+
+                    // Create Particle Explosions
+                    if (gameData.settings.particles) {
+                        for (let p = 0; p < (b.isGold ? 25 : 14); p++) {
+                            particles.push(new Particle(b.x, b.y, b.color));
+                        }
+                    }
+
+                    // Floating Score Text
+                    const popLabel = b.isGold ? `+${ptsEarned} GOLDEN!` : `+${ptsEarned}`;
+                    popTextPopups.push(new ScorePopup(b.x, b.y, popLabel, b.isGold ? '#FFD700' : '#4ADE80'));
+
+                    // Remove Popped Balloon
+                    balloons.splice(i, 1);
+                    updateHUD();
+                    break;
+                }
+            }
+        }
+
+        // Pointer/Touch Event Listeners with global window capture
+        window.addEventListener('pointerdown', (e) => {
+            popBalloonAt(e.clientX, e.clientY);
+        });
+
+        function gameLoop(timestamp) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Menu Background Ambient Balloons Spawning
+            if (!gameRunning) {
+                if (Math.random() < 0.03 && balloons.length < 15) {
+                    balloons.push(new Balloon(Math.random() < 0.15));
+                }
+            } else if (!isPaused) {
+                // Active Gameplay Balloon Spawning
+                const spawnRate = 0.05 + (45 - gameTimeLeft) * 0.001; // Gradually increases rate
+                if (Math.random() < spawnRate && balloons.length < 25) {
+                    const isGold = Math.random() < 0.12; // Special Golden Balloon (~12% chance)
+                    balloons.push(new Balloon(isGold));
+                }
+            }
+
+            // Update & Render Balloons
+            for (let i = balloons.length - 1; i >= 0; i--) {
+                const b = balloons[i];
+                if (!isPaused) b.update();
+                b.draw();
+
+                // Remove balloons that float off the top
+                if (b.y < -b.radius * 2) {
+                    balloons.splice(i, 1);
+                }
+            }
+
+            // Render Particle Effects
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                if (!isPaused) p.update();
+                p.draw();
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            // Render Score Popup Texts
+            for (let i = popTextPopups.length - 1; i >= 0; i--) {
+                const txt = popTextPopups[i];
+                if (!isPaused) txt.update();
+                txt.draw();
+                if (txt.alpha <= 0) popTextPopups.splice(i, 1);
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById('btnPlay').addEventListener('click', startGame);
+        document.getElementById('btnPlayAgain').addEventListener('click', startGame);
+        document.getElementById('btnRestartPause').addEventListener('click', startGame);
+
+        document.getElementById('btnPause').addEventListener('click', () => {
+            isPaused = true;
+            showScreen('menuPause');
+        });
+
+        document.getElementById('btnResume').addEventListener('click', () => {
+            isPaused = false;
+            showScreen(null);
+        });
+
+        document.getElementById('btnQuit').addEventListener('click', () => {
+            gameRunning = false;
+            clearInterval(timerInterval);
+            sounds.stopMusic();
+            document.getElementById('hud').style.opacity = '0';
+            showScreen('menuMain');
+        });
+
+        document.getElementById('btnMenuFromGameOver').addEventListener('click', () => {
+            showScreen('menuMain');
+        });
+
+        // Settings checkbox bindings
+        const bindSetting = (elementId, key) => {
+            const el = document.getElementById(elementId);
+            el.checked = gameData.settings[key];
+            el.addEventListener('change', (e) => {
+                gameData.settings[key] = e.target.checked;
+                saveData();
+                if (key === 'contrast') {
+                    if (e.target.checked) document.body.classList.add('high-contrast');
+                    else document.body.classList.remove('high-contrast');
+                }
+            });
+        };
+
+        bindSetting('settingSfx', 'sfx');
+        bindSetting('settingMusic', 'music');
+        bindSetting('settingShake', 'shake');
+        bindSetting('settingParticles', 'particles');
+        bindSetting('accessColorblind', 'colorblind');
+        bindSetting('accessContrast', 'contrast');
+        bindSetting('accessSlower', 'slower');
+
+        document.getElementById('btnResetData').addEventListener('click', () => {
+            if (confirm("Reset all high scores and saved progress?")) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
+            }
+        });
+
+        // Initialize and launch game loop
+        showScreen('menuMain');
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

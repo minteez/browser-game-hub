@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Battle Royale - Football Trivia Arcade</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@600;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --font-title: 'Teko', sans-serif;
+            --font-body: 'Plus Jakarta Sans', sans-serif;
+            --color-primary: #10b981;
+            --color-secondary: #3b82f6;
+            --color-accent: #f59e0b;
+            --bg-dark: #090d16;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-dark);
+            color: #f8fafc;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .font-title {
+            font-family: var(--font-title);
+            letter-spacing: 0.05em;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(16, 185, 129, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(16, 185, 129, 0.8);
+        }
+
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-panel-gold {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(15, 23, 42, 0.9));
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.2);
+        }
+
+        /* Animated Buttons */
+        .arcade-btn {
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .arcade-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+        }
+
+        .arcade-btn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .arcade-btn-primary {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-bottom: 4px solid #047857;
+        }
+
+        .arcade-btn-secondary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-bottom: 4px solid #1e40af;
+        }
+
+        .arcade-btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-bottom: 4px solid #b45309;
+        }
+
+        .arcade-btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-bottom: 4px solid #b91c1c;
+        }
+
+        .arcade-btn-dark {
+            background: linear-gradient(135deg, #334155, #1e293b);
+            border-bottom: 4px solid #0f172a;
+        }
+
+        /* Pulse and Glow Effects */
+        .glow-green {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+        .glow-gold {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        }
+
+        /* High Contrast Mode Overrides */
+        body.high-contrast {
+            --bg-dark: #000000;
+            background-color: #000000 !important;
+            color: #ffffff !important;
+        }
+        body.high-contrast .glass-panel {
+            background: #000000 !important;
+            border: 2px solid #ffffff !important;
+            box-shadow: none !important;
+        }
+        body.high-contrast .arcade-btn {
+            border: 2px solid #ffffff !important;
+            box-shadow: none !important;
+        }
+
+        /* Colorblind Friendly Overrides (Protanopia/Deuteranopia tuning) */
+        body.colorblind-mode .arcade-btn-primary {
+            background: linear-gradient(135deg, #0077bb, #004488) !important;
+            border-bottom: 4px solid #002244 !important;
+        }
+        body.colorblind-mode .arcade-btn-danger {
+            background: linear-gradient(135deg, #ee7733, #cc3311) !important;
+            border-bottom: 4px solid #881100 !important;
+        }
+
+        /* Large Text Mode */
+        body.large-text {
+            font-size: 120%;
+        }
+        body.large-text .font-title {
+            font-size: 130%;
+        }
+
+        /* Reduced Motion */
+        body.reduced-motion *,
+        body.reduced-motion *::before,
+        body.reduced-motion *::after {
+            animation: none !important;
+            transition: none !important;
+        }
+
+        /* Canvas Overlay */
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Dynamic Screen Shake */
+        .screen-shake {
+            animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        /* Keyframe Floating Pitch Animation */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+        .animate-float {
+            animation: floatSlow 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen relative flex flex-col justify-between overflow-x-hidden antialiased">
+
+    <canvas id="bgCanvas"></canvas>
+
+    <!-- Global Toast Notification Center -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Main Dynamic Application Container -->
+    <div class="relative z-10 min-h-screen flex flex-col justify-between p-3 sm:p-6 max-w-5xl mx-auto w-full">
+
+        <!-- Header / Status Bar -->
+        <header class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="app.showScreen('mainMenuScreen')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-900 shadow-lg glow-green">
+                    <i class="fa-solid font-bold fa-futbol text-2xl animate-spin" style="animation-duration: 12s;"></i>
+                </div>
+                <div>
+                    <h1 class="font-title text-3xl sm:text-4xl font-bold tracking-wider leading-none text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-200 to-cyan-400">
+                        QUIZ BATTLE ROYALE
+                    </h1>
+                    <p class="text-xs text-slate-400 font-semibold uppercase tracking-widest hidden sm:block">Football Trivia Champions</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="quickSoundBtn" onclick="sound.toggleSound()" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700/50" title="Toggle Sound">
+                    <i id="quickSoundIcon" class="fa-solid fa-volume-high text-lg"></i>
+                </button>
+                <button onclick="app.showScreen('settingsScreen')" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700/50" title="Settings">
+                    <i class="fa-solid fa-gear text-lg"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- SCREEN 1: MAIN MENU -->
+        <main id="mainMenuScreen" class="app-screen my-auto py-8 flex flex-col items-center text-center">
+            <div class="animate-float mb-6">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs sm:text-sm font-semibold uppercase tracking-widest">
+                    <i class="fa-solid fa-trophy text-amber-400"></i> Season 2026 Edition
+                </div>
+                <h2 class="font-title text-6xl sm:text-8xl font-black text-white leading-none tracking-wide mt-2 drop-shadow-2xl">
+                    FOOTBALL <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-amber-300 to-cyan-400">SHOWDOWN</span>
+                </h2>
+                <p class="text-slate-300 max-w-lg mx-auto text-sm sm:text-base mt-2">
+                    Test your football knowledge! Answer 10 fast-paced trivia questions, trigger combo multipliers, and earn your Golden Boot trophy!
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md my-4">
+                <button onclick="app.showScreen('modeSelectScreen')" class="arcade-btn arcade-btn-primary py-4 px-6 rounded-2xl text-xl font-bold flex items-center justify-center gap-3 text-slate-950 shadow-xl col-span-1 sm:col-span-2">
+                    <i class="fa-solid fa-play text-2xl"></i> PLAY GAME
+                </button>
+                <button onclick="app.showScreen('highScoresScreen')" class="arcade-btn arcade-btn-secondary py-3 px-5 rounded-xl font-bold flex items-center justify-center gap-2 text-white">
+                    <i class="fa-solid fa-ranking-star text-amber-300"></i> High Scores
+                </button>
+                <button onclick="app.showScreen('achievementsScreen')" class="arcade-btn arcade-btn-warning py-3 px-5 rounded-xl font-bold flex items-center justify-center gap-2 text-slate-950">
+                    <i class="fa-solid fa-award"></i> Trophies
+                </button>
+                <button onclick="app.showScreen('statisticsScreen')" class="arcade-btn arcade-btn-dark py-3 px-5 rounded-xl font-bold flex items-center justify-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-chart-line text-cyan-400"></i> Statistics
+                </button>
+                <button onclick="app.showScreen('howToPlayScreen')" class="arcade-btn arcade-btn-dark py-3 px-5 rounded-xl font-bold flex items-center justify-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-circle-question text-emerald-400"></i> How To Play
+                </button>
+                <button onclick="app.showScreen('accessibilityScreen')" class="arcade-btn arcade-btn-dark py-3 px-5 rounded-xl font-bold flex items-center justify-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-universal-access text-purple-400"></i> Accessibility
+                </button>
+                <button onclick="app.showScreen('aboutScreen')" class="arcade-btn arcade-btn-dark py-3 px-5 rounded-xl font-bold flex items-center justify-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-circle-info text-blue-400"></i> About
+                </button>
+            </div>
+        </main>
+
+        <!-- SCREEN 2: GAME MODE SELECT -->
+        <section id="modeSelectScreen" class="app-screen hidden my-auto py-6 max-w-2xl mx-auto w-full">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="font-title text-4xl text-emerald-400 font-bold flex items-center gap-3">
+                        <i class="fa-solid fa-gamepad"></i> Select Match Mode
+                    </h2>
+                    <button onclick="app.showScreen('mainMenuScreen')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-all">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Back
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div onclick="app.startGame('classic')" class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-emerald-500 transition-all flex items-center justify-between group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-2xl group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-futbol"></i>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">Classic Match</h3>
+                                <p class="text-xs sm:text-sm text-slate-400">10 Questions, standard timer, jokers/lifelines enabled!</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all"></i>
+                    </div>
+
+                    <div onclick="app.startGame('speed')" class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-amber-500 transition-all flex items-center justify-between group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-2xl group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-stopwatch"></i>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-xl font-bold text-white group-hover:text-amber-400 transition-colors">Speed Run</h3>
+                                <p class="text-xs sm:text-sm text-slate-400">10 Seconds per question! Earn extra bonus speed points.</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all"></i>
+                    </div>
+
+                    <div onclick="app.startGame('sudden')" class="glass-panel p-5 rounded-2xl cursor-pointer hover:border-rose-500 transition-all flex items-center justify-between group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 text-2xl group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-skull"></i>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-xl font-bold text-white group-hover:text-rose-400 transition-colors">Sudden Death</h3>
+                                <p class="text-xs sm:text-sm text-slate-400">One wrong answer and game over! How far can you survive?</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-rose-400 group-hover:translate-x-1 transition-all"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 3: GAMEPLAY -->
+        <section id="gameplayScreen" class="app-screen hidden my-auto py-4 max-w-3xl mx-auto w-full">
+            <!-- Top HUD Bar -->
+            <div class="flex items-center justify-between gap-3 mb-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-lg">
+                <div class="flex items-center gap-3">
+                    <button onclick="app.pauseGame()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition-all">
+                        <i class="fa-solid fa-pause"></i>
+                    </button>
+                    <div>
+                        <span class="text-xs text-slate-400 font-semibold uppercase block">Question</span>
+                        <span id="questionProgressText" class="font-title text-2xl font-bold text-emerald-400">1 / 10</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="text-center">
+                        <span class="text-xs text-slate-400 font-semibold uppercase block">Streak</span>
+                        <div id="streakBadge" class="flex items-center gap-1 font-bold text-amber-400 text-lg">
+                            <i class="fa-solid fa-fire text-amber-500"></i> <span id="streakCountText">0</span>x
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-400 font-semibold uppercase block">Score</span>
+                        <span id="currentScoreText" class="font-title text-3xl font-bold text-white">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question & Timer Card -->
+            <div id="questionContainer" class="glass-panel rounded-3xl p-6 sm:p-8 relative overflow-hidden">
+                <!-- Timer Bar -->
+                <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden mb-6 relative">
+                    <div id="timerProgressBar" class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 transition-all duration-100 ease-linear w-full"></div>
+                </div>
+
+                <div class="flex justify-between items-center text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
+                    <span id="categoryTag" class="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-emerald-400">
+                        <i class="fa-solid fa-tag mr-1"></i> Football Trivia
+                    </span>
+                    <span id="timerText" class="text-amber-400 font-bold text-sm">
+                        <i class="fa-solid fa-clock mr-1"></i> 15s
+                    </span>
+                </div>
+
+                <!-- Question Text -->
+                <h3 id="questionTitle" class="text-2xl sm:text-3xl font-bold text-white leading-snug my-4">
+                    Loading question...
+                </h3>
+
+                <!-- Answer Options Grid -->
+                <div id="answersGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-6">
+                    <!-- Dynamic Buttons Generated Here -->
+                </div>
+
+                <!-- Lifelines / Jokers Row -->
+                <div id="jokersRow" class="flex items-center justify-center gap-3 mt-8 pt-4 border-t border-slate-800">
+                    <span class="text-xs text-slate-400 font-bold uppercase tracking-wider mr-2 hidden sm:inline">Lifelines:</span>
+                    <button id="joker5050" onclick="app.useJoker('5050')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-all">
+                        <i class="fa-solid fa-scissors"></i> 50:50
+                    </button>
+                    <button id="jokerTime" onclick="app.useJoker('time')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 text-xs font-bold flex items-center gap-1.5 transition-all">
+                        <i class="fa-solid fa-hourglass-plus"></i> +15s
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 4: PAUSE MENU MODAL -->
+        <div id="pauseModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8 max-w-md w-full text-center">
+                <h2 class="font-title text-5xl text-amber-400 font-bold mb-2">MATCH PAUSED</h2>
+                <p class="text-slate-300 text-sm mb-6">Take a breath, manager! The match timer is stopped.</p>
+
+                <div class="space-y-3">
+                    <button onclick="app.resumeGame()" class="arcade-btn arcade-btn-primary w-full py-3.5 rounded-xl font-bold text-slate-950 text-lg flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play"></i> Resume Match
+                    </button>
+                    <button onclick="app.restartGame()" class="arcade-btn arcade-btn-secondary w-full py-3.5 rounded-xl font-bold text-white text-lg flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i> Restart Match
+                    </button>
+                    <button onclick="app.showScreen('settingsScreen')" class="arcade-btn arcade-btn-dark w-full py-3 rounded-xl font-bold text-slate-200 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-gear"></i> Settings
+                    </button>
+                    <button onclick="app.showScreen('howToPlayScreen')" class="arcade-btn arcade-btn-dark w-full py-3 rounded-xl font-bold text-slate-200 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-circle-question"></i> Rules & How to Play
+                    </button>
+                    <button onclick="app.showScreen('mainMenuScreen')" class="arcade-btn arcade-btn-danger w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-house"></i> Quit to Main Menu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 5: GAME OVER / VICTORY SUMMARY -->
+        <div id="gameOverModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-lg hidden flex items-center justify-center p-4">
+            <div class="glass-panel-gold rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center relative overflow-hidden">
+                <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-400 to-yellow-200 text-slate-950 flex items-center justify-center text-4xl shadow-2xl mb-4 glow-gold animate-bounce">
+                    <i id="gameOverIcon" class="fa-solid fa-trophy"></i>
+                </div>
+
+                <div id="newHighScoreBadge" class="hidden inline-block bg-amber-400 text-slate-950 font-black text-xs px-3 py-1 rounded-full uppercase tracking-widest mb-2 shadow-md">
+                    🎉 New High Score!
+                </div>
+
+                <h2 id="finalTitleText" class="font-title text-5xl font-black text-white leading-none">
+                    MATCH RESULT
+                </h2>
+                <p id="finalMsgText" class="text-amber-300 font-semibold text-base sm:text-lg my-2">
+                    Congratulations on completing the match!
+                </p>
+
+                <div class="grid grid-cols-2 gap-3 my-6 text-left">
+                    <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Final Score</span>
+                        <span id="summaryScoreText" class="font-title text-3xl font-bold text-emerald-400">0 / 10</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Best Streak</span>
+                        <span id="summaryStreakText" class="font-title text-3xl font-bold text-amber-400">0</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Accuracy</span>
+                        <span id="summaryAccuracyText" class="font-title text-3xl font-bold text-cyan-400">0%</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Total Points</span>
+                        <span id="summaryPointsText" class="font-title text-3xl font-bold text-white">0</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button onclick="app.startGame('classic')" class="arcade-btn arcade-btn-primary flex-1 py-3.5 rounded-xl font-bold text-slate-950 text-base flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i> Play Again
+                    </button>
+                    <button onclick="app.shareScore()" class="arcade-btn arcade-btn-secondary py-3.5 px-5 rounded-xl font-bold text-white text-base flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-share-nodes"></i> Share
+                    </button>
+                    <button onclick="app.showScreen('mainMenuScreen')" class="arcade-btn arcade-btn-dark py-3.5 px-5 rounded-xl font-bold text-slate-200 text-base flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-house"></i> Menu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 6: HIGH SCORES -->
+        <section id="highScoresScreen" class="app-screen hidden my-auto py-6 max-w-2xl mx-auto w-full">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="font-title text-4xl text-amber-400 font-bold flex items-center gap-3">
+                        <i class="fa-solid fa-trophy"></i> High Scores Leaderboard
+                    </h2>
+                    <button onclick="app.showScreen('mainMenuScreen')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-all">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Back
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-amber-500/30 text-center">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Best Points</span>
+                        <span id="hsBestPoints" class="font-title text-4xl font-bold text-amber-400">0</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-emerald-500/30 text-center">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Best Classic Score</span>
+                        <span id="hsBestScore" class="font-title text-4xl font-bold text-emerald-400">0 / 10</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-cyan-500/30 text-center">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Max Streak</span>
+                        <span id="hsBestStreak" class="font-title text-4xl font-bold text-cyan-400">0</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+                    <div class="p-4 bg-slate-900 border-b border-slate-800 text-xs text-slate-400 uppercase font-bold flex justify-between">
+                        <span>Rank / Match Mode</span>
+                        <span>Points & Score</span>
+                    </div>
+                    <div id="highScoresList" class="divide-y divide-slate-800 text-sm">
+                        <!-- Dynamic Leaderboard Entries -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 7: ACHIEVEMENTS -->
+        <section id="achievementsScreen" class="app-screen hidden my-auto py-6 max-w-2xl mx-auto w-full">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="font-title text-4xl text-amber-400 font-bold flex items-center gap-3">
+                            <i class="fa-solid fa-award"></i> Trophies & Achievements
+                        </h2>
+                        <p class="text-xs text-slate-400">Unlock stadium badges as you play!</p>
+                    </div>
+                    <button onclick="app.showScreen('mainMenuScreen')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-all">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Back
+                    </button>
+                </div>
+
+                <div id="achievementsList" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Dynamic Achievements Grid -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 8: STATISTICS -->
+        <section id="statisticsScreen" class="app-screen hidden my-auto py-6 max-w-2xl mx-auto w-full">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="font-title text-4xl text-cyan-400 font-bold flex items-center gap-3">
+                        <i class="fa-solid fa-chart-line"></i> Lifetime Statistics
+                    </h2>
+                    <button onclick="app.showScreen('mainMenuScreen')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-all">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Back
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-center">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Matches Played</span>
+                        <span id="statMatchesPlayed" class="font-title text-3xl font-bold text-white">0</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-center">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Correct Answers</span>
+                        <span id="statCorrectAnswers" class="font-title text-3xl font-bold text-emerald-400">0</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-center">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Total Questions</span>
+                        <span id="statTotalQuestions" class="font-title text-3xl font-bold text-slate-300">0</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-center">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Global Accuracy</span>
+                        <span id="statAccuracy" class="font-title text-3xl font-bold text-amber-400">0%</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-center">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Lifelines Used</span>
+                        <span id="statLifelines" class="font-title text-3xl font-bold text-purple-400">0</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-center">
+                        <span class="text-xs text-slate-400 uppercase font-bold block">Trophies Unlocked</span>
+                        <span id="statTrophies" class="font-title text-3xl font-bold text-yellow-400">0 / 6</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 9: SETTINGS -->
+        <section id="settingsScreen" class="app-screen hidden my-auto py-6 max-w-2xl mx-auto w-full">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="font-title text-4xl text-slate-200 font-bold flex items-center gap-3">
+                        <i class="fa-solid fa-gear"></i> Game Settings
+                    </h2>
+                    <button onclick="app.showScreen('mainMenuScreen')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-all">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Back
+                    </button>
+                </div>
+
+                <div class="space-y-5">
+                    <div class="flex items-center justify-between p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                        <div>
+                            <h4 class="font-bold text-white">Sound Effects</h4>
+                            <p class="text-xs text-slate-400">Whistles, correct buzzers, and crowd chimes</p>
+                        </div>
+                        <input type="checkbox" id="settingSoundToggle" onchange="sound.toggleSound(this.checked)" class="w-6 h-6 accent-emerald-500 rounded cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                        <div>
+                            <h4 class="font-bold text-white">Screen Shake Effects</h4>
+                            <p class="text-xs text-slate-400">Visual vibration on correct or wrong streak</p>
+                        </div>
+                        <input type="checkbox" id="settingShakeToggle" onchange="app.toggleShake(this.checked)" class="w-6 h-6 accent-emerald-500 rounded cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                        <div>
+                            <h4 class="font-bold text-white">Particle Arena Effects</h4>
+                            <p class="text-xs text-slate-400">Floating ambient football particles in background</p>
+                        </div>
+                        <input type="checkbox" id="settingParticleToggle" onchange="app.toggleParticles(this.checked)" class="w-6 h-6 accent-emerald-500 rounded cursor-pointer">
+                    </div>
+
+                    <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-white">Reset Saved Data</h4>
+                            <p class="text-xs text-slate-400">Clear high scores, achievements, and stats</p>
+                        </div>
+                        <button onclick="app.resetAllData()" class="px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all">
+                            Reset All Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 10: ACCESSIBILITY -->
+        <section id="accessibilityScreen" class="app-screen hidden my-auto py-6 max-w-2xl mx-auto w-full">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="font-title text-4xl text-purple-400 font-bold flex items-center gap-3">
+                        <i class="fa-solid fa-universal-access"></i> Accessibility Features
+                    </h2>
+                    <button onclick="app.showScreen('mainMenuScreen')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-all">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Back
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                        <div>
+                            <h4 class="font-bold text-white">High Contrast Mode</h4>
+                            <p class="text-xs text-slate-400">Pure black background with maximum contrast borders</p>
+                        </div>
+                        <input type="checkbox" id="accHighContrast" onchange="accessibility.setHighContrast(this.checked)" class="w-6 h-6 accent-purple-500 cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                        <div>
+                            <h4 class="font-bold text-white">Colorblind Friendly Palette</h4>
+                            <p class="text-xs text-slate-400">Uses distinct high-visibility blue and orange styling</p>
+                        </div>
+                        <input type="checkbox" id="accColorblind" onchange="accessibility.setColorblind(this.checked)" class="w-6 h-6 accent-purple-500 cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                        <div>
+                            <h4 class="font-bold text-white">Large Text & UI Scale</h4>
+                            <p class="text-xs text-slate-400">Increases font sizes across questions and buttons</p>
+                        </div>
+                        <input type="checkbox" id="accLargeText" onchange="accessibility.setLargeText(this.checked)" class="w-6 h-6 accent-purple-500 cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                        <div>
+                            <h4 class="font-bold text-white">Reduced Motion</h4>
+                            <p class="text-xs text-slate-400">Disables non-essential animations and canvas movement</p>
+                        </div>
+                        <input type="checkbox" id="accReducedMotion" onchange="accessibility.setReducedMotion(this.checked)" class="w-6 h-6 accent-purple-500 cursor-pointer">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 11: HOW TO PLAY -->
+        <section id="howToPlayScreen" class="app-screen hidden my-auto py-6 max-w-2xl mx-auto w-full">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="font-title text-4xl text-emerald-400 font-bold flex items-center gap-3">
+                        <i class="fa-solid fa-circle-question"></i> How To Play
+                    </h2>
+                    <button onclick="app.showScreen('mainMenuScreen')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-all">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Back
+                    </button>
+                </div>
+
+                <div class="space-y-4 text-slate-300 text-sm leading-relaxed">
+                    <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center shrink-0">1</div>
+                        <div>
+                            <h4 class="font-bold text-white mb-1">Answer 10 Football Questions</h4>
+                            <p>Each match consists of 10 exciting multiple-choice questions about World Cups, legendary players, famous clubs, and match rules.</p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center shrink-0">2</div>
+                        <div>
+                            <h4 class="font-bold text-white mb-1">Build Streak Multipliers</h4>
+                            <p>Answering consecutively correct builds your Hot Streak multiplier! Fast answers grant extra time bonus points.</p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 font-bold flex items-center justify-center shrink-0">3</div>
+                        <div>
+                            <h4 class="font-bold text-white mb-1">Use Strategic Lifelines</h4>
+                            <p>Stuck on a tricky question? Use the <strong>50:50 Lifeline</strong> to remove two incorrect options or <strong>+15s Extra Time</strong> to think!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 12: ABOUT THE GAME -->
+        <section id="aboutScreen" class="app-screen hidden my-auto py-6 max-w-2xl mx-auto w-full">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="font-title text-4xl text-blue-400 font-bold flex items-center gap-3">
+                        <i class="fa-solid fa-circle-info"></i> About Quiz Battle Royale
+                    </h2>
+                    <button onclick="app.showScreen('mainMenuScreen')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-all">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Back
+                    </button>
+                </div>
+
+                <div class="space-y-4 text-slate-300 text-sm leading-relaxed">
+                    <p>
+                        <strong>Quiz Battle Royale</strong> is an arcade football trivia game specifically designed for students aged 10-14. It combines stadium stadium atmosphere, fun trivia challenges, and fast-paced streak scoring mechanics!
+                    </p>
+                    <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                        <h4 class="font-bold text-emerald-400 mb-1">Key Highlights:</h4>
+                        <ul class="list-disc list-inside space-y-1 text-slate-300">
+                            <li>10 curated high-energy football trivia questions</li>
+                            <li>Interactive jokers & streak combo multipliers</li>
+                            <li>Multiple game modes: Classic, Speed Run & Sudden Death</li>
+                            <li>Full accessibility support and offline local data saving</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 13: CREDITS -->
+        <footer class="pt-6 border-t border-slate-800/60 text-center text-xs text-slate-500">
+            <p class="font-medium hover:text-slate-400 transition-colors">
+                Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved.
+            </p>
+        </footer>
+
+    </div>
+
+    <script>
+        /* Web Audio API Synthesizer for Arcade Sounds */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                }
+            }
+
+            toggleSound(forceState) {
+                this.enabled = forceState !== undefined ? forceState : !this.enabled;
+                const icon = document.getElementById('quickSoundIcon');
+                const toggle = document.getElementById('settingSoundToggle');
+                if (icon) icon.className = this.enabled ? 'fa-solid fa-volume-high text-lg' : 'fa-solid fa-volume-xmark text-lg text-rose-400';
+                if (toggle) toggle.checked = this.enabled;
+            }
+
+            playClick() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            }
+
+            playCorrect() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.06);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime + idx * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.06 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.06);
+                    osc.stop(this.ctx.currentTime + idx * 0.06 + 0.2);
+                });
+            }
+
+            playWrong() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+
+            playWhistle() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                [2800, 2850].forEach(freq => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.25);
+                });
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        class AccessibilityManager {
+            constructor() {
+                this.config = {
+                    highContrast: false,
+                    colorblind: false,
+                    largeText: false,
+                    reducedMotion: false
+                };
+                this.loadSettings();
+            }
+
+            loadSettings() {
+                const saved = localStorage.getItem('qbr_acc_settings');
+                if (saved) {
+                    try { this.config = JSON.parse(saved); } catch (e) {}
+                }
+                this.applyAll();
+            }
+
+            saveSettings() {
+                localStorage.setItem('qbr_acc_settings', JSON.stringify(this.config));
+            }
+
+            applyAll() {
+                document.body.classList.toggle('high-contrast', this.config.highContrast);
+                document.body.classList.toggle('colorblind-mode', this.config.colorblind);
+                document.body.classList.toggle('large-text', this.config.largeText);
+                document.body.classList.toggle('reduced-motion', this.config.reducedMotion);
+
+                const elHC = document.getElementById('accHighContrast');
+                const elCB = document.getElementById('accColorblind');
+                const elLT = document.getElementById('accLargeText');
+                const elRM = document.getElementById('accReducedMotion');
+
+                if (elHC) elHC.checked = this.config.highContrast;
+                if (elCB) elCB.checked = this.config.colorblind;
+                if (elLT) elLT.checked = this.config.largeText;
+                if (elRM) elRM.checked = this.config.reducedMotion;
+            }
+
+            setHighContrast(val) { this.config.highContrast = val; this.saveSettings(); this.applyAll(); }
+            setColorblind(val) { this.config.colorblind = val; this.saveSettings(); this.applyAll(); }
+            setLargeText(val) { this.config.largeText = val; this.saveSettings(); this.applyAll(); }
+            setReducedMotion(val) { this.config.reducedMotion = val; this.saveSettings(); this.applyAll(); }
+        }
+
+        const accessibility = new AccessibilityManager();
+
+        const QUESTIONS_BANK = [
+            {
+                q: "How long is a standard professional football match (excluding extra time)?",
+                options: ["80 Minutes", "90 Minutes", "100 Minutes", "60 Minutes"],
+                answer: 1,
+                category: "Match Rules"
+            },
+            {
+                q: "Which country won the 2022 FIFA Men's World Cup in Qatar?",
+                options: ["France", "Brazil", "Argentina", "England"],
+                answer: 2,
+                category: "World Cup"
+            },
+            {
+                q: "What card does the referee show to completely dismiss a player from the match?",
+                options: ["Yellow Card", "Green Card", "Blue Card", "Red Card"],
+                answer: 3,
+                category: "Referee Rules"
+            },
+            {
+                q: "Which legendary player is famous for wearing number 10 for Argentina and winning 8 Ballons d'Or?",
+                options: ["Cristiano Ronaldo", "Lionel Messi", "Kylian Mbappé", "Erling Haaland"],
+                answer: 1,
+                category: "Superstars"
+            },
+            {
+                q: "How many outfield players plus goalkeeper are on the pitch for ONE team at kickoff?",
+                options: ["11 Players", "10 Players", "12 Players", "9 Players"],
+                answer: 0,
+                category: "Match Rules"
+            },
+            {
+                q: "What is it called when a single football player scores 3 goals in one game?",
+                options: ["Double Play", "Slam Dunk", "Hat-trick", "Grand Slam"],
+                answer: 2,
+                category: "Match Terms"
+            },
+            {
+                q: "Which body part are outfield players NOT allowed to use during open pitch play?",
+                options: ["Head", "Chest", "Feet", "Hands and Arms"],
+                answer: 3,
+                category: "Match Rules"
+            },
+            {
+                q: "Which nation has won the most FIFA World Cup titles in men's history (5 times)?",
+                options: ["Germany", "Brazil", "Italy", "Argentina"],
+                answer: 1,
+                category: "World Cup"
+            },
+            {
+                q: "What award is given annually to the best football player in the world?",
+                options: ["Super Bowl Trophy", "Ballon d'Or", "Golden Glove", "Champions Shield"],
+                answer: 1,
+                category: "Awards"
+            },
+            {
+                q: "What happens if a defender commits a foul inside their own penalty box?",
+                options: ["Penalty Kick", "Free Throw", "Corner Kick", "Goal Kick"],
+                answer: 0,
+                category: "Referee Rules"
+            }
+        ];
+
+        /* Achievements Definitions */
+        const ACHIEVEMENTS_DATA = [
+            { id: "first_win", name: "First Kickoff", desc: "Complete your first football trivia match", icon: "fa-futbol" },
+            { id: "hat_trick", name: "Hat-Trick Streak", desc: "Answer 3 questions correctly in a row", icon: "fa-fire" },
+            { id: "clean_sheet", name: "Clean Sheet Champion", desc: "Score 10 / 10 in Classic Mode", icon: "fa-shield-halved" },
+            { id: "speed_demon", name: "Lightning Striker", desc: "Complete a question in under 3 seconds", icon: "fa-bolt" },
+            { id: "lifeline_master", name: "Tactical Manager", desc: "Use both lifelines in a single match", icon: "fa-wand-magic-sparkles" },
+            { id: "veteran", name: "Seasoned Veteran", desc: "Play 5 total matches", icon: "fa-medal" }
+        ];
+
+        class QuizBattleRoyaleApp {
+            constructor() {
+                this.currentMode = 'classic';
+                this.currentQuestionIdx = 0;
+                this.score = 0;
+                this.totalPoints = 0;
+                this.streak = 0;
+                this.maxStreak = 0;
+                this.timer = null;
+                this.timeLeft = 15;
+                this.questionStartTime = 0;
+                this.jokersUsed = { '5050': false, 'time': false };
+                this.shakeEnabled = true;
+                this.particlesEnabled = true;
+
+                this.stats = {
+                    matchesPlayed: 0,
+                    correctAnswers: 0,
+                    totalQuestions: 0,
+                    lifelinesUsed: 0,
+                    unlockedAchievements: []
+                };
+
+                this.highScores = [];
+                this.initStorage();
+            }
+
+            initStorage() {
+                const savedStats = localStorage.getItem('qbr_stats');
+                if (savedStats) {
+                    try { this.stats = { ...this.stats, ...JSON.parse(savedStats) }; } catch (e) {}
+                }
+
+                const savedHS = localStorage.getItem('qbr_highscores');
+                if (savedHS) {
+                    try { this.highScores = JSON.parse(savedHS); } catch (e) {}
+                }
+            }
+
+            saveData() {
+                localStorage.setItem('qbr_stats', JSON.stringify(this.stats));
+                localStorage.setItem('qbr_highscores', JSON.stringify(this.highScores));
+            }
+
+            showToast(message, icon = 'fa-star') {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                toast.className = 'glass-panel px-4 py-3 rounded-2xl flex items-center gap-3 text-emerald-400 font-bold text-sm shadow-2xl transition-all duration-300 transform translate-y-[-10px] opacity-0';
+                toast.innerHTML = `<i class="fa-solid ${icon} text-amber-400 text-lg"></i> <span>${message}</span>`;
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-[-10px]', 'opacity-0');
+                }, 10);
+
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-[-10px]');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+
+            showScreen(screenId) {
+                sound.playClick();
+                document.querySelectorAll('.app-screen').forEach(s => s.classList.add('hidden'));
+                document.getElementById('pauseModal').classList.add('hidden');
+                document.getElementById('gameOverModal').classList.add('hidden');
+
+                const target = document.getElementById(screenId);
+                if (target) target.classList.remove('hidden');
+
+                if (screenId === 'highScoresScreen') this.renderHighScores();
+                if (screenId === 'achievementsScreen') this.renderAchievements();
+                if (screenId === 'statisticsScreen') this.renderStats();
+            }
+
+            startGame(mode = 'classic') {
+                sound.playWhistle();
+                this.currentMode = mode;
+                this.currentQuestionIdx = 0;
+                this.score = 0;
+                this.totalPoints = 0;
+                this.streak = 0;
+                this.maxStreak = 0;
+                this.jokersUsed = { '5050': false, 'time': false };
+
+                // Reset Joker Buttons
+                const btn50 = document.getElementById('joker5050');
+                const btnTime = document.getElementById('jokerTime');
+                if (btn50) { btn50.disabled = false; btn50.classList.remove('opacity-40'); }
+                if (btnTime) { btnTime.disabled = false; btnTime.classList.remove('opacity-40'); }
+
+                this.showScreen('gameplayScreen');
+                this.loadQuestion();
+            }
+
+            loadQuestion() {
+                if (this.timer) clearInterval(this.timer);
+
+                if (this.currentQuestionIdx >= QUESTIONS_BANK.length) {
+                    this.finishMatch();
+                    return;
+                }
+
+                const qData = QUESTIONS_BANK[this.currentQuestionIdx];
+                document.getElementById('questionProgressText').innerText = `${this.currentQuestionIdx + 1} / ${QUESTIONS_BANK.length}`;
+                document.getElementById('questionTitle').innerText = qData.q;
+                document.getElementById('categoryTag').innerHTML = `<i class="fa-solid fa-tag mr-1"></i> ${qData.category}`;
+                document.getElementById('currentScoreText').innerText = this.score;
+                document.getElementById('streakCountText').innerText = this.streak;
+
+                // Render Answers
+                const grid = document.getElementById('answersGrid');
+                grid.innerHTML = '';
+
+                const labels = ['A', 'B', 'C', 'D'];
+                qData.options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'arcade-btn arcade-btn-dark p-4 rounded-2xl text-left font-semibold text-white flex items-center justify-between text-sm sm:text-base transition-all group';
+                    btn.onclick = () => this.answerQuestion(idx);
+                    btn.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-xl bg-slate-800 text-emerald-400 font-bold flex items-center justify-center shrink-0 border border-slate-700">${labels[idx]}</span>
+                            <span class="option-text">${opt}</span>
+                        </div>
+                        <i class="fa-solid fa-circle-check text-slate-600 group-hover:text-emerald-400 transition-colors"></i>
+                    `;
+                    grid.appendChild(btn);
+                });
+
+                // Set Timer
+                this.timeLeft = this.currentMode === 'speed' ? 10 : 15;
+                this.questionStartTime = Date.now();
+                this.updateTimerUI();
+
+                this.timer = setInterval(() => {
+                    this.timeLeft -= 0.1;
+                    if (this.timeLeft <= 0) {
+                        this.timeLeft = 0;
+                        clearInterval(this.timer);
+                        this.handleTimeOut();
+                    }
+                    this.updateTimerUI();
+                }, 100);
+            }
+
+            updateTimerUI() {
+                const maxTime = this.currentMode === 'speed' ? 10 : 15;
+                const pct = Math.max(0, (this.timeLeft / maxTime) * 100);
+                const bar = document.getElementById('timerProgressBar');
+                const txt = document.getElementById('timerText');
+
+                if (bar) bar.style.width = `${pct}%`;
+                if (txt) txt.innerHTML = `<i class="fa-solid fa-clock mr-1"></i> ${Math.ceil(this.timeLeft)}s`;
+            }
+
+            answerQuestion(selectedIdx) {
+                if (this.timer) clearInterval(this.timer);
+
+                const qData = QUESTIONS_BANK[this.currentQuestionIdx];
+                const timeTaken = (Date.now() - this.questionStartTime) / 1000;
+                const buttons = document.querySelectorAll('#answersGrid button');
+
+                // Check answer
+                const isCorrect = (selectedIdx === qData.answer);
+                this.stats.totalQuestions++;
+
+                if (isCorrect) {
+                    sound.playCorrect();
+                    this.score++;
+                    this.stats.correctAnswers++;
+                    this.streak++;
+                    if (this.streak > this.maxStreak) this.maxStreak = this.streak;
+
+                    // Calculate score points with streak multiplier
+                    const speedBonus = Math.floor(this.timeLeft * 10);
+                    const multiplier = 1 + (this.streak * 0.2);
+                    const questionPoints = Math.floor((100 + speedBonus) * multiplier);
+                    this.totalPoints += questionPoints;
+
+                    // Highlight Green
+                    if (buttons[selectedIdx]) {
+                        buttons[selectedIdx].className = 'arcade-btn arcade-btn-primary p-4 rounded-2xl text-left font-bold text-slate-950 flex items-center justify-between text-sm sm:text-base glow-green';
+                    }
+
+                    if (timeTaken < 3) this.unlockAchievement('speed_demon');
+                    if (this.streak >= 3) this.unlockAchievement('hat_trick');
+
+                } else {
+                    sound.playWrong();
+                    this.streak = 0;
+
+                    if (this.shakeEnabled) {
+                        const container = document.getElementById('questionContainer');
+                        container.classList.add('screen-shake');
+                        setTimeout(() => container.classList.remove('screen-shake'), 400);
+                    }
+
+                    // Highlight Red
+                    if (buttons[selectedIdx]) {
+                        buttons[selectedIdx].className = 'arcade-btn arcade-btn-danger p-4 rounded-2xl text-left font-bold text-white flex items-center justify-between text-sm sm:text-base';
+                    }
+                    // Show correct answer in green
+                    if (buttons[qData.answer]) {
+                        buttons[qData.answer].className = 'arcade-btn arcade-btn-primary p-4 rounded-2xl text-left font-bold text-slate-950 flex items-center justify-between text-sm sm:text-base';
+                    }
+
+                    if (this.currentMode === 'sudden') {
+                        setTimeout(() => this.finishMatch(), 1000);
+                        return;
+                    }
+                }
+
+                // Lock buttons
+                buttons.forEach(b => b.disabled = true);
+
+                setTimeout(() => {
+                    this.currentQuestionIdx++;
+                    this.loadQuestion();
+                }, 1200);
+            }
+
+            handleTimeOut() {
+                sound.playWrong();
+                this.streak = 0;
+                this.stats.totalQuestions++;
+
+                const qData = QUESTIONS_BANK[this.currentQuestionIdx];
+                const buttons = document.querySelectorAll('#answersGrid button');
+                if (buttons[qData.answer]) {
+                    buttons[qData.answer].className = 'arcade-btn arcade-btn-primary p-4 rounded-2xl text-left font-bold text-slate-950 flex items-center justify-between text-sm sm:text-base';
+                }
+
+                if (this.currentMode === 'sudden') {
+                    setTimeout(() => this.finishMatch(), 1000);
+                    return;
+                }
+
+                setTimeout(() => {
+                    this.currentQuestionIdx++;
+                    this.loadQuestion();
+                }, 1200);
+            }
+
+            useJoker(type) {
+                if (this.jokersUsed[type]) return;
+                sound.playClick();
+                this.jokersUsed[type] = true;
+                this.stats.lifelinesUsed++;
+
+                if (type === '5050') {
+                    const btn = document.getElementById('joker5050');
+                    if (btn) { btn.disabled = true; btn.classList.add('opacity-40'); }
+
+                    const qData = QUESTIONS_BANK[this.currentQuestionIdx];
+                    const buttons = document.querySelectorAll('#answersGrid button');
+                    let removed = 0;
+
+                    buttons.forEach((b, idx) => {
+                        if (idx !== qData.answer && removed < 2) {
+                            b.style.visibility = 'hidden';
+                            removed++;
+                        }
+                    });
+                } else if (type === 'time') {
+                    const btn = document.getElementById('jokerTime');
+                    if (btn) { btn.disabled = true; btn.classList.add('opacity-40'); }
+                    this.timeLeft += 15;
+                    this.updateTimerUI();
+                }
+
+                if (this.jokersUsed['5050'] && this.jokersUsed['time']) {
+                    this.unlockAchievement('lifeline_master');
+                }
+            }
+
+            pauseGame() {
+                if (this.timer) clearInterval(this.timer);
+                document.getElementById('pauseModal').classList.remove('hidden');
+            }
+
+            resumeGame() {
+                sound.playClick();
+                document.getElementById('pauseModal').classList.add('hidden');
+                this.timer = setInterval(() => {
+                    this.timeLeft -= 0.1;
+                    if (this.timeLeft <= 0) {
+                        this.timeLeft = 0;
+                        clearInterval(this.timer);
+                        this.handleTimeOut();
+                    }
+                    this.updateTimerUI();
+                }, 100);
+            }
+
+            restartGame() {
+                this.startGame(this.currentMode);
+            }
+
+            finishMatch() {
+                sound.playWhistle();
+                this.stats.matchesPlayed++;
+                if (this.score === 10) this.unlockAchievement('clean_sheet');
+                if (this.stats.matchesPlayed >= 1) this.unlockAchievement('first_win');
+                if (this.stats.matchesPlayed >= 5) this.unlockAchievement('veteran');
+
+                const accuracy = Math.round((this.score / QUESTIONS_BANK.length) * 100);
+
+                // High score calculation
+                let isNewHS = false;
+                const existingHS = this.highScores[0] ? this.highScores[0].points : 0;
+                if (this.totalPoints > existingHS) isNewHS = true;
+
+                this.highScores.push({
+                    points: this.totalPoints,
+                    score: `${this.score}/10`,
+                    mode: this.currentMode.toUpperCase(),
+                    date: new Date().toLocaleDateString()
+                });
+                this.highScores.sort((a, b) => b.points - a.points);
+                this.highScores = this.highScores.slice(0, 10);
+
+                this.saveData();
+
+                // UI Updates for Game Over Screen
+                document.getElementById('summaryScoreText').innerText = `${this.score} / 10`;
+                document.getElementById('summaryStreakText').innerText = `${this.maxStreak}x`;
+                document.getElementById('summaryAccuracyText').innerText = `${accuracy}%`;
+                document.getElementById('summaryPointsText').innerText = this.totalPoints;
+
+                const hsBadge = document.getElementById('newHighScoreBadge');
+                if (hsBadge) hsBadge.classList.toggle('hidden', !isNewHS);
+
+                const msgEl = document.getElementById('finalMsgText');
+                if (this.score === 10) {
+                    msgEl.innerText = "🏆 GOAT! Golden Boot Winner! Flawless Victory!";
+                } else if (this.score >= 7) {
+                    msgEl.innerText = "⭐ World Class Performance! Great pitch vision!";
+                } else if (this.score >= 5) {
+                    msgEl.innerText = "⚽ Solid Player! Back to the training ground for extra flair!";
+                } else {
+                    msgEl.innerText = "📋 Rookie Season! Re-watch match highlights and try again!";
+                }
+
+                document.getElementById('gameOverModal').classList.remove('hidden');
+            }
+
+            shareScore() {
+                const text = `I scored ${this.score}/10 with ${this.totalPoints} points in Quiz Battle Royale! Can you beat my football trivia score?`;
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text);
+                    this.showToast("Score copied to clipboard!", "fa-share-nodes");
+                } else {
+                    this.showToast("Score: " + text, "fa-trophy");
+                }
+            }
+
+            unlockAchievement(id) {
+                if (!this.stats.unlockedAchievements.includes(id)) {
+                    this.stats.unlockedAchievements.push(id);
+                    this.saveData();
+                    const ach = ACHIEVEMENTS_DATA.find(a => a.id === id);
+                    if (ach) {
+                        this.showToast(`Trophy Unlocked: ${ach.name}!`, ach.icon);
+                    }
+                }
+            }
+
+            renderHighScores() {
+                const list = document.getElementById('highScoresList');
+                const bestPts = document.getElementById('hsBestPoints');
+                const bestScr = document.getElementById('hsBestScore');
+                const bestStr = document.getElementById('hsBestStreak');
+
+                if (bestPts) bestPts.innerText = this.highScores[0] ? this.highScores[0].points : 0;
+                if (bestScr) bestScr.innerText = this.highScores[0] ? this.highScores[0].score : '0/10';
+                if (bestStr) bestStr.innerText = `${this.maxStreak}x`;
+
+                if (!list) return;
+                list.innerHTML = '';
+
+                if (this.highScores.length === 0) {
+                    list.innerHTML = `<div class="p-4 text-center text-slate-500">No high scores recorded yet. Play a match!</div>`;
+                    return;
+                }
+
+                this.highScores.forEach((hs, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'p-3 flex justify-between items-center hover:bg-slate-800/40 transition-colors';
+                    row.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="font-title text-xl font-bold ${idx === 0 ? 'text-amber-400' : 'text-slate-400'}">#${idx + 1}</span>
+                            <div>
+                                <span class="font-bold text-white block">${hs.mode} MATCH</span>
+                                <span class="text-xs text-slate-500">${hs.date}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-title text-2xl font-bold text-emerald-400 block">${hs.points} pts</span>
+                            <span class="text-xs text-slate-400">${hs.score}</span>
+                        </div>
+                    `;
+                    list.appendChild(row);
+                });
+            }
+
+            renderAchievements() {
+                const container = document.getElementById('achievementsList');
+                if (!container) return;
+                container.innerHTML = '';
+
+                ACHIEVEMENTS_DATA.forEach(ach => {
+                    const isUnlocked = this.stats.unlockedAchievements.includes(ach.id);
+                    const card = document.createElement('div');
+                    card.className = `p-4 rounded-2xl border flex items-center gap-4 transition-all ${
+                        isUnlocked 
+                        ? 'bg-slate-900/80 border-amber-500/40 glow-gold' 
+                        : 'bg-slate-950/40 border-slate-800 opacity-50'
+                    }`;
+                    card.innerHTML = `
+                        <div class="w-12 h-12 rounded-xl ${isUnlocked ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-500'} flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid ${ach.icon}"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-base flex items-center gap-2">
+                                ${ach.name}
+                                ${isUnlocked ? '<i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>' : ''}
+                            </h4>
+                            <p class="text-xs text-slate-400">${ach.desc}</p>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            renderStats() {
+                const mp = document.getElementById('statMatchesPlayed');
+                const ca = document.getElementById('statCorrectAnswers');
+                const tq = document.getElementById('statTotalQuestions');
+                const ac = document.getElementById('statAccuracy');
+                const lu = document.getElementById('statLifelines');
+                const tr = document.getElementById('statTrophies');
+
+                const accuracyPct = this.stats.totalQuestions > 0 
+                    ? Math.round((this.stats.correctAnswers / this.stats.totalQuestions) * 100) 
+                    : 0;
+
+                if (mp) mp.innerText = this.stats.matchesPlayed;
+                if (ca) ca.innerText = this.stats.correctAnswers;
+                if (tq) tq.innerText = this.stats.totalQuestions;
+                if (ac) ac.innerText = `${accuracyPct}%`;
+                if (lu) lu.innerText = this.stats.lifelinesUsed;
+                if (tr) tr.innerText = `${this.stats.unlockedAchievements.length} / ${ACHIEVEMENTS_DATA.length}`;
+            }
+
+            toggleShake(val) { this.shakeEnabled = val; }
+            toggleParticles(val) { this.particlesEnabled = val; }
+
+            resetAllData() {
+                this.stats = {
+                    matchesPlayed: 0,
+                    correctAnswers: 0,
+                    totalQuestions: 0,
+                    lifelinesUsed: 0,
+                    unlockedAchievements: []
+                };
+                this.highScores = [];
+                this.saveData();
+                this.showToast("All saved data has been reset!", "fa-trash");
+                this.showScreen('mainMenuScreen');
+            }
+        }
+
+        const app = new QuizBattleRoyaleApp();
+
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 4 + 1;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.opacity = Math.random() * 0.4 + 0.1;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.fillStyle = `rgba(16, 185, 129, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 45; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (app.particlesEnabled && !accessibility.config.reducedMotion) {
+                particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+            }
+            requestAnimationFrame(animateCanvas);
+        }
+
+        window.onload = function() {
+            animateCanvas();
+        };
+    </script>
+</body>
+</html>

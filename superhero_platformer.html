@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HyperHero: City Saver</title>
+    <!-- Tailwind CSS for rapid modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B0F19;
+            color: #FFFFFF;
+            overflow: hidden;
+        }
+        .font-comic {
+            font-family: 'Bangers', cursive, sans-serif;
+            letter-spacing: 1.5px;
+        }
+        /* Custom Glowing & Comic Effects */
+        .neon-text-blue {
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.8), 0 0 20px rgba(56, 189, 248, 0.5);
+        }
+        .neon-text-yellow {
+            text-shadow: 0 0 10px rgba(250, 204, 21, 0.8), 0 0 20px rgba(250, 204, 21, 0.5);
+        }
+        .comic-border {
+            border: 3px solid #000000;
+            box-shadow: 5px 5px 0px #000000;
+        }
+        .comic-border-lg {
+            border: 4px solid #000000;
+            box-shadow: 8px 8px 0px #000000;
+        }
+        .btn-comic {
+            transition: all 0.1s ease;
+            position: relative;
+        }
+        .btn-comic:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 7px 7px 0px #000000;
+        }
+        .btn-comic:active {
+            transform: translate(2px, 2px);
+            box-shadow: 3px 3px 0px #000000;
+        }
+        /* Modal Backdrop */
+        .modal-bg {
+            background: rgba(11, 15, 25, 0.88);
+            backdrop-filter: blur(8px);
+        }
+        /* High Contrast Mode CSS Overrides */
+        body.high-contrast {
+            background-color: #000000 !important;
+            color: #FFFF00 !important;
+        }
+        body.high-contrast .comic-border, body.high-contrast .comic-border-lg {
+            border-color: #FFFFFF !important;
+            box-shadow: 5px 5px 0px #FFFFFF !important;
+        }
+        /* Colorblind Filters */
+        body.cb-protanopia { filter: url('#protanopia-filter'); }
+        body.cb-deuteranopia { filter: url('#deuteranopia-filter'); }
+        body.cb-tritanopia { filter: url('#tritanopia-filter'); }
+        /* Large Text Mode */
+        body.large-text {
+            font-size: 1.25rem;
+        }
+        body.large-text h1 { font-size: 3.5rem !important; }
+        body.large-text h2 { font-size: 2.5rem !important; }
+        body.large-text button { font-size: 1.35rem !important; padding: 0.85rem 1.5rem !important; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1E293B; }
+        ::-webkit-scrollbar-thumb { background: #3B82F6; border-radius: 4px; }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-center items-center select-none overflow-hidden">
+
+    <svg class="hidden">
+        <defs>
+            <filter id="protanopia-filter">
+                <feColorMatrix type="matrix" values="0.567,0.433,0,0,0 0.558,0.442,0,0,0 0,0.242,0.758,0,0 0,0,0,1,0"/>
+            </filter>
+            <filter id="deuteranopia-filter">
+                <feColorMatrix type="matrix" values="0.625,0.375,0,0,0 0.7,0.3,0,0,0 0,0.3,0.7,0,0 0,0,0,1,0"/>
+            </filter>
+            <filter id="tritanopia-filter">
+                <feColorMatrix type="matrix" values="0.95,0.05,0,0,0 0,0.433,0.567,0,0 0,0.475,0.525,0,0 0,0,0,1,0"/>
+            </filter>
+        </defs>
+    </svg>
+
+    <div id="game-container" class="relative w-full h-full max-w-[1280px] max-h-[720px] aspect-video bg-slate-900 overflow-hidden md:rounded-2xl border-4 border-slate-950 shadow-2xl flex flex-col justify-center items-center">
+        
+        <!-- Main Interactive Game Canvas -->
+        <canvas id="gameCanvas" class="w-full h-full block bg-slate-950"></canvas>
+
+        <!-- In-Game HUD (Timer, Coins, Controls) -->
+        <div id="hud-overlay" class="absolute top-0 left-0 w-full p-4 flex justify-between items-center pointer-events-none hidden z-10">
+            <div class="flex gap-4 items-center">
+                <div class="bg-slate-900/90 comic-border px-4 py-2 rounded-xl flex items-center gap-2">
+                    <span class="text-yellow-400 text-xl font-comic">TIME:</span>
+                    <span id="hud-timer" class="text-2xl font-comic text-white">00:00.0</span>
+                </div>
+                <div class="bg-slate-900/90 comic-border px-4 py-2 rounded-xl flex items-center gap-2">
+                    <span class="text-amber-400 text-2xl">⚡</span>
+                    <span id="hud-orbs" class="text-2xl font-comic text-amber-300">0 / 6</span>
+                </div>
+            </div>
+            <button id="btn-pause-hud" class="pointer-events-auto bg-amber-500 hover:bg-amber-400 text-slate-950 font-comic text-xl px-4 py-2 rounded-xl comic-border btn-comic active:scale-95">
+                PAUSE
+            </button>
+        </div>
+
+        <!-- Touch Screen Mobile Controls Overlay -->
+        <div id="touch-controls" class="absolute bottom-4 left-0 w-full px-6 flex justify-between items-center pointer-events-auto hidden z-10 md:hidden">
+            <div class="flex gap-3">
+                <button id="btn-touch-left" class="w-16 h-16 bg-slate-800/80 active:bg-blue-600 text-white text-2xl rounded-2xl comic-border flex justify-center items-center font-bold">◀</button>
+                <button id="btn-touch-right" class="w-16 h-16 bg-slate-800/80 active:bg-blue-600 text-white text-2xl rounded-2xl comic-border flex justify-center items-center font-bold">▶</button>
+            </div>
+            <button id="btn-touch-jump" class="w-20 h-20 bg-amber-500 active:bg-amber-400 text-slate-950 text-2xl rounded-full comic-border flex justify-center items-center font-comic font-black">JUMP</button>
+        </div>
+
+        <!-- UI OVERLAY CONTAINER (Menus, Screens, Modals) -->
+        <div id="ui-overlay" class="absolute inset-0 z-20 flex justify-center items-center p-4">
+
+            <!-- MAIN MENU -->
+            <div id="screen-main-menu" class="w-full h-full flex flex-col justify-between items-center p-6 text-center modal-bg">
+                <div class="my-auto flex flex-col items-center">
+                    <div class="inline-block bg-amber-400 text-slate-950 px-4 py-1 rounded-full font-bold text-sm tracking-widest uppercase mb-2 comic-border rotate-[-2deg]">
+                        SUPERHERO ARCADE
+                    </div>
+                    <h1 class="text-6xl md:text-8xl font-comic text-cyan-400 neon-text-blue uppercase tracking-wider transform hover:scale-105 transition">
+                        HYPER<span class="text-yellow-400 neon-text-yellow">HERO</span>
+                    </h1>
+                    <p class="text-slate-300 font-semibold text-lg max-w-md mt-2">
+                        Leap across hazards, collect energy orbs, and save Metro City!
+                    </p>
+                </div>
+
+                <!-- Menu Buttons Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 w-full max-w-2xl my-auto">
+                    <button id="btn-start" class="col-span-2 md:col-span-3 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-comic text-3xl py-3 px-6 rounded-2xl comic-border btn-comic">
+                        PLAY GAME ⚡
+                    </button>
+                    <button id="btn-high-scores" class="bg-blue-600 hover:bg-blue-500 text-white font-comic text-xl py-2 px-4 rounded-xl comic-border btn-comic">
+                        HIGH SCORES
+                    </button>
+                    <button id="btn-achievements" class="bg-purple-600 hover:bg-purple-500 text-white font-comic text-xl py-2 px-4 rounded-xl comic-border btn-comic">
+                        ACHIEVEMENTS
+                    </button>
+                    <button id="btn-stats" class="bg-emerald-600 hover:bg-emerald-500 text-white font-comic text-xl py-2 px-4 rounded-xl comic-border btn-comic">
+                        STATISTICS
+                    </button>
+                    <button id="btn-how-to-play" class="bg-cyan-600 hover:bg-cyan-500 text-white font-comic text-xl py-2 px-4 rounded-xl comic-border btn-comic">
+                        HOW TO PLAY
+                    </button>
+                    <button id="btn-settings" class="bg-slate-700 hover:bg-slate-600 text-white font-comic text-xl py-2 px-4 rounded-xl comic-border btn-comic">
+                        SETTINGS
+                    </button>
+                    <button id="btn-accessibility" class="bg-indigo-600 hover:bg-indigo-500 text-white font-comic text-xl py-2 px-4 rounded-xl comic-border btn-comic">
+                        ACCESSIBILITY
+                    </button>
+                    <button id="btn-about" class="bg-slate-700 hover:bg-slate-600 text-white font-comic text-xl py-2 px-4 rounded-xl comic-border btn-comic">
+                        ABOUT
+                    </button>
+                    <button id="btn-credits" class="col-span-2 md:col-span-2 bg-pink-600 hover:bg-pink-500 text-white font-comic text-xl py-2 px-4 rounded-xl comic-border btn-comic">
+                        CREDITS
+                    </button>
+                </div>
+
+                <div class="text-xs text-slate-400 font-medium">Use Arrow Keys / Space to navigate & jump</div>
+            </div>
+
+            <!-- HIGH SCORES SCREEN -->
+            <div id="screen-high-scores" class="w-full h-full max-w-xl max-h-[600px] modal-bg p-6 rounded-2xl comic-border-lg flex flex-col justify-between hidden">
+                <h2 class="text-4xl font-comic text-yellow-400 text-center neon-text-yellow">HIGH SCORES & RECORDS</h2>
+                <div class="space-y-3 my-4 overflow-y-auto pr-2">
+                    <div class="bg-slate-800/80 p-4 rounded-xl comic-border flex justify-between items-center">
+                        <span class="text-slate-300 font-semibold">⚡ Fastest Clear Time:</span>
+                        <span id="score-best-time" class="text-2xl font-comic text-cyan-400">--:--.-</span>
+                    </div>
+                    <div class="bg-slate-800/80 p-4 rounded-xl comic-border flex justify-between items-center">
+                        <span class="text-slate-300 font-semibold">⭐ Most Orbs Collected:</span>
+                        <span id="score-best-orbs" class="text-2xl font-comic text-yellow-400">0 / 6</span>
+                    </div>
+                    <div class="bg-slate-800/80 p-4 rounded-xl comic-border flex justify-between items-center">
+                        <span class="text-slate-300 font-semibold">🏆 Total Victories:</span>
+                        <span id="score-wins" class="text-2xl font-comic text-emerald-400">0</span>
+                    </div>
+                </div>
+                <button class="btn-back bg-red-500 hover:bg-red-400 text-white font-comic text-2xl py-2 px-6 rounded-xl comic-border btn-comic self-center">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- ACHIEVEMENTS SCREEN -->
+            <div id="screen-achievements" class="w-full h-full max-w-xl max-h-[600px] modal-bg p-6 rounded-2xl comic-border-lg flex flex-col justify-between hidden">
+                <h2 class="text-4xl font-comic text-purple-400 text-center">ACHIEVEMENTS</h2>
+                <div id="achievements-list" class="space-y-3 my-4 overflow-y-auto pr-2 max-h-[360px]">
+                    <!-- Dynamically populated achievements -->
+                </div>
+                <button class="btn-back bg-red-500 hover:bg-red-400 text-white font-comic text-2xl py-2 px-6 rounded-xl comic-border btn-comic self-center">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- STATISTICS SCREEN -->
+            <div id="screen-stats" class="w-full h-full max-w-xl max-h-[600px] modal-bg p-6 rounded-2xl comic-border-lg flex flex-col justify-between hidden">
+                <h2 class="text-4xl font-comic text-emerald-400 text-center">CAREER STATISTICS</h2>
+                <div class="grid grid-cols-2 gap-3 my-4">
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border text-center">
+                        <div class="text-xs text-slate-400">Games Played</div>
+                        <div id="stat-games" class="text-3xl font-comic text-white">0</div>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border text-center">
+                        <div class="text-xs text-slate-400">Total Jumps</div>
+                        <div id="stat-jumps" class="text-3xl font-comic text-yellow-400">0</div>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border text-center">
+                        <div class="text-xs text-slate-400">Orbs Collected</div>
+                        <div id="stat-orbs" class="text-3xl font-comic text-cyan-400">0</div>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border text-center">
+                        <div class="text-xs text-slate-400">Hazard Hits</div>
+                        <div id="stat-hits" class="text-3xl font-comic text-red-400">0</div>
+                    </div>
+                </div>
+                <button class="btn-back bg-red-500 hover:bg-red-400 text-white font-comic text-2xl py-2 px-6 rounded-xl comic-border btn-comic self-center">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- HOW TO PLAY SCREEN -->
+            <div id="screen-how-to-play" class="w-full h-full max-w-xl max-h-[600px] modal-bg p-6 rounded-2xl comic-border-lg flex flex-col justify-between hidden">
+                <h2 class="text-4xl font-comic text-cyan-400 text-center">HOW TO PLAY</h2>
+                <div class="space-y-4 my-2 text-slate-200 text-sm overflow-y-auto pr-2">
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border">
+                        <span class="text-yellow-400 font-bold">🎮 Controls:</span>
+                        <ul class="list-disc list-inside mt-1 space-y-1">
+                            <li><strong class="text-cyan-300">Left / Right Arrows (A / D):</strong> Run forward and backward</li>
+                            <li><strong class="text-cyan-300">Spacebar / Up Arrow (W):</strong> Jump over spikes & abysses</li>
+                            <li><strong class="text-cyan-300">Mobile:</strong> On-screen touch D-Pad and Jump button</li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border">
+                        <span class="text-yellow-400 font-bold">🎯 Objective:</span>
+                        <p class="mt-1">Traverse through 6 dangerous obstacles, gather energy orbs for bonus points, and touch the Finish Flag to unleash your Superpower Victory Move!</p>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border">
+                        <span class="text-yellow-400 font-bold">⚠️ Hazards & Boosts:</span>
+                        <p class="mt-1"><span class="text-red-400 font-bold">Red Lasers/Spikes:</span> Resets your position to safety!</p>
+                        <p class="mt-1"><span class="text-emerald-400 font-bold">Spring Pads:</span> Launches HyperHero super high into the air!</p>
+                    </div>
+                </div>
+                <button class="btn-back bg-red-500 hover:bg-red-400 text-white font-comic text-2xl py-2 px-6 rounded-xl comic-border btn-comic self-center">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- SETTINGS SCREEN -->
+            <div id="screen-settings" class="w-full h-full max-w-xl max-h-[600px] modal-bg p-6 rounded-2xl comic-border-lg flex flex-col justify-between hidden">
+                <h2 class="text-4xl font-comic text-amber-400 text-center">GAME SETTINGS</h2>
+                <div class="space-y-3 my-2 overflow-y-auto pr-2">
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border flex justify-between items-center">
+                        <span class="font-semibold">Sound Effects (SFX)</span>
+                        <input id="setting-sfx" type="checkbox" class="w-6 h-6 accent-yellow-400 cursor-pointer">
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border flex justify-between items-center">
+                        <span class="font-semibold">Background Music</span>
+                        <input id="setting-music" type="checkbox" class="w-6 h-6 accent-yellow-400 cursor-pointer">
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border flex justify-between items-center">
+                        <span class="font-semibold">Screen Shake</span>
+                        <input id="setting-shake" type="checkbox" class="w-6 h-6 accent-yellow-400 cursor-pointer">
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border flex justify-between items-center">
+                        <span class="font-semibold">Particle FX</span>
+                        <input id="setting-particles" type="checkbox" class="w-6 h-6 accent-yellow-400 cursor-pointer">
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border flex justify-between items-center">
+                        <button id="btn-reset-data" class="bg-red-600 hover:bg-red-500 text-white font-comic text-lg px-4 py-2 rounded-xl comic-border btn-comic w-full">
+                            RESET ALL SAVED DATA
+                        </button>
+                    </div>
+                </div>
+                <button class="btn-back bg-red-500 hover:bg-red-400 text-white font-comic text-2xl py-2 px-6 rounded-xl comic-border btn-comic self-center">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- ACCESSIBILITY SCREEN -->
+            <div id="screen-accessibility" class="w-full h-full max-w-xl max-h-[600px] modal-bg p-6 rounded-2xl comic-border-lg flex flex-col justify-between hidden">
+                <h2 class="text-4xl font-comic text-indigo-400 text-center">ACCESSIBILITY</h2>
+                <div class="space-y-3 my-2 overflow-y-auto pr-2">
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border flex justify-between items-center">
+                        <span class="font-semibold">High Contrast Mode</span>
+                        <input id="access-contrast" type="checkbox" class="w-6 h-6 accent-indigo-400 cursor-pointer">
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border flex justify-between items-center">
+                        <span class="font-semibold">Color-Blind Mode</span>
+                        <select id="access-colorblind" class="bg-slate-900 text-white p-2 rounded-lg comic-border">
+                            <option value="none">None</option>
+                            <option value="protanopia">Protanopia</option>
+                            <option value="deuteranopia">Deuteranopia</option>
+                            <option value="tritanopia">Tritanopia</option>
+                        </select>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border flex justify-between items-center">
+                        <span class="font-semibold">Reduced Motion</span>
+                        <input id="access-motion" type="checkbox" class="w-6 h-6 accent-indigo-400 cursor-pointer">
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl comic-border flex justify-between items-center">
+                        <span class="font-semibold">Large Text UI</span>
+                        <input id="access-large-text" type="checkbox" class="w-6 h-6 accent-indigo-400 cursor-pointer">
+                    </div>
+                </div>
+                <button class="btn-back bg-red-500 hover:bg-red-400 text-white font-comic text-2xl py-2 px-6 rounded-xl comic-border btn-comic self-center">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- ABOUT SCREEN -->
+            <div id="screen-about" class="w-full h-full max-w-xl max-h-[600px] modal-bg p-6 rounded-2xl comic-border-lg flex flex-col justify-between hidden">
+                <h2 class="text-4xl font-comic text-yellow-400 text-center">ABOUT THE GAME</h2>
+                <div class="space-y-3 my-2 text-slate-200 text-sm overflow-y-auto pr-2">
+                    <p><strong class="text-cyan-300">HyperHero: City Saver</strong> is a retro-inspired fast-paced 2D superhero side-scrolling platformer created for players who love classic arcade action!</p>
+                    <p>Guide HyperHero across urban skyscrapers, jump over high-voltage lasers and acid gaps, collect energy orbs to power up, and reach the finish flag to activate an epic heroic superpower move!</p>
+                </div>
+                <button class="btn-back bg-red-500 hover:bg-red-400 text-white font-comic text-2xl py-2 px-6 rounded-xl comic-border btn-comic self-center">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- CREDITS SCREEN -->
+            <div id="screen-credits" class="w-full h-full max-w-xl max-h-[600px] modal-bg p-6 rounded-2xl comic-border-lg flex flex-col justify-between text-center hidden">
+                <h2 class="text-4xl font-comic text-pink-400">CREDITS</h2>
+                <div class="my-auto space-y-4">
+                    <div class="text-xl font-comic text-yellow-300">HYPERHERO: CITY SAVER</div>
+                    <p class="text-lg text-slate-200 font-semibold px-4 py-3 bg-slate-800/80 rounded-xl comic-border">
+                        Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved.
+                    </p>
+                </div>
+                <button class="btn-back bg-red-500 hover:bg-red-400 text-white font-comic text-2xl py-2 px-6 rounded-xl comic-border btn-comic self-center">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- PAUSE MENU MODAL -->
+            <div id="screen-pause" class="w-full h-full max-w-md max-h-[500px] modal-bg p-6 rounded-2xl comic-border-lg flex flex-col justify-between hidden">
+                <h2 class="text-5xl font-comic text-yellow-400 text-center neon-text-yellow">GAME PAUSED</h2>
+                <div class="flex flex-col gap-3 my-auto">
+                    <button id="btn-pause-resume" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-comic text-2xl py-3 rounded-xl comic-border btn-comic">
+                        RESUME
+                    </button>
+                    <button id="btn-pause-restart" class="bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-comic text-2xl py-3 rounded-xl comic-border btn-comic">
+                        RESTART LEVEL
+                    </button>
+                    <button id="btn-pause-settings" class="bg-slate-700 hover:bg-slate-600 text-white font-comic text-xl py-2 rounded-xl comic-border btn-comic">
+                        SETTINGS
+                    </button>
+                    <button id="btn-pause-main" class="bg-red-600 hover:bg-red-500 text-white font-comic text-2xl py-2 rounded-xl comic-border btn-comic">
+                        MAIN MENU
+                    </button>
+                </div>
+            </div>
+
+            <!-- VICTORY MODAL ("MISSION COMPLETE!") -->
+            <div id="screen-victory" class="w-full h-full max-w-lg max-h-[550px] modal-bg p-6 rounded-2xl comic-border-lg flex flex-col justify-between text-center hidden">
+                <div>
+                    <div class="inline-block bg-yellow-400 text-slate-950 font-comic text-lg px-4 py-1 rounded-full comic-border mb-2 rotate-[-2deg]">
+                        VICTORY!
+                    </div>
+                    <h2 class="text-5xl font-comic text-cyan-300 neon-text-blue uppercase">MISSION COMPLETE!</h2>
+                    <p class="text-slate-300 text-sm mt-1">HyperHero saved the city with superhuman style!</p>
+                </div>
+
+                <div class="bg-slate-800/90 p-4 rounded-xl comic-border my-4 space-y-3">
+                    <div class="flex justify-between items-center text-xl font-comic">
+                        <span class="text-slate-400">Time Taken:</span>
+                        <span id="vic-time" class="text-yellow-400 text-2xl">00:00.0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xl font-comic">
+                        <span class="text-slate-400">Energy Orbs:</span>
+                        <span id="vic-orbs" class="text-cyan-400 text-2xl">0 / 6</span>
+                    </div>
+                    <div id="vic-new-best" class="text-emerald-400 font-comic text-xl animate-bounce hidden">
+                        NEW BEST TIME RECORD! 🏆
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button id="btn-vic-replay" class="flex-1 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-comic text-2xl py-3 rounded-xl comic-border btn-comic">
+                        PLAY AGAIN ⚡
+                    </button>
+                    <button id="btn-vic-main" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-comic text-2xl py-3 rounded-xl comic-border btn-comic">
+                        MAIN MENU
+                    </button>
+                </div>
+            </div>
+
+            <!-- GENERAL CUSTOM ALERT / CONFIRM MODAL -->
+            <div id="custom-modal" class="w-full h-full max-w-sm max-h-[250px] modal-bg p-6 rounded-2xl comic-border-lg flex flex-col justify-between text-center hidden">
+                <h3 id="modal-title" class="text-2xl font-comic text-yellow-400">ALERT</h3>
+                <p id="modal-message" class="text-slate-200 text-sm my-auto">Message goes here...</p>
+                <div id="modal-buttons" class="flex gap-2 justify-center">
+                    <button id="btn-modal-ok" class="bg-blue-600 hover:bg-blue-500 text-white font-comic text-xl px-6 py-2 rounded-xl comic-border btn-comic">OK</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        class AudioSynth {
+            constructor() {
+                this.ctx = null;
+                this.sfxEnabled = true;
+                this.musicEnabled = true;
+                this.musicTimer = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playJump() {
+                if (!this.sfxEnabled) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(500, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+
+            playOrb() {
+                if (!this.sfxEnabled) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+                osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.08); // E5
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+
+            playSpring() {
+                if (!this.sfxEnabled) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(700, this.ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            playHazard() {
+                if (!this.sfxEnabled) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(40, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+
+            playVictory() {
+                if (!this.sfxEnabled) return;
+                this.init();
+                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.08);
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.08 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.08);
+                    osc.stop(this.ctx.currentTime + idx * 0.08 + 0.3);
+                });
+            }
+
+            playClick() {
+                if (!this.sfxEnabled) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            }
+        }
+
+        const audio = new AudioSynth();
+
+        class StorageManager {
+            constructor() {
+                this.prefix = 'hyperhero_';
+            }
+            get(key, defaultValue) {
+                try {
+                    const val = localStorage.getItem(this.prefix + key);
+                    return val !== null ? JSON.parse(val) : defaultValue;
+                } catch(e) {
+                    return defaultValue;
+                }
+            }
+            set(key, value) {
+                try {
+                    localStorage.setItem(this.prefix + key, JSON.stringify(value));
+                } catch(e){}
+            }
+            clear() {
+                try {
+                    localStorage.clear();
+                } catch(e){}
+            }
+        }
+
+        const storage = new StorageManager();
+
+        // Default Data Structures
+        let gameSettings = storage.get('settings', {
+            sfx: true,
+            music: true,
+            shake: true,
+            particles: true,
+            highContrast: false,
+            colorblind: 'none',
+            reducedMotion: false,
+            largeText: false
+        });
+
+        let gameStats = storage.get('stats', {
+            gamesPlayed: 0,
+            victories: 0,
+            bestTime: null,
+            bestOrbs: 0,
+            totalJumps: 0,
+            totalOrbs: 0,
+            totalHits: 0
+        });
+
+        let gameAchievements = storage.get('achievements', {
+            first_win: { id: 'first_win', name: 'City Defender', desc: 'Complete your first hero mission.', unlocked: false },
+            speedy: { id: 'speedy', name: 'Supersonic', desc: 'Clear the level in under 18 seconds.', unlocked: false },
+            orb_master: { id: 'orb_master', name: 'Energy Master', desc: 'Collect all 6 energy orbs in a single run.', unlocked: false },
+            flawless: { id: 'flawless', name: 'Flawless Flight', desc: 'Reach the finish flag without hitting any hazards.', unlocked: false }
+        });
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Internal virtual resolution
+        const V_WIDTH = 1280;
+        const V_HEIGHT = 720;
+        canvas.width = V_WIDTH;
+        canvas.height = V_HEIGHT;
+
+        // Key states
+        const keys = {
+            left: false,
+            right: false,
+            jump: false
+        };
+
+        // Screen Shake state
+        let shakeTime = 0;
+
+        // Particle System
+        let particles = [];
+
+        function spawnParticles(x, y, color, count = 10, speed = 4) {
+            if (!gameSettings.particles) return;
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const spd = (Math.random() * 0.8 + 0.2) * speed;
+                particles.push({
+                    x, y,
+                    vx: Math.cos(angle) * spd,
+                    vy: Math.sin(angle) * spd,
+                    color,
+                    radius: Math.random() * 4 + 2,
+                    alpha: 1,
+                    decay: Math.random() * 0.03 + 0.015
+                });
+            }
+        }
+
+        class Hero {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = 80;
+                this.y = 480;
+                this.width = 40;
+                this.height = 60;
+                this.vx = 0;
+                this.vy = 0;
+                this.speed = 8;
+                this.jumpPower = -15.5;
+                this.gravity = 0.65;
+                this.grounded = false;
+                this.facing = 1; // 1 = right, -1 = left
+                this.hitHazardsThisRun = 0;
+                
+                // Cape Dynamic Physics Nodes
+                this.capeNodes = Array.from({length: 5}, () => ({x: this.x, y: this.y}));
+                
+                // Victory Superpower Sequence
+                this.isPowerMove = false;
+                this.powerMoveTimer = 0;
+            }
+
+            update() {
+                if (this.isPowerMove) {
+                    // Hover in mid-air victory stance
+                    this.powerMoveTimer += 0.05;
+                    this.vx = 0;
+                    this.vy = Math.sin(this.powerMoveTimer * 4) * 0.5;
+                    this.y += this.vy;
+                    this.updateCape();
+                    return;
+                }
+
+                // Horizontal Movement
+                if (keys.left) {
+                    this.vx = -this.speed;
+                    this.facing = -1;
+                } else if (keys.right) {
+                    this.vx = this.speed;
+                    this.facing = 1;
+                } else {
+                    this.vx *= 0.75; // Friction
+                }
+
+                // Jump Movement
+                if (keys.jump && this.grounded) {
+                    this.vy = this.jumpPower;
+                    this.grounded = false;
+                    audio.playJump();
+                    spawnParticles(this.x + this.width / 2, this.y + this.height, '#38BDF8', 8, 3);
+                    gameStats.totalJumps++;
+                }
+
+                // Gravity
+                this.vy += this.gravity;
+
+                // Apply physics
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Update Cape physics trailing behind superhero
+                this.updateCape();
+            }
+
+            updateCape() {
+                // Attach cape head to back shoulder
+                const shoulderX = this.x + (this.facing === 1 ? 10 : this.width - 10);
+                const shoulderY = this.y + 15;
+                this.capeNodes[0].x = shoulderX;
+                this.capeNodes[0].y = shoulderY;
+
+                for (let i = 1; i < this.capeNodes.length; i++) {
+                    const prev = this.capeNodes[i - 1];
+                    const curr = this.capeNodes[i];
+                    
+                    // Pull effect + wind/movement sway
+                    const targetX = prev.x - this.facing * 8 + Math.sin(Date.now() * 0.01 + i) * 2;
+                    const targetY = prev.y + 10;
+                    
+                    curr.x += (targetX - curr.x) * 0.45;
+                    curr.y += (targetY - curr.y) * 0.45;
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+
+                // Draw Radiant Superpower Victory Aura if in Power Move
+                if (this.isPowerMove) {
+                    const auraGlow = Math.sin(this.powerMoveTimer * 8) * 15 + 30;
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.width/2, this.y + this.height/2, auraGlow + 20, 0, Math.PI*2);
+                    ctx.fillStyle = `rgba(250, 204, 21, ${0.3 + Math.sin(this.powerMoveTimer*10)*0.15})`;
+                    ctx.fill();
+
+                    // Laser Eyes blast upward!
+                    ctx.strokeStyle = '#EF4444';
+                    ctx.lineWidth = 6;
+                    ctx.shadowColor = '#F87171';
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + this.width/2 - 4, this.y + 15);
+                    ctx.lineTo(this.x + this.width/2 - 20, 0);
+                    ctx.moveTo(this.x + this.width/2 + 4, this.y + 15);
+                    ctx.lineTo(this.x + this.width/2 + 20, 0);
+                    ctx.stroke();
+                }
+
+                // 1. Draw Cape
+                ctx.beginPath();
+                ctx.moveTo(this.capeNodes[0].x, this.capeNodes[0].y);
+                for (let i = 1; i < this.capeNodes.length; i++) {
+                    ctx.lineTo(this.capeNodes[i].x, this.capeNodes[i].y);
+                }
+                ctx.lineTo(this.capeNodes[this.capeNodes.length - 1].x + (this.facing * -12), this.capeNodes[this.capeNodes.length - 1].y + 15);
+                ctx.closePath();
+                ctx.fillStyle = this.isPowerMove ? '#F59E0B' : '#EF4444'; // Gold during power move, Red normally
+                ctx.shadowColor = '#DC2626';
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // 2. Draw Superhero Body
+                // Suit Body
+                ctx.fillStyle = '#0284C7'; // Cyan Hero Suit
+                ctx.fillRect(this.x, this.y + 15, this.width, this.height - 15);
+
+                // Emblem on Chest (Yellow Star)
+                ctx.fillStyle = '#FACC15';
+                ctx.beginPath();
+                ctx.arc(this.x + this.width / 2, this.y + 28, 7, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Head & Mask
+                ctx.fillStyle = '#FDBA74'; // Skin tone
+                ctx.fillRect(this.x + 5, this.y, this.width - 10, 18);
+                // Superhero Mask
+                ctx.fillStyle = '#0F172A';
+                ctx.fillRect(this.x + 3, this.y + 4, this.width - 6, 7);
+                // Mask Glowing Eyes
+                ctx.fillStyle = '#FFFFFF';
+                if (this.facing === 1) {
+                    ctx.fillRect(this.x + 18, this.y + 6, 6, 3);
+                    ctx.fillRect(this.x + 28, this.y + 6, 6, 3);
+                } else {
+                    ctx.fillRect(this.x + 6, this.y + 6, 6, 3);
+                    ctx.fillRect(this.x + 16, this.y + 6, 6, 3);
+                }
+
+                // Boots
+                ctx.fillStyle = '#DC2626';
+                ctx.fillRect(this.x + 2, this.y + this.height - 10, 14, 10);
+                ctx.fillRect(this.x + this.width - 16, this.y + this.height - 10, 14, 10);
+
+                ctx.restore();
+            }
+        }
+
+        // Level Objects Definition (6 Short Colorful Obstacles)
+        const levelWidth = 3200;
+        const platforms = [
+            // Starter Platform
+            { x: 0, y: 550, w: 450, h: 170, color: '#1E293B' },
+            
+            // OBSTACLE 1: Acid Pit Gap with floating platforms
+            { x: 550, y: 520, w: 140, h: 200, color: '#334155' },
+            { x: 770, y: 460, w: 140, h: 260, color: '#334155' },
+
+            // OBSTACLE 2: Moving Platform over High-Voltage Hazard
+            { x: 1000, y: 500, w: 160, h: 220, color: '#1E293B', moving: true, range: 180, speed: 2, startX: 1000 },
+
+            // OBSTACLE 3: Bounce Spring Pad Jump over Skyscraper Wall
+            { x: 1350, y: 550, w: 300, h: 170, color: '#334155' },
+            { x: 1720, y: 320, w: 80, h: 400, color: '#0F172A' }, // High wall barrier
+
+            // OBSTACLE 4: Crumbling/Precision Platforms over Deep Chasm
+            { x: 1900, y: 480, w: 120, h: 240, color: '#334155' },
+            { x: 2100, y: 420, w: 120, h: 300, color: '#334155' },
+            { x: 2300, y: 480, w: 120, h: 240, color: '#334155' },
+
+            // OBSTACLE 5 & 6: High Platform sequence to Finish Flag
+            { x: 2550, y: 520, w: 650, h: 200, color: '#1E293B' }
+        ];
+
+        // Hazards (Red Acid / Laser Spikes)
+        const hazards = [
+            { x: 450, y: 680, w: 100, h: 40, type: 'acid' },
+            { x: 690, y: 680, w: 80, h: 40, type: 'acid' },
+            { x: 910, y: 680, w: 440, h: 40, type: 'laser' },
+            { x: 1650, y: 680, w: 250, h: 40, type: 'spikes' },
+            { x: 2420, y: 680, w: 130, h: 40, type: 'acid' }
+        ];
+
+        // Interactive Spring Pads
+        const springs = [
+            { x: 1580, y: 535, w: 40, h: 15, active: false }
+        ];
+
+        // Energy Collectibles (Orbs)
+        let energyOrbs = [
+            { x: 610, y: 460, collected: false },
+            { x: 830, y: 400, collected: false },
+            { x: 1100, y: 420, collected: false },
+            { x: 1590, y: 450, collected: false },
+            { x: 2000, y: 380, collected: false },
+            { x: 2200, y: 320, collected: false }
+        ];
+
+        // Finish Flag Position
+        const finishFlag = { x: 3050, y: 380, w: 40, h: 140 };
+
+        const hero = new Hero();
+
+        let gameState = 'MENU'; // MENU, PLAYING, PAUSED, VICTORY
+        let levelStartTime = 0;
+        let elapsedTime = 0;
+        let orbsCollected = 0;
+        let cameraX = 0;
+
+        function startMission() {
+            hero.reset();
+            energyOrbs.forEach(orb => orb.collected = false);
+            orbsCollected = 0;
+            levelStartTime = Date.now();
+            elapsedTime = 0;
+            gameState = 'PLAYING';
+            gameStats.gamesPlayed++;
+            storage.set('stats', gameStats);
+
+            // Hide menus, show HUD
+            document.querySelectorAll('#ui-overlay > div').forEach(el => el.classList.add('hidden'));
+            document.getElementById('hud-overlay').classList.remove('hidden');
+            document.getElementById('touch-controls').classList.remove('hidden');
+        }
+
+        function triggerVictory() {
+            gameState = 'VICTORY';
+            hero.isPowerMove = true;
+            audio.playVictory();
+            
+            // Screen Shake + Burst Fireworks
+            if (gameSettings.shake && !gameSettings.reducedMotion) shakeTime = 20;
+            for(let i=0; i<60; i++) {
+                spawnParticles(hero.x + 20, hero.y + 20, ['#FACC15', '#38BDF8', '#F43F5E', '#10B981'][i%4], 1, 8);
+            }
+
+            // Stats Update
+            gameStats.victories++;
+            if (!gameStats.bestTime || elapsedTime < gameStats.bestTime) {
+                gameStats.bestTime = elapsedTime;
+                document.getElementById('vic-new-best').classList.remove('hidden');
+            } else {
+                document.getElementById('vic-new-best').classList.add('hidden');
+            }
+            if (orbsCollected > gameStats.bestOrbs) {
+                gameStats.bestOrbs = orbsCollected;
+            }
+            storage.set('stats', gameStats);
+
+            // Check Achievements
+            if (!gameAchievements.first_win.unlocked) unlockAchievement('first_win');
+            if (elapsedTime <= 18000 && !gameAchievements.speedy.unlocked) unlockAchievement('speedy');
+            if (orbsCollected === 6 && !gameAchievements.orb_master.unlocked) unlockAchievement('orb_master');
+            if (hero.hitHazardsThisRun === 0 && !gameAchievements.flawless.unlocked) unlockAchievement('flawless');
+
+            // Delay showing victory modal for 1.5 seconds to admire superpower move!
+            setTimeout(() => {
+                document.getElementById('hud-overlay').classList.add('hidden');
+                document.getElementById('touch-controls').classList.add('hidden');
+                document.getElementById('vic-time').innerText = formatTime(elapsedTime);
+                document.getElementById('vic-orbs').innerText = `${orbsCollected} / 6`;
+                document.getElementById('screen-victory').classList.remove('hidden');
+            }, 1500);
+        }
+
+        function unlockAchievement(id) {
+            if (gameAchievements[id]) {
+                gameAchievements[id].unlocked = true;
+                storage.set('achievements', gameAchievements);
+            }
+        }
+
+        function formatTime(ms) {
+            const totalSec = ms / 1000;
+            const mins = Math.floor(totalSec / 60);
+            const secs = Math.floor(totalSec % 60);
+            const tenths = Math.floor((ms % 1000) / 100);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${tenths}`;
+        }
+
+        function updatePhysics() {
+            if (gameState !== 'PLAYING') return;
+
+            elapsedTime = Date.now() - levelStartTime;
+            document.getElementById('hud-timer').innerText = formatTime(elapsedTime);
+            document.getElementById('hud-orbs').innerText = `${orbsCollected} / 6`;
+
+            hero.update();
+
+            // Camera Tracking
+            const targetCamX = hero.x - V_WIDTH / 3;
+            cameraX += (targetCamX - cameraX) * 0.1;
+            cameraX = Math.max(0, Math.min(cameraX, levelWidth - V_WIDTH));
+
+            // Ground & Platform Collisions
+            hero.grounded = false;
+            platforms.forEach(plat => {
+                // Moving platform logic
+                if (plat.moving) {
+                    plat.x += plat.speed;
+                    if (plat.x > plat.startX + plat.range || plat.x < plat.startX) {
+                        plat.speed *= -1;
+                    }
+                }
+
+                // AABB Collision
+                if (hero.x + hero.width > plat.x &&
+                    hero.x < plat.x + plat.w &&
+                    hero.y + hero.height >= plat.y &&
+                    hero.y + hero.height <= plat.y + plat.h + hero.vy &&
+                    hero.vy >= 0) {
+                    hero.grounded = true;
+                    hero.vy = 0;
+                    hero.y = plat.y - hero.height;
+
+                    // Carry hero if moving platform
+                    if (plat.moving) hero.x += plat.speed;
+                }
+            });
+
+            // Spring Pad Collision
+            springs.forEach(spring => {
+                if (hero.x + hero.width > spring.x &&
+                    hero.x < spring.x + spring.w &&
+                    hero.y + hero.height >= spring.y &&
+                    hero.y + hero.height <= spring.y + spring.h + 10) {
+                    hero.vy = -24; // High Spring Super Jump!
+                    audio.playSpring();
+                    spawnParticles(spring.x + 20, spring.y, '#FACC15', 12, 5);
+                }
+            });
+
+            // Hazards Collision (Acid / Lasers / Spikes / Bottom Abyss)
+            let hitHazard = false;
+            if (hero.y > V_HEIGHT + 100) hitHazard = true;
+
+            hazards.forEach(haz => {
+                if (hero.x + hero.width > haz.x &&
+                    hero.x < haz.x + haz.w &&
+                    hero.y + hero.height > haz.y) {
+                    hitHazard = true;
+                }
+            });
+
+            if (hitHazard) {
+                audio.playHazard();
+                hero.hitHazardsThisRun++;
+                gameStats.totalHits++;
+                if (gameSettings.shake && !gameSettings.reducedMotion) shakeTime = 12;
+                spawnParticles(hero.x + 20, hero.y + 30, '#EF4444', 15, 4);
+                
+                // Respawn at safe start
+                hero.x = 80;
+                hero.y = 480;
+                hero.vx = 0;
+                hero.vy = 0;
+            }
+
+            // Energy Orb Collection
+            energyOrbs.forEach(orb => {
+                if (!orb.collected &&
+                    Math.hypot((hero.x + 20) - orb.x, (hero.y + 30) - orb.y) < 35) {
+                    orb.collected = true;
+                    orbsCollected++;
+                    gameStats.totalOrbs++;
+                    audio.playOrb();
+                    spawnParticles(orb.x, orb.y, '#FACC15', 10, 4);
+                }
+            });
+
+            // Reaching the Finish Flag
+            if (hero.x + hero.width >= finishFlag.x && hero.x <= finishFlag.x + finishFlag.w) {
+                triggerVictory();
+            }
+
+            // Update Particle physics
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) particles.splice(idx, 1);
+            });
+        }
+
+        function render() {
+            ctx.save();
+
+            // Apply Screen Shake
+            if (shakeTime > 0) {
+                ctx.translate((Math.random() - 0.5) * shakeTime, (Math.random() - 0.5) * shakeTime);
+                shakeTime *= 0.85;
+                if (shakeTime < 0.5) shakeTime = 0;
+            }
+
+            // Sky Gradient Background
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, V_HEIGHT);
+            skyGrad.addColorStop(0, '#0F172A');
+            skyGrad.addColorStop(1, '#1E1B4B');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+
+            // Parallax Distant City Skyline
+            ctx.fillStyle = '#1E293B';
+            for (let i = 0; i < 20; i++) {
+                const bgX = (i * 180) - (cameraX * 0.2) % 180;
+                ctx.fillRect(bgX, 300 + (i % 3) * 40, 120, 420);
+                // Glowing City Windows
+                ctx.fillStyle = '#FDE047';
+                if (i % 2 === 0) ctx.fillRect(bgX + 20, 340, 15, 20);
+                if (i % 3 === 0) ctx.fillRect(bgX + 60, 400, 15, 20);
+                ctx.fillStyle = '#1E293B';
+            }
+
+            // Translate camera for World Space
+            ctx.translate(-Math.round(cameraX), 0);
+
+            // Draw Hazards (Glowing Laser / Acid)
+            hazards.forEach(haz => {
+                if (haz.type === 'acid') {
+                    ctx.fillStyle = '#22C55E';
+                    ctx.shadowColor = '#4ADE80';
+                    ctx.shadowBlur = 10;
+                    ctx.fillRect(haz.x, haz.y, haz.w, haz.h);
+                } else if (haz.type === 'laser') {
+                    ctx.fillStyle = '#EF4444';
+                    ctx.shadowColor = '#F87171';
+                    ctx.shadowBlur = 15;
+                    ctx.fillRect(haz.x, haz.y + 10, haz.w, haz.h - 10);
+                } else { // Spikes
+                    ctx.fillStyle = '#94A3B8';
+                    const spikeW = 20;
+                    for (let x = haz.x; x < haz.x + haz.w; x += spikeW) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, haz.y + haz.h);
+                        ctx.lineTo(x + spikeW / 2, haz.y + 10);
+                        ctx.lineTo(x + spikeW, haz.y + haz.h);
+                        ctx.fill();
+                    }
+                }
+                ctx.shadowBlur = 0;
+            });
+
+            // Draw Platforms
+            platforms.forEach(plat => {
+                ctx.fillStyle = plat.color;
+                ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+                // Highlighting platform top edge
+                ctx.fillStyle = '#38BDF8';
+                ctx.fillRect(plat.x, plat.y, plat.w, 6);
+            });
+
+            // Draw Spring Pads
+            springs.forEach(s => {
+                ctx.fillStyle = '#FACC15';
+                ctx.fillRect(s.x, s.y, s.w, s.h);
+                ctx.fillStyle = '#CA8A04';
+                ctx.fillRect(s.x + 5, s.y + 4, s.w - 10, s.h - 8);
+            });
+
+            // Draw Energy Orbs
+            energyOrbs.forEach(orb => {
+                if (!orb.collected) {
+                    ctx.beginPath();
+                    ctx.arc(orb.x, orb.y + Math.sin(Date.now() * 0.005) * 5, 12, 0, Math.PI * 2);
+                    ctx.fillStyle = '#FACC15';
+                    ctx.shadowColor = '#FDE047';
+                    ctx.shadowBlur = 12;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            });
+
+            // Draw Finish Flag
+            ctx.fillStyle = '#64748B'; // Flagpole
+            ctx.fillRect(finishFlag.x, finishFlag.y, 10, finishFlag.h);
+            // Animated Banner
+            ctx.beginPath();
+            ctx.moveTo(finishFlag.x + 10, finishFlag.y);
+            ctx.lineTo(finishFlag.x + 80, finishFlag.y + 25 + Math.sin(Date.now() * 0.006) * 5);
+            ctx.lineTo(finishFlag.x + 10, finishFlag.y + 50);
+            ctx.closePath();
+            ctx.fillStyle = '#F43F5E';
+            ctx.shadowColor = '#FB7185';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Draw Superhero Player
+            hero.draw(ctx);
+
+            // Draw Particles
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            updatePhysics();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function setupUI() {
+            // Screen Navigation helper
+            const showScreen = (screenId) => {
+                audio.playClick();
+                document.querySelectorAll('#ui-overlay > div').forEach(el => el.classList.add('hidden'));
+                if (screenId) {
+                    document.getElementById(screenId).classList.remove('hidden');
+                }
+            };
+
+            // Main Menu Buttons
+            document.getElementById('btn-start').onclick = () => startMission();
+            document.getElementById('btn-high-scores').onclick = () => {
+                document.getElementById('score-best-time').innerText = gameStats.bestTime ? formatTime(gameStats.bestTime) : '--:--.-';
+                document.getElementById('score-best-orbs').innerText = `${gameStats.bestOrbs} / 6`;
+                document.getElementById('score-wins').innerText = gameStats.victories;
+                showScreen('screen-high-scores');
+            };
+            document.getElementById('btn-achievements').onclick = () => {
+                const list = document.getElementById('achievements-list');
+                list.innerHTML = '';
+                Object.values(gameAchievements).forEach(ach => {
+                    const item = document.createElement('div');
+                    item.className = `p-3 rounded-xl comic-border flex items-center justify-between ${ach.unlocked ? 'bg-emerald-900/60 border-emerald-500' : 'bg-slate-800/80 opacity-60'}`;
+                    item.innerHTML = `
+                        <div>
+                            <div class="font-bold text-yellow-300">${ach.name}</div>
+                            <div class="text-xs text-slate-300">${ach.desc}</div>
+                        </div>
+                        <div class="text-2xl">${ach.unlocked ? '✅' : '🔒'}</div>
+                    `;
+                    list.appendChild(item);
+                });
+                showScreen('screen-achievements');
+            };
+            document.getElementById('btn-stats').onclick = () => {
+                document.getElementById('stat-games').innerText = gameStats.gamesPlayed;
+                document.getElementById('stat-jumps').innerText = gameStats.totalJumps;
+                document.getElementById('stat-orbs').innerText = gameStats.totalOrbs;
+                document.getElementById('stat-hits').innerText = gameStats.totalHits;
+                showScreen('screen-stats');
+            };
+            document.getElementById('btn-how-to-play').onclick = () => showScreen('screen-how-to-play');
+            document.getElementById('btn-settings').onclick = () => showScreen('screen-settings');
+            document.getElementById('btn-accessibility').onclick = () => showScreen('screen-accessibility');
+            document.getElementById('btn-about').onclick = () => showScreen('screen-about');
+            document.getElementById('btn-credits').onclick = () => showScreen('screen-credits');
+
+            // Back Buttons
+            document.querySelectorAll('.btn-back').forEach(btn => {
+                btn.onclick = () => showScreen('screen-main-menu');
+            });
+
+            // Pause Menu Handlers
+            document.getElementById('btn-pause-hud').onclick = () => {
+                if (gameState === 'PLAYING') {
+                    gameState = 'PAUSED';
+                    audio.playClick();
+                    showScreen('screen-pause');
+                }
+            };
+            document.getElementById('btn-pause-resume').onclick = () => {
+                gameState = 'PLAYING';
+                audio.playClick();
+                showScreen(null);
+            };
+            document.getElementById('btn-pause-restart').onclick = () => {
+                startMission();
+            };
+            document.getElementById('btn-pause-settings').onclick = () => showScreen('screen-settings');
+            document.getElementById('btn-pause-main').onclick = () => {
+                gameState = 'MENU';
+                audio.playClick();
+                document.getElementById('hud-overlay').classList.add('hidden');
+                document.getElementById('touch-controls').classList.add('hidden');
+                showScreen('screen-main-menu');
+            };
+
+            // Victory Buttons
+            document.getElementById('btn-vic-replay').onclick = () => startMission();
+            document.getElementById('btn-vic-main').onclick = () => {
+                gameState = 'MENU';
+                audio.playClick();
+                showScreen('screen-main-menu');
+            };
+
+            // Settings Controls Binding
+            const setSfx = document.getElementById('setting-sfx');
+            setSfx.checked = gameSettings.sfx;
+            setSfx.onchange = (e) => {
+                gameSettings.sfx = e.target.checked;
+                audio.sfxEnabled = gameSettings.sfx;
+                storage.set('settings', gameSettings);
+            };
+
+            const setMusic = document.getElementById('setting-music');
+            setMusic.checked = gameSettings.music;
+            setMusic.onchange = (e) => {
+                gameSettings.music = e.target.checked;
+                storage.set('settings', gameSettings);
+            };
+
+            const setShake = document.getElementById('setting-shake');
+            setShake.checked = gameSettings.shake;
+            setShake.onchange = (e) => {
+                gameSettings.shake = e.target.checked;
+                storage.set('settings', gameSettings);
+            };
+
+            const setParticles = document.getElementById('setting-particles');
+            setParticles.checked = gameSettings.particles;
+            setParticles.onchange = (e) => {
+                gameSettings.particles = e.target.checked;
+                storage.set('settings', gameSettings);
+            };
+
+            document.getElementById('btn-reset-data').onclick = () => {
+                showModal('RESET DATA?', 'Are you sure you want to clear all high scores and stats?', () => {
+                    storage.clear();
+                    location.reload();
+                });
+            };
+
+            // Accessibility Controls
+            const accContrast = document.getElementById('access-contrast');
+            accContrast.checked = gameSettings.highContrast;
+            accContrast.onchange = (e) => {
+                gameSettings.highContrast = e.target.checked;
+                document.body.classList.toggle('high-contrast', gameSettings.highContrast);
+                storage.set('settings', gameSettings);
+            };
+
+            const accColorblind = document.getElementById('access-colorblind');
+            accColorblind.value = gameSettings.colorblind;
+            accColorblind.onchange = (e) => {
+                gameSettings.colorblind = e.target.value;
+                document.body.classList.remove('cb-protanopia', 'cb-deuteranopia', 'cb-tritanopia');
+                if (gameSettings.colorblind !== 'none') {
+                    document.body.classList.add(`cb-${gameSettings.colorblind}`);
+                }
+                storage.set('settings', gameSettings);
+            };
+
+            const accMotion = document.getElementById('access-motion');
+            accMotion.checked = gameSettings.reducedMotion;
+            accMotion.onchange = (e) => {
+                gameSettings.reducedMotion = e.target.checked;
+                storage.set('settings', gameSettings);
+            };
+
+            const accLargeText = document.getElementById('access-large-text');
+            accLargeText.checked = gameSettings.largeText;
+            accLargeText.onchange = (e) => {
+                gameSettings.largeText = e.target.checked;
+                document.body.classList.toggle('large-text', gameSettings.largeText);
+                storage.set('settings', gameSettings);
+            };
+
+            // Initial Accessibility States Application
+            if (gameSettings.highContrast) document.body.classList.add('high-contrast');
+            if (gameSettings.colorblind !== 'none') document.body.classList.add(`cb-${gameSettings.colorblind}`);
+            if (gameSettings.largeText) document.body.classList.add('large-text');
+        }
+
+        // Custom Modal UI handler (replaces alert/confirm)
+        function showModal(title, msg, onConfirm) {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = msg;
+            
+            const btnContainer = document.getElementById('modal-buttons');
+            btnContainer.innerHTML = '';
+
+            if (onConfirm) {
+                const btnCancel = document.createElement('button');
+                btnCancel.className = 'bg-slate-700 hover:bg-slate-600 text-white font-comic text-xl px-4 py-2 rounded-xl comic-border btn-comic';
+                btnCancel.innerText = 'CANCEL';
+                btnCancel.onclick = () => modal.classList.add('hidden');
+
+                const btnOk = document.createElement('button');
+                btnOk.className = 'bg-red-600 hover:bg-red-500 text-white font-comic text-xl px-4 py-2 rounded-xl comic-border btn-comic';
+                btnOk.innerText = 'CONFIRM';
+                btnOk.onclick = () => {
+                    modal.classList.add('hidden');
+                    onConfirm();
+                };
+
+                btnContainer.appendChild(btnCancel);
+                btnContainer.appendChild(btnOk);
+            } else {
+                const btnOk = document.createElement('button');
+                btnOk.className = 'bg-blue-600 hover:bg-blue-500 text-white font-comic text-xl px-6 py-2 rounded-xl comic-border btn-comic';
+                btnOk.innerText = 'OK';
+                btnOk.onclick = () => modal.classList.add('hidden');
+                btnContainer.appendChild(btnOk);
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function setupInputs() {
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+                if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.jump = true;
+                if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+                    if (gameState === 'PLAYING') {
+                        gameState = 'PAUSED';
+                        document.querySelectorAll('#ui-overlay > div').forEach(el => el.classList.add('hidden'));
+                        document.getElementById('screen-pause').classList.remove('hidden');
+                    }
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+                if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.jump = false;
+            });
+
+            // Touch Screen Bindings
+            const bindTouch = (id, keyName) => {
+                const btn = document.getElementById(id);
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[keyName] = true; });
+                btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[keyName] = false; });
+                btn.addEventListener('mousedown', () => { keys[keyName] = true; });
+                btn.addEventListener('mouseup', () => { keys[keyName] = false; });
+            };
+
+            bindTouch('btn-touch-left', 'left');
+            bindTouch('btn-touch-right', 'right');
+            bindTouch('btn-touch-jump', 'jump');
+        }
+
+        window.onload = function() {
+            setupUI();
+            setupInputs();
+            gameLoop();
+        };
+    </script>
+</body>
+</html>

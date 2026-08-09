@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clockwork Clash</title>
+    <!-- Tailwind CSS for modern arcade UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Share+Tech+Mono&display=swap');
+        
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #0b0c10;
+            color: #c5c6c7;
+            user-select: none;
+            overflow: hidden;
+        }
+        
+        .font-cinzel {
+            font-family: 'Cinzel', serif;
+        }
+
+        .brass-gradient {
+            background: linear-gradient(135deg, #d4af37 0%, #aa771c 50%, #66440e 100%);
+        }
+        
+        .brass-text {
+            background: linear-gradient(135deg, #f3e5ab 0%, #d4af37 50%, #aa771c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .neon-glow {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.7), 0 0 20px rgba(0, 243, 255, 0.4);
+        }
+
+        .brass-border {
+            border: 2px solid #d4af37;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3), inset 0 0 10px rgba(212, 175, 55, 0.2);
+        }
+
+        /* Custom scrollbar for menus */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2833;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d4af37;
+            border-radius: 4px;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        .animate-pulse-glow {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col items-center justify-center relative">
+
+    <div id="game-container" class="relative w-full h-full max-w-[1400px] max-h-[900px] flex flex-col items-center justify-center shadow-2xl overflow-hidden bg-[#0b0c10] brass-border">
+        
+        <!-- Game Canvas -->
+        <canvas id="gameCanvas" class="absolute inset-0 w-full h-full cursor-crosshair"></canvas>
+
+        <!-- UI Overlay Layer -->
+        <div id="ui-layer" class="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 z-10">
+            
+            <!-- HUD (Visible during gameplay) -->
+            <div id="hud" class="hidden flex justify-between items-start w-full">
+                <div class="flex items-center gap-4 bg-[#1f2833]/80 p-3 rounded-lg border border-[#d4af37]/40 pointer-events-auto backdrop-blur">
+                    <div class="flex flex-col">
+                        <span class="text-xs text-[#66fcf1] font-bold">HEALTH</span>
+                        <div id="hud-health" class="flex gap-1 mt-1"></div>
+                    </div>
+                    <div class="h-8 w-[1px] bg-[#d4af37]/30"></div>
+                    <div class="flex flex-col">
+                        <span class="text-xs text-[#d4af37] font-bold">SCORE</span>
+                        <span id="hud-score" class="text-xl font-bold font-cinzel text-white">000000</span>
+                    </div>
+                    <div class="h-8 w-[1px] bg-[#d4af37]/30"></div>
+                    <div class="flex flex-col">
+                        <span class="text-xs text-[#d4af37] font-bold">COMBO</span>
+                        <span id="hud-combo" class="text-xl font-bold text-[#66fcf1]">x1</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 bg-[#1f2833]/80 p-3 rounded-lg border border-[#d4af37]/40 pointer-events-auto backdrop-blur">
+                    <div class="flex flex-col items-end">
+                        <span class="text-xs text-[#d4af37] font-bold">CLOCK FRAGMENTS</span>
+                        <span id="hud-fragments" class="text-xl font-bold text-yellow-400">0 / 5</span>
+                    </div>
+                    <div class="h-8 w-[1px] bg-[#d4af37]/30"></div>
+                    <div class="flex flex-col items-end">
+                        <span class="text-xs text-[#66fcf1] font-bold">SECTION</span>
+                        <span id="hud-section" class="text-xl font-bold font-cinzel text-white">1-1</span>
+                    </div>
+                    <div class="h-8 w-[1px] bg-[#d4af37]/30"></div>
+                    <button onclick="pauseGame()" class="px-3 py-1 bg-[#d4af37] text-black font-bold rounded hover:bg-yellow-400 transition transform hover:scale-105">
+                        PAUSE
+                    </button>
+                </div>
+            </div>
+
+            <!-- Boss Health Bar -->
+            <div id="boss-hud" class="hidden flex flex-col items-center w-full max-w-xl mx-auto pointer-events-auto">
+                <span id="boss-name" class="text-sm font-cinzel text-[#d4af37] mb-1 font-bold tracking-widest">CHRONO-WARDEN MK.I</span>
+                <div class="w-full h-4 bg-[#1f2833] border-2 border-[#d4af37] rounded-full overflow-hidden p-0.5">
+                    <div id="boss-hp-fill" class="h-full bg-gradient-to-r from-red-600 to-yellow-400 rounded-full transition-all duration-200" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Active Powerup Display -->
+            <div id="powerup-hud" class="hidden flex gap-2 self-start mt-4"></div>
+
+            <!-- MAIN MENU -->
+            <div id="menu-main" class="pointer-events-auto absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-[#0b0c10]/95 via-[#1f2833]/90 to-[#0b0c10]/95 backdrop-blur-md p-6">
+                <div class="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:24px_24px]"></div>
+                
+                <h1 class="text-6xl md:text-8xl font-extrabold font-cinzel brass-text mb-2 text-center tracking-wider neon-glow">
+                    CLOCKWORK CLASH
+                </h1>
+                <p class="text-sm md:text-base text-[#66fcf1] tracking-[0.3em] uppercase mb-10">
+                    Aether & Brass Arcade Action
+                </p>
+
+                <div class="flex flex-col gap-4 w-full max-w-md">
+                    <button onclick="startGameMode('campaign')" class="w-full py-4 bg-gradient-to-r from-[#d4af37] to-[#aa771c] text-black font-bold font-cinzel text-xl rounded shadow-lg hover:brightness-110 transition transform hover:-translate-y-0.5 border border-yellow-200">
+                        PLAY GAME
+                    </button>
+                    <button onclick="showScreen('menu-modes')" class="w-full py-3 bg-[#1f2833] text-[#d4af37] font-bold font-cinzel text-lg rounded border border-[#d4af37]/60 hover:bg-[#2c3541] transition">
+                        GAME MODES
+                    </button>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="showScreen('menu-scores')" class="py-3 bg-[#1f2833] text-[#c5c6c7] font-bold rounded border border-[#d4af37]/40 hover:text-white hover:border-[#d4af37] transition">
+                            HIGH SCORES
+                        </button>
+                        <button onclick="showScreen('menu-achievements')" class="py-3 bg-[#1f2833] text-[#c5c6c7] font-bold rounded border border-[#d4af37]/40 hover:text-white hover:border-[#d4af37] transition">
+                            ACHIEVEMENTS
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="showScreen('menu-stats')" class="py-2.5 bg-[#1f2833]/80 text-xs text-[#c5c6c7] font-bold rounded border border-[#d4af37]/30 hover:border-[#d4af37] transition">
+                            STATISTICS
+                        </button>
+                        <button onclick="showScreen('menu-settings')" class="py-2.5 bg-[#1f2833]/80 text-xs text-[#c5c6c7] font-bold rounded border border-[#d4af37]/30 hover:border-[#d4af37] transition">
+                            SETTINGS
+                        </button>
+                        <button onclick="showScreen('menu-tutorial')" class="py-2.5 bg-[#1f2833]/80 text-xs text-[#66fcf1] font-bold rounded border border-[#66fcf1]/40 hover:border-[#66fcf1] transition animate-pulse-glow">
+                            HOW TO PLAY
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GAME MODES MENU -->
+            <div id="menu-modes" class="hidden pointer-events-auto absolute inset-0 flex flex-col items-center justify-center bg-[#0b0c10]/95 backdrop-blur-md p-6">
+                <h2 class="text-4xl font-extrabold font-cinzel brass-text mb-8">SELECT GAME MODE</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mb-8">
+                    <div onclick="startGameMode('campaign')" class="bg-[#1f2833] p-6 rounded-lg border-2 border-[#d4af37] cursor-pointer hover:bg-[#2c3541] transition transform hover:-translate-y-1 flex flex-col items-center text-center">
+                        <div class="text-3xl mb-3">⚙️</div>
+                        <h3 class="text-xl font-bold font-cinzel text-[#d4af37] mb-2">CAMPAIGN</h3>
+                        <p class="text-xs text-[#c5c6c7]">Navigate procedural mechanical sections, beat mini-bosses, and defeat the giant clockwork overseer.</p>
+                    </div>
+                    <div onclick="startGameMode('endless')" class="bg-[#1f2833] p-6 rounded-lg border-2 border-[#66fcf1] cursor-pointer hover:bg-[#2c3541] transition transform hover:-translate-y-1 flex flex-col items-center text-center">
+                        <div class="text-3xl mb-3">⏳</div>
+                        <h3 class="text-xl font-bold font-cinzel text-[#66fcf1] mb-2">ENDLESS MODE</h3>
+                        <p class="text-xs text-[#c5c6c7]">Infinite procedural ascension. Difficulty increases continuously until failure.</p>
+                    </div>
+                    <div onclick="startGameMode('timeattack')" class="bg-[#1f2833] p-6 rounded-lg border-2 border-yellow-400 cursor-pointer hover:bg-[#2c3541] transition transform hover:-translate-y-1 flex flex-col items-center text-center">
+                        <div class="text-3xl mb-3">⏱️</div>
+                        <h3 class="text-xl font-bold font-cinzel text-yellow-400 mb-2">TIME ATTACK</h3>
+                        <p class="text-xs text-[#c5c6c7]">Race against the clock across high-speed stages with permanent booster active.</p>
+                    </div>
+                </div>
+                <button onclick="showScreen('menu-main')" class="px-8 py-3 bg-[#1f2833] text-[#d4af37] font-bold font-cinzel rounded border border-[#d4af37] hover:bg-[#2c3541]">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- HIGH SCORES MENU -->
+            <div id="menu-scores" class="hidden pointer-events-auto absolute inset-0 flex flex-col items-center justify-center bg-[#0b0c10]/95 backdrop-blur-md p-6">
+                <h2 class="text-4xl font-extrabold font-cinzel brass-text mb-6">HIGH SCORES</h2>
+                <div class="w-full max-w-md bg-[#1f2833] rounded-lg border border-[#d4af37]/50 p-4 mb-6 max-h-[60vh] overflow-y-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b border-[#d4af37]/30 text-[#d4af37] text-sm font-cinzel">
+                                <th class="pb-2">Rank</th>
+                                <th class="pb-2">Mode</th>
+                                <th class="pb-2 text-right">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="high-scores-list" class="text-sm">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <button onclick="showScreen('menu-main')" class="px-8 py-3 bg-[#1f2833] text-[#d4af37] font-bold font-cinzel rounded border border-[#d4af37] hover:bg-[#2c3541]">
+                    BACK
+                </button>
+            </div>
+
+            <!-- ACHIEVEMENTS MENU -->
+            <div id="menu-achievements" class="hidden pointer-events-auto absolute inset-0 flex flex-col items-center justify-center bg-[#0b0c10]/95 backdrop-blur-md p-6">
+                <h2 class="text-4xl font-extrabold font-cinzel brass-text mb-6">ACHIEVEMENTS</h2>
+                <div id="achievements-container" class="w-full max-w-2xl bg-[#1f2833] rounded-lg border border-[#d4af37]/50 p-4 mb-6 max-h-[60vh] overflow-y-auto flex flex-col gap-3">
+                    <!-- Populated via JS -->
+                </div>
+                <button onclick="showScreen('menu-main')" class="px-8 py-3 bg-[#1f2833] text-[#d4af37] font-bold font-cinzel rounded border border-[#d4af37] hover:bg-[#2c3541]">
+                    BACK
+                </button>
+            </div>
+
+            <!-- STATISTICS MENU -->
+            <div id="menu-stats" class="hidden pointer-events-auto absolute inset-0 flex flex-col items-center justify-center bg-[#0b0c10]/95 backdrop-blur-md p-6">
+                <h2 class="text-4xl font-extrabold font-cinzel brass-text mb-6">STATISTICS</h2>
+                <div class="w-full max-w-md bg-[#1f2833] rounded-lg border border-[#d4af37]/50 p-6 mb-6 flex flex-col gap-4 text-sm">
+                    <div class="flex justify-between border-b border-[#d4af37]/20 pb-2">
+                        <span class="text-[#c5c6c7]">Total Games Played:</span>
+                        <span id="stat-games" class="font-bold text-[#d4af37]">0</span>
+                    </div>
+                    <div class="flex justify-between border-b border-[#d4af37]/20 pb-2">
+                        <span class="text-[#c5c6c7]">Clock Fragments Collected:</span>
+                        <span id="stat-fragments" class="font-bold text-yellow-400">0</span>
+                    </div>
+                    <div class="flex justify-between border-b border-[#d4af37]/20 pb-2">
+                        <span class="text-[#c5c6c7]">Hazards Overcome:</span>
+                        <span id="stat-hazards" class="font-bold text-[#66fcf1]">0</span>
+                    </div>
+                    <div class="flex justify-between border-b border-[#d4af37]/20 pb-2">
+                        <span class="text-[#c5c6c7]">Bosses Defeated:</span>
+                        <span id="stat-bosses" class="font-bold text-red-400">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-[#c5c6c7]">Highest Combo:</span>
+                        <span id="stat-combo" class="font-bold text-white">x1</span>
+                    </div>
+                </div>
+                <button onclick="showScreen('menu-main')" class="px-8 py-3 bg-[#1f2833] text-[#d4af37] font-bold font-cinzel rounded border border-[#d4af37] hover:bg-[#2c3541]">
+                    BACK
+                </button>
+            </div>
+
+            <!-- SETTINGS & ACCESSIBILITY MENU -->
+            <div id="menu-settings" class="hidden pointer-events-auto absolute inset-0 flex flex-col items-center justify-center bg-[#0b0c10]/95 backdrop-blur-md p-6">
+                <h2 class="text-4xl font-extrabold font-cinzel brass-text mb-6">SETTINGS & ACCESSIBILITY</h2>
+                <div class="w-full max-w-md bg-[#1f2833] rounded-lg border border-[#d4af37]/50 p-6 mb-6 flex flex-col gap-5 text-sm">
+                    <div class="flex justify-between items-center">
+                        <span>Audio Sound Effects</span>
+                        <input type="checkbox" id="setting-sfx" checked onchange="saveSettings()" class="w-5 h-5 accent-[#d4af37] cursor-pointer">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span>Particle Effects Quality</span>
+                        <select id="setting-particles" onchange="saveSettings()" class="bg-[#0b0c10] text-[#d4af37] border border-[#d4af37]/50 p-2 rounded">
+                            <option value="high">High (60 FPS)</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low (Performance)</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span>Screen Shake Effects</span>
+                        <input type="checkbox" id="setting-shake" checked onchange="saveSettings()" class="w-5 h-5 accent-[#d4af37] cursor-pointer">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span>Hardcore Mode (1 Life)</span>
+                        <input type="checkbox" id="setting-hardcore" onchange="saveSettings()" class="w-5 h-5 accent-red-600 cursor-pointer">
+                    </div>
+                </div>
+                <button onclick="showScreen('menu-main')" class="px-8 py-3 bg-[#1f2833] text-[#d4af37] font-bold font-cinzel rounded border border-[#d4af37] hover:bg-[#2c3541]">
+                    BACK
+                </button>
+            </div>
+
+            <!-- HOW TO PLAY / TUTORIAL MENU -->
+            <div id="menu-tutorial" class="hidden pointer-events-auto absolute inset-0 flex flex-col items-center justify-center bg-[#0b0c10]/95 backdrop-blur-md p-6">
+                <h2 class="text-4xl font-extrabold font-cinzel brass-text mb-4">HOW TO PLAY CLOCKWORK CLASH</h2>
+                <div class="w-full max-w-3xl bg-[#1f2833] rounded-lg border border-[#d4af37]/50 p-6 mb-6 max-h-[65vh] overflow-y-auto text-sm space-y-5 text-[#c5c6c7]">
+                    
+                    <div class="border-l-4 border-[#d4af37] pl-4">
+                        <h3 class="text-[#d4af37] font-bold font-cinzel text-base mb-1">1. Objective & Goal</h3>
+                        <p>You control a mechanical hero trapped inside a colossal celestial clock. Your goal in each section is to <strong>collect all 5 glowing Clock Fragments</strong> and reach the <strong>Exit Door</strong> before time runs out or your health is depleted.</p>
+                    </div>
+
+                    <div class="border-l-4 border-[#66fcf1] pl-4">
+                        <h3 class="text-[#66fcf1] font-bold font-cinzel text-base mb-1">2. Controls</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                            <div class="bg-black/40 p-2.5 rounded border border-gray-700">
+                                <span class="text-yellow-400 font-bold">Move Left / Right:</span> <kbd class="px-1.5 py-0.5 bg-black rounded text-white">A</kbd> / <kbd class="px-1.5 py-0.5 bg-black rounded text-white">D</kbd> or <kbd class="px-1.5 py-0.5 bg-black rounded text-white">Left/Right Arrows</kbd>
+                            </div>
+                            <div class="bg-black/40 p-2.5 rounded border border-gray-700">
+                                <span class="text-yellow-400 font-bold">Jump / Double Jump:</span> <kbd class="px-1.5 py-0.5 bg-black rounded text-white">W</kbd>, <kbd class="px-1.5 py-0.5 bg-black rounded text-white">Space</kbd>, or <kbd class="px-1.5 py-0.5 bg-black rounded text-white">Up Arrow</kbd>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-l-4 border-yellow-400 pl-4">
+                        <h3 class="text-yellow-400 font-bold font-cinzel text-base mb-1">3. Hazards to Avoid</h3>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><strong class="text-red-400">Rotating Gears:</strong> Sharp brass blades spinning rapidly. Touching them damages your core.</li>
+                            <li><strong class="text-red-400">Pistons:</strong> Heavy mechanical stamps rhythmically slamming down. Time your dash beneath them!</li>
+                            <li><strong class="text-red-400">Pendulums:</strong> Heavy weights swinging back and forth across platforms.</li>
+                            <li><strong class="text-red-400">Bottom Abyss:</strong> Falling off the platform structure causes instant core failure.</li>
+                        </ul>
+                    </div>
+
+                    <div class="border-l-4 border-green-400 pl-4">
+                        <h3 class="text-green-400 font-bold font-cinzel text-base mb-1">4. Boosts & Scoring</h3>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><strong>Spring Launchers:</strong> Step on glowing pads to launch high into the upper levels.</li>
+                            <li><strong>Conveyor Belts:</strong> Moving belts that push you left or right; use them to gain extra momentum.</li>
+                            <li><strong>Combo Multiplier:</strong> Collecting fragments consecutively without taking damage multiplies your score!</li>
+                        </ul>
+                    </div>
+
+                </div>
+                <button onclick="showScreen('menu-main')" class="px-8 py-3 bg-[#1f2833] text-[#d4af37] font-bold font-cinzel rounded border border-[#d4af37] hover:bg-[#2c3541]">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- PAUSE MENU -->
+            <div id="menu-pause" class="hidden pointer-events-auto absolute inset-0 flex flex-col items-center justify-center bg-[#0b0c10]/85 backdrop-blur-sm p-6">
+                <h2 class="text-4xl font-extrabold font-cinzel brass-text mb-8">GAME PAUSED</h2>
+                <div class="flex flex-col gap-4 w-full max-w-xs">
+                    <button onclick="resumeGame()" class="py-3 bg-gradient-to-r from-[#d4af37] to-[#aa771c] text-black font-bold font-cinzel text-lg rounded shadow-lg hover:brightness-110">
+                        RESUME
+                    </button>
+                    <button onclick="restartGame()" class="py-3 bg-[#1f2833] text-[#d4af37] font-bold font-cinzel text-lg rounded border border-[#d4af37]/60 hover:bg-[#2c3541]">
+                        RESTART
+                    </button>
+                    <button onclick="returnToMenu()" class="py-3 bg-[#1f2833] text-red-400 font-bold font-cinzel text-lg rounded border border-red-500/40 hover:bg-red-950/30">
+                        QUIT TO MENU
+                    </button>
+                </div>
+            </div>
+
+            <!-- GAME OVER MENU -->
+            <div id="menu-gameover" class="hidden pointer-events-auto absolute inset-0 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md p-6">
+                <h2 id="gameover-title" class="text-5xl font-extrabold font-cinzel text-red-500 mb-2 neon-glow">SYSTEM FAILURE</h2>
+                <p id="gameover-subtitle" class="text-sm text-[#c5c6c7] mb-8">The clockwork mechanism crushed your core.</p>
+                
+                <div class="w-full max-w-sm bg-[#1f2833] rounded-lg border border-[#d4af37]/40 p-6 mb-8 flex flex-col gap-3">
+                    <div class="flex justify-between">
+                        <span class="text-[#c5c6c7]">Final Score:</span>
+                        <span id="gameover-score" class="font-bold text-white text-xl">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-[#c5c6c7]">Fragments Collected:</span>
+                        <span id="gameover-fragments" class="font-bold text-yellow-400">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-[#c5c6c7]">Section Reached:</span>
+                        <span id="gameover-section" class="font-bold text-[#66fcf1]">1-1</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 w-full max-w-xs">
+                    <button onclick="restartGame()" class="flex-1 py-3 bg-gradient-to-r from-[#d4af37] to-[#aa771c] text-black font-bold font-cinzel text-lg rounded shadow-lg hover:brightness-110">
+                        RETRY
+                    </button>
+                    <button onclick="returnToMenu()" class="flex-1 py-3 bg-[#1f2833] text-[#d4af37] font-bold font-cinzel text-lg rounded border border-[#d4af37]/60 hover:bg-[#2c3541]">
+                        MENU
+                    </button>
+                </div>
+            </div>
+
+            <!-- STAGE CLEAR / VICTORY OVERLAY -->
+            <div id="menu-victory" class="hidden pointer-events-auto absolute inset-0 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md p-6">
+                <h2 class="text-5xl font-extrabold font-cinzel brass-text mb-2 neon-glow">SECTION SECURED</h2>
+                <p class="text-sm text-[#66fcf1] mb-8">Mechanism synchronized successfully.</p>
+                
+                <div class="w-full max-w-sm bg-[#1f2833] rounded-lg border border-[#d4af37]/40 p-6 mb-8 flex flex-col gap-3">
+                    <div class="flex justify-between">
+                        <span class="text-[#c5c6c7]">Stage Score:</span>
+                        <span id="victory-score" class="font-bold text-white text-xl">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-[#c5c6c7]">Time Bonus:</span>
+                        <span id="victory-bonus" class="font-bold text-yellow-400">0</span>
+                    </div>
+                </div>
+
+                <button onclick="nextSection()" class="w-full max-w-xs py-4 bg-gradient-to-r from-[#d4af37] to-[#aa771c] text-black font-bold font-cinzel text-xl rounded shadow-lg hover:brightness-110">
+                    NEXT SECTION ➔
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- GAME ENGINE & CONSTANTS ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Responsive Canvas Scaling
+        function resizeCanvas() {
+            canvas.width = window.innerWidth > 1400 ? 1400 : window.innerWidth;
+            canvas.height = window.innerHeight > 900 ? 900 : window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Game States
+        const STATE = {
+            MENU: 'menu',
+            PLAYING: 'playing',
+            PAUSED: 'paused',
+            GAMEOVER: 'gameover',
+            VICTORY: 'victory'
+        };
+        let currentState = STATE.MENU;
+        let gameMode = 'campaign'; // 'campaign', 'endless', 'timeattack'
+
+        // Input Tracking
+        const keys = {};
+        window.addEventListener('keydown', e => {
+            if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                if (currentState === STATE.PLAYING) e.preventDefault();
+            }
+            keys[e.code] = true;
+            keys[e.key] = true;
+
+            if (e.code === 'KeyP' && (currentState === STATE.PLAYING || currentState === STATE.PAUSED)) {
+                togglePause();
+            }
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.code] = false;
+            keys[e.key] = false;
+        });
+
+        // Touch & Mobile support
+        window.addEventListener('touchstart', handleTouch);
+        window.addEventListener('touchmove', handleTouch);
+        window.addEventListener('touchend', () => {
+            keys['ArrowLeft'] = false;
+            keys['ArrowRight'] = false;
+            keys['Space'] = false;
+        });
+
+        function handleTouch(e) {
+            if (currentState !== STATE.PLAYING) return;
+            const touch = e.touches[0];
+            const width = window.innerWidth;
+            keys['ArrowLeft'] = touch.clientX < width * 0.3;
+            keys['ArrowRight'] = touch.clientX > width * 0.7;
+            if (touch.clientY < window.innerHeight * 0.4) {
+                if (!keys['Space']) {
+                    keys['Space'] = true;
+                    setTimeout(() => keys['Space'] = false, 150);
+                }
+            }
+        }
+
+        // Persistent Save Data & Stats
+        let playerStats = JSON.parse(localStorage.getItem('clockwork_stats')) || {
+            gamesPlayed: 0,
+            fragmentsCollected: 0,
+            hazardsOvercome: 0,
+            bossesDefeated: 0,
+            highestCombo: 1,
+            highScores: { campaign: 0, endless: 0, timeattack: 0 }
+        };
+        let gameSettings = JSON.parse(localStorage.getItem('clockwork_settings')) || {
+            sfx: true,
+            particles: 'high',
+            shake: true,
+            hardcore: false
+        };
+
+        function saveStats() {
+            localStorage.setItem('clockwork_stats', JSON.stringify(playerStats));
+        }
+        function saveSettings() {
+            gameSettings.sfx = document.getElementById('setting-sfx').checked;
+            gameSettings.particles = document.getElementById('setting-particles').value;
+            gameSettings.shake = document.getElementById('setting-shake').checked;
+            gameSettings.hardcore = document.getElementById('setting-hardcore').checked;
+            localStorage.setItem('clockwork_settings', JSON.stringify(gameSettings));
+        }
+
+        // Audio Synth (Web Audio API Sound Effects)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (!gameSettings.sfx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'jump') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'collect') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, now); // D5
+                osc.frequency.setValueAtTime(880, now + 0.08); // A5
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'hit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.linearRampToValueAtTime(40, now + 0.25);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'powerup') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(700, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+        // Game World & Entities
+        let player = {};
+        let camera = { x: 0, y: 0, shakeTimer: 0, shakeIntensity: 0 };
+        let level = {
+            width: 3200,
+            height: 1200,
+            sectionId: 1,
+            platforms: [],
+            gears: [],
+            pendulums: [],
+            pistons: [],
+            conveyors: [],
+            springs: [],
+            doors: [],
+            fragments: [],
+            powerups: [],
+            enemies: [],
+            boss: null,
+            exitDoor: null
+        };
+        let particles = [];
+        let score = 0;
+        let combo = 1;
+        let comboTimer = 0;
+        let fragmentsCollected = 0;
+        let totalFragmentsInLevel = 5;
+        let stageTimer = 0;
+        let activePowerups = {};
+        let checkpointSection = 1; // Tracks current section checkpoint
+
+        // Screen Management
+        function showScreen(screenId) {
+            const screens = ['menu-main', 'menu-modes', 'menu-scores', 'menu-achievements', 'menu-stats', 'menu-settings', 'menu-tutorial', 'menu-pause', 'menu-gameover', 'menu-victory'];
+            screens.forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('boss-hud').classList.add('hidden');
+
+            if (screenId === 'play') {
+                document.getElementById('hud').classList.remove('hidden');
+            } else {
+                document.getElementById(screenId).classList.remove('hidden');
+                if (screenId === 'menu-scores') populateHighScores();
+                if (screenId === 'menu-achievements') populateAchievements();
+                if (screenId === 'menu-stats') populateStats();
+            }
+        }
+
+        function populateHighScores() {
+            const tbody = document.getElementById('high-scores-list');
+            tbody.innerHTML = `
+                <tr class="border-b border-[#1f2833]"><td class="py-2 font-cinzel text-[#d4af37]">Campaign</td><td>-</td><td class="text-right font-bold">${playerStats.highScores.campaign}</td></tr>
+                <tr class="border-b border-[#1f2833]"><td class="py-2 font-cinzel text-[#66fcf1]">Endless</td><td>-</td><td class="text-right font-bold">${playerStats.highScores.endless}</td></tr>
+                <tr class="border-b border-[#1f2833]"><td class="py-2 font-cinzel text-yellow-400">Time Attack</td><td>-</td><td class="text-right font-bold">${playerStats.highScores.timeattack}</td></tr>
+            `;
+        }
+
+        function populateAchievements() {
+            const container = document.getElementById('achievements-container');
+            const achs = [
+                { title: 'Clockwork Initiate', desc: 'Complete Section 1-1', unlocked: playerStats.gamesPlayed > 0 },
+                { title: 'Aether Harvester', desc: 'Collect 25 Clock Fragments', unlocked: playerStats.fragmentsCollected >= 25 },
+                { title: 'Chronos Slayer', desc: 'Defeat a Giant Mechanical Boss', unlocked: playerStats.bossesDefeated > 0 },
+                { title: 'Unstoppable Momentum', desc: 'Reach a 10x Combo', unlocked: playerStats.highestCombo >= 10 }
+            ];
+            container.innerHTML = achs.map(a => `
+                <div class="flex items-center justify-between p-3 bg-[#0b0c10]/60 rounded border ${a.unlocked ? 'border-[#d4af37]' : 'border-gray-700 opacity-50'}">
+                    <div>
+                        <div class="font-cinzel font-bold text-[#d4af37]">${a.title}</div>
+                        <div class="text-xs text-[#c5c6c7]">${a.desc}</div>
+                    </div>
+                    <div class="text-xs font-bold ${a.unlocked ? 'text-green-400' : 'text-gray-500'}">${a.unlocked ? 'UNLOCKED' : 'LOCKED'}</div>
+                </div>
+            `).join('');
+        }
+
+        function populateStats() {
+            document.getElementById('stat-games').innerText = playerStats.gamesPlayed;
+            document.getElementById('stat-fragments').innerText = playerStats.fragmentsCollected;
+            document.getElementById('stat-hazards').innerText = playerStats.hazardsOvercome;
+            document.getElementById('stat-bosses').innerText = playerStats.bossesDefeated;
+            document.getElementById('stat-combo').innerText = 'x' + playerStats.highestCombo;
+        }
+
+        function startGameMode(mode) {
+            gameMode = mode;
+            currentState = STATE.PLAYING;
+            score = 0;
+            combo = 1;
+            fragmentsCollected = 0;
+            stageTimer = 0;
+            level.sectionId = 1;
+            checkpointSection = 1;
+            activePowerups = {};
+            playerStats.gamesPlayed++;
+            saveStats();
+
+            showScreen('play');
+            initPlayer();
+            generateLevel();
+        }
+
+        function initPlayer() {
+            player = {
+                x: 100,
+                y: 800,
+                width: 28,
+                height: 42,
+                vx: 0,
+                vy: 0,
+                speed: 4.5,
+                jumpForce: -11,
+                grounded: false,
+                facing: 1,
+                hp: gameSettings.hardcore ? 1 : 3,
+                maxHp: gameSettings.hardcore ? 1 : 3,
+                canDoubleJump: true,
+                invincibleTimer: 0
+            };
+        }
+
+        function generateLevel() {
+            level.platforms = [];
+            level.gears = [];
+            level.pendulums = [];
+            level.pistons = [];
+            level.conveyors = [];
+            level.springs = [];
+            level.doors = [];
+            level.fragments = [];
+            level.powerups = [];
+            level.enemies = [];
+            level.boss = null;
+
+            const isBossStage = (level.sectionId % 3 === 0);
+            level.width = isBossStage ? 2000 : 3600;
+            level.height = 1200;
+
+            // Floor & Boundaries
+            level.platforms.push({ x: 0, y: 1100, w: level.width, h: 100, type: 'solid' });
+
+            if (isBossStage) {
+                // Boss Arena Layout
+                level.platforms.push({ x: 400, y: 900, w: 200, h: 20, type: 'solid' });
+                level.platforms.push({ x: 1400, y: 900, w: 200, h: 20, type: 'solid' });
+                level.platforms.push({ x: 900, y: 750, w: 200, h: 20, type: 'solid' });
+                
+                // Spawn Giant Boss
+                level.boss = {
+                    x: level.width - 500,
+                    y: 700,
+                    w: 120,
+                    h: 160,
+                    hp: 100,
+                    maxHp: 100,
+                    state: 'idle',
+                    timer: 0,
+                    vy: 0
+                };
+                document.getElementById('boss-hud').classList.remove('hidden');
+                document.getElementById('boss-name').innerText = level.sectionId === 3 ? 'CHRONO-WARDEN MK.I' : 'OVERSEER TITAN';
+            } else {
+                document.getElementById('boss-hud').classList.add('hidden');
+                
+                // Procedural Platform Generation (Balanced heights so fragments are reachable)
+                let cursorX = 200;
+                let cursorY = 950;
+                const sectionsCount = 8;
+                const sectionWidth = (level.width - 400) / sectionsCount;
+
+                for (let i = 0; i < sectionsCount; i++) {
+                    cursorX += sectionWidth;
+                    // Keep platforms within reachable vertical bounds (700 to 1000)
+                    cursorY = Math.max(700, Math.min(1020, cursorY + (Math.random() * 100 - 50)));
+
+                    // Platform
+                    level.platforms.push({
+                        x: cursorX - 100,
+                        y: cursorY,
+                        w: 180 + Math.random() * 80,
+                        h: 20,
+                        type: Math.random() > 0.7 ? 'moving' : 'solid',
+                        moveRange: 150,
+                        startX: cursorX - 100,
+                        speed: 1.5 + Math.random() * level.sectionId * 0.2
+                    });
+
+                    // Hazards & Mechanisms on/near platforms (spaced safely away from instant impossible walls)
+                    if (Math.random() > 0.5) {
+                        level.gears.push({
+                            x: cursorX,
+                            y: cursorY - 60,
+                            radius: 25 + Math.random() * 15,
+                            rotationSpeed: 0.03 * (Math.random() > 0.5 ? 1 : -1)
+                        });
+                    }
+
+                    if (Math.random() > 0.6) {
+                        level.pistons.push({
+                            x: cursorX + 40,
+                            y: cursorY - 90,
+                            w: 35,
+                            h: 70,
+                            extending: false,
+                            timer: 0,
+                            interval: 110 + Math.random() * 40
+                        });
+                    }
+
+                    if (Math.random() > 0.7) {
+                        level.springs.push({
+                            x: cursorX + 20,
+                            y: cursorY - 15,
+                            w: 30,
+                            h: 15
+                        });
+                    }
+
+                    if (Math.random() > 0.6) {
+                        level.conveyors.push({
+                            x: cursorX - 50,
+                            y: cursorY + 20,
+                            w: 100,
+                            h: 15,
+                            speed: Math.random() > 0.5 ? 2 : -2
+                        });
+                    }
+                }
+
+                // Scatter Clock Fragments within comfortable jumping range above platforms
+                for (let i = 0; i < totalFragmentsInLevel; i++) {
+                    level.fragments.push({
+                        x: 400 + (i * (level.width - 800) / totalFragmentsInLevel) + Math.random() * 100,
+                        y: 850 + Math.random() * 150, // Placed closer to ground platforms
+                        radius: 16,
+                        collected: false,
+                        floatOffset: Math.random() * Math.PI
+                    });
+                }
+
+                // Power-ups
+                if (Math.random() > 0.3) {
+                    level.powerups.push({
+                        x: level.width * 0.5,
+                        y: 950,
+                        type: ['speed', 'shield', 'jump'][Math.floor(Math.random() * 3)],
+                        collected: false
+                    });
+                }
+
+                // Exit Door
+                level.exitDoor = {
+                    x: level.width - 200,
+                    y: 980,
+                    w: 50,
+                    h: 120,
+                    open: false
+                };
+            }
+        }
+
+        // Main Update Loop
+        function update() {
+            if (currentState !== STATE.PLAYING) return;
+
+            stageTimer++;
+            if (comboTimer > 0) {
+                comboTimer--;
+                if (comboTimer === 0) combo = 1;
+            }
+
+            // Player Horizontal Movement
+            let currentSpeed = player.speed * (activePowerups.speed ? 1.5 : 1);
+            if (gameMode === 'timeattack') currentSpeed *= 1.3;
+
+            if (keys['ArrowLeft'] || keys['KeyA']) {
+                player.vx = -currentSpeed;
+                player.facing = -1;
+            } else if (keys['ArrowRight'] || keys['KeyD']) {
+                player.vx = currentSpeed;
+                player.facing = 1;
+            } else {
+                player.vx *= 0.8; // Friction
+            }
+
+            // Gravity & Vertical Movement
+            player.vy += 0.5; // Gravity
+            if (activePowerups.jump && player.vy < 0) player.vy -= 0.1;
+
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // Jumping
+            if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && !keys['jumpPressed']) {
+                keys['jumpPressed'] = true;
+                if (player.grounded) {
+                    player.vy = player.jumpForce * (activePowerups.jump ? 1.25 : 1);
+                    player.grounded = false;
+                    player.canDoubleJump = true;
+                    playSound('jump');
+                    spawnParticles(player.x, player.y + player.height, '#d4af37', 8);
+                } else if (player.canDoubleJump) {
+                    player.vy = player.jumpForce * 0.9;
+                    player.canDoubleJump = false;
+                    playSound('jump');
+                    spawnParticles(player.x, player.y + player.height/2, '#66fcf1', 10);
+                }
+            }
+            if (!keys['Space'] && !keys['ArrowUp'] && !keys['KeyW']) {
+                keys['jumpPressed'] = false;
+            }
+
+            // Platform Collision
+            player.grounded = false;
+            level.platforms.forEach(p => {
+                // Moving platform logic
+                if (p.type === 'moving') {
+                    p.x += Math.sin(stageTimer * 0.03 * p.speed) * 1.5;
+                }
+
+                if (player.x + player.width > p.x && player.x < p.x + p.w &&
+                    player.y + player.height >= p.y && player.y + player.height <= p.y + p.h + 10 &&
+                    player.vy >= 0) {
+                    player.y = p.y - player.height;
+                    player.vy = 0;
+                    player.grounded = true;
+                    player.canDoubleJump = true;
+                    if (p.type === 'moving') {
+                        player.x += Math.cos(stageTimer * 0.03 * p.speed) * 1.5;
+                    }
+                }
+            });
+
+            // Conveyor Belts
+            level.conveyors.forEach(c => {
+                if (player.x + player.width > c.x && player.x < c.x + c.w &&
+                    player.y + player.height >= c.y && player.y + player.height <= c.y + c.h + 5) {
+                    player.x += c.speed;
+                }
+            });
+
+            // Spring Launchers
+            level.springs.forEach(s => {
+                if (player.x + player.width > s.x && player.x < s.x + s.w &&
+                    player.y + player.height >= s.y && player.y + player.height <= s.y + s.h) {
+                    player.vy = -18;
+                    playSound('jump');
+                    spawnParticles(s.x + s.w/2, s.y, '#66fcf1', 15);
+                }
+            });
+
+            // Hazards: Gears
+            level.gears.forEach(g => {
+                g.rotationSpeed += 0.001;
+                const dx = (player.x + player.width/2) - g.x;
+                const dy = (player.y + player.height/2) - g.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < g.radius + player.width/3) {
+                    damagePlayer();
+                }
+            });
+
+            // Hazards: Pistons
+            level.pistons.forEach(p => {
+                p.timer++;
+                if (p.timer > p.interval) {
+                    p.extending = !p.extending;
+                    p.timer = 0;
+                }
+                const pistonH = p.extending ? p.h : 20;
+                if (player.x + player.width > p.x && player.x < p.x + p.w &&
+                    player.y + player.height > p.y && player.y < p.y + pistonH) {
+                    damagePlayer();
+                }
+            });
+
+            // Hazards: Pendulums
+            level.pendulums.forEach(p => {
+                p.angle += p.speed;
+                const bobX = p.x + Math.sin(p.angle) * p.length;
+                const bobY = p.y + Math.cos(p.angle) * p.length;
+                const dx = (player.x + player.width/2) - bobX;
+                const dy = (player.y + player.height/2) - bobY;
+                if (Math.sqrt(dx*dx + dy*dy) < 25) {
+                    damagePlayer();
+                }
+            });
+
+            // Clock Fragments Collection
+            level.fragments.forEach(f => {
+                if (!f.collected) {
+                    const dx = (player.x + player.width/2) - f.x;
+                    const dy = (player.y + player.height/2) - f.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < f.radius + player.width/2) {
+                        f.collected = true;
+                        fragmentsCollected++;
+                        playerStats.fragmentsCollected++;
+                        score += 500 * combo;
+                        combo = Math.min(20, combo + 1);
+                        comboTimer = 300;
+                        if (combo > playerStats.highestCombo) playerStats.highestCombo = combo;
+                        playSound('collect');
+                        spawnParticles(f.x, f.y, '#f3e5ab', 12);
+                        saveStats();
+
+                        if (fragmentsCollected >= totalFragmentsInLevel && level.exitDoor) {
+                            level.exitDoor.open = true;
+                        }
+                    }
+                }
+            });
+
+            // Power-ups Collection
+            level.powerups.forEach(pw => {
+                if (!pw.collected) {
+                    const dx = (player.x + player.width/2) - pw.x;
+                    const dy = (player.y + player.height/2) - pw.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < 30) {
+                        pw.collected = true;
+                        activePowerups[pw.type] = 450; // frames duration
+                        playSound('powerup');
+                        spawnParticles(pw.x, pw.y, '#66fcf1', 18);
+                    }
+                }
+            });
+
+            // Power-up countdowns
+            Object.keys(activePowerups).forEach(k => {
+                activePowerups[k]--;
+                if (activePowerups[k] <= 0) delete activePowerups[k];
+            });
+
+            // Boss Logic
+            if (level.boss) {
+                let b = level.boss;
+                b.timer++;
+                if (b.timer > 120) {
+                    b.vy = -10;
+                    b.timer = 0;
+                }
+                b.vy += 0.4;
+                b.y += b.vy;
+                if (b.y > 700) {
+                    b.y = 700;
+                    b.vy = 0;
+                }
+
+                // Player attack boss collision (jump on top)
+                if (player.x + player.width > b.x && player.x < b.x + b.w &&
+                    player.y + player.height >= b.y && player.y + player.height <= b.y + 40 && player.vy > 0) {
+                    b.hp -= 10;
+                    player.vy = -12;
+                    playSound('hit');
+                    shakeCamera(15, 20);
+                    spawnParticles(b.x + b.w/2, b.y, '#ff4444', 20);
+                    if (b.hp <= 0) {
+                        playerStats.bossesDefeated++;
+                        saveStats();
+                        triggerVictory();
+                    }
+                } else if (player.x + player.width > b.x && player.x < b.x + b.w &&
+                           player.y + player.height > b.y && player.y < b.y + b.h) {
+                    damagePlayer();
+                }
+
+                document.getElementById('boss-hp-fill').style.width = Math.max(0, (b.hp / b.maxHp) * 100) + '%';
+            }
+
+            // Exit Door Collision
+            if (level.exitDoor && level.exitDoor.open) {
+                if (player.x + player.width > level.exitDoor.x && player.x < level.exitDoor.x + level.exitDoor.w &&
+                    player.y + player.height > level.exitDoor.y && player.y < level.exitDoor.y + level.exitDoor.h) {
+                    triggerVictory();
+                }
+            }
+
+            // Boundaries Fall
+            if (player.y > level.height + 100) {
+                damagePlayer(true);
+            }
+
+            // Camera Follow Player with Smooth Lerp
+            const targetCamX = player.x - canvas.width / 2;
+            const targetCamY = player.y - canvas.height / 2;
+            camera.x += (targetCamX - camera.x) * 0.1;
+            camera.y += (targetCamY - camera.y) * 0.1;
+            camera.x = Math.max(0, Math.min(level.width - canvas.width, camera.x));
+            camera.y = Math.max(0, Math.min(level.height - canvas.height, camera.y));
+
+            if (camera.shakeTimer > 0) {
+                camera.shakeTimer--;
+                camera.x += (Math.random() - 0.5) * camera.shakeIntensity;
+                camera.y += (Math.random() - 0.5) * camera.shakeIntensity;
+            }
+
+            // Update Particles
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+            });
+            particles = particles.filter(p => p.life > 0);
+
+            updateHUD();
+        }
+
+        function damagePlayer(instant = false) {
+            if (player.invincibleTimer > 0 && !instant) return;
+            if (activePowerups.shield) {
+                delete activePowerups.shield;
+                player.invincibleTimer = 60;
+                playSound('hit');
+                return;
+            }
+
+            player.hp--;
+            player.invincibleTimer = 90;
+            playSound('hit');
+            shakeCamera(10, 15);
+            spawnParticles(player.x, player.y, '#ff4444', 15);
+
+            if (player.hp <= 0 || instant) {
+                triggerGameOver();
+            }
+        }
+
+        function shakeCamera(intensity, duration) {
+            if (!gameSettings.shake) return;
+            camera.shakeIntensity = intensity;
+            camera.shakeTimer = duration;
+        }
+
+        function spawnParticles(x, y, color, count) {
+            if (gameSettings.particles === 'low') count = Math.floor(count / 2);
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    radius: 2 + Math.random() * 3,
+                    color: color,
+                    life: 30 + Math.random() * 20
+                });
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-score').innerText = String(score).padStart(6, '0');
+            document.getElementById('hud-combo').innerText = 'x' + combo;
+            document.getElementById('hud-fragments').innerText = fragmentsCollected + ' / ' + totalFragmentsInLevel;
+            document.getElementById('hud-section').innerText = '1-' + level.sectionId;
+
+            const hpContainer = document.getElementById('hud-health');
+            hpContainer.innerHTML = '';
+            for (let i = 0; i < player.maxHp; i++) {
+                const heart = document.createElement('div');
+                heart.className = `w-4 h-4 rounded-full border border-yellow-400 ${i < player.hp ? 'bg-yellow-400 shadow-[0_0_8px_#d4af37]' : 'bg-transparent'}`;
+                hpContainer.appendChild(heart);
+            }
+
+            // Powerup HUD
+            const pwContainer = document.getElementById('powerup-hud');
+            pwContainer.innerHTML = '';
+            Object.keys(activePowerups).forEach(k => {
+                const badge = document.createElement('div');
+                badge.className = 'px-2 py-1 bg-[#1f2833] border border-[#66fcf1] text-[#66fcf1] text-xs font-bold rounded flex items-center gap-1';
+                badge.innerText = k.toUpperCase() + ' (' + Math.ceil(activePowerups[k]/60) + 's)';
+                pwContainer.appendChild(badge);
+            });
+        }
+
+        // Render Engine
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(-camera.x, -camera.y);
+
+            // Background Industrial Gear Grid & Glow
+            drawBackground();
+
+            // Platforms
+            level.platforms.forEach(p => {
+                ctx.fillStyle = '#1f2833';
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(p.x, p.y, p.w, p.h);
+                // Brass rivets
+                ctx.fillStyle = '#d4af37';
+                ctx.fillRect(p.x + 5, p.y + 4, 4, 4);
+                ctx.fillRect(p.x + p.w - 9, p.y + 4, 4, 4);
+            });
+
+            // Conveyor Belts
+            level.conveyors.forEach(c => {
+                ctx.fillStyle = '#2c3541';
+                ctx.fillRect(c.x, c.y, c.w, c.h);
+                ctx.strokeStyle = '#66fcf1';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(c.x, c.y, c.w, c.h);
+            });
+
+            // Springs
+            level.springs.forEach(s => {
+                ctx.fillStyle = '#66fcf1';
+                ctx.fillRect(s.x, s.y, s.w, s.h);
+            });
+
+            // Gears
+            level.gears.forEach(g => {
+                ctx.save();
+                ctx.translate(g.x, g.y);
+                ctx.rotate(g.rotationSpeed * stageTimer);
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(0, 0, g.radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Gear teeth
+                const teeth = 8;
+                for (let i = 0; i < teeth; i++) {
+                    const angle = (i / teeth) * Math.PI * 2;
+                    ctx.save();
+                    ctx.rotate(angle);
+                    ctx.fillStyle = '#d4af37';
+                    ctx.fillRect(g.radius - 4, -6, 12, 12);
+                    ctx.restore();
+                }
+                ctx.fillStyle = '#0b0c10';
+                ctx.beginPath();
+                ctx.arc(0, 0, g.radius * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            });
+
+            // Pistons
+            level.pistons.forEach(p => {
+                const pistonH = p.extending ? p.h : 20;
+                ctx.fillStyle = '#aa771c';
+                ctx.fillRect(p.x, p.y, p.w, pistonH);
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(p.x, p.y, p.w, pistonH);
+            });
+
+            // Pendulums
+            level.pendulums.forEach(p => {
+                const bobX = p.x + Math.sin(p.angle) * p.length;
+                const bobY = p.y + Math.cos(p.angle) * p.length;
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(bobX, bobY);
+                ctx.stroke();
+
+                ctx.fillStyle = '#ff4444';
+                ctx.beginPath();
+                ctx.arc(bobX, bobY, 22, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#d4af37';
+                ctx.stroke();
+            });
+
+            // Clock Fragments
+            level.fragments.forEach(f => {
+                if (!f.collected) {
+                    const floatY = f.y + Math.sin(stageTimer * 0.05 + f.floatOffset) * 6;
+                    ctx.save();
+                    ctx.translate(f.x, floatY);
+                    ctx.rotate(stageTimer * 0.02);
+                    ctx.fillStyle = '#f3e5ab';
+                    ctx.shadowColor = '#d4af37';
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, f.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#aa771c';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            });
+
+            // Power-ups
+            level.powerups.forEach(pw => {
+                if (!pw.collected) {
+                    ctx.fillStyle = '#66fcf1';
+                    ctx.shadowColor = '#66fcf1';
+                    ctx.shadowBlur = 12;
+                    ctx.fillRect(pw.x - 12, pw.y - 12, 24, 24);
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.strokeRect(pw.x - 12, pw.y - 12, 24, 24);
+                }
+            });
+
+            // Exit Door
+            if (level.exitDoor) {
+                let d = level.exitDoor;
+                ctx.fillStyle = d.open ? '#66fcf1' : '#1f2833';
+                ctx.shadowColor = d.open ? '#66fcf1' : 'transparent';
+                ctx.shadowBlur = d.open ? 20 : 0;
+                ctx.fillRect(d.x, d.y, d.w, d.h);
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(d.x, d.y, d.w, d.h);
+            }
+
+            // Boss Render
+            if (level.boss) {
+                let b = level.boss;
+                ctx.fillStyle = '#aa771c';
+                ctx.shadowColor = '#ff4444';
+                ctx.shadowBlur = 20;
+                ctx.fillRect(b.x, b.y, b.w, b.h);
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(b.x, b.y, b.w, b.h);
+                // Glowing Eye
+                ctx.fillStyle = '#66fcf1';
+                ctx.fillRect(b.x + (b.facing === 1 ? b.w - 35 : 15), b.y + 30, 20, 10);
+            }
+
+            // Player Render (Mechanical Hero)
+            if (player.invincibleTimer % 4 < 2) {
+                ctx.save();
+                ctx.translate(player.x + player.width/2, player.y + player.height/2);
+                ctx.scale(player.facing, 1);
+
+                // Body
+                ctx.fillStyle = '#d4af37';
+                ctx.shadowColor = '#66fcf1';
+                ctx.shadowBlur = 10;
+                ctx.fillRect(-player.width/2, -player.height/2, player.width, player.height);
+                
+                // Neon Core
+                ctx.fillStyle = '#66fcf1';
+                ctx.fillRect(-6, -6, 12, 12);
+
+                // Brass helmet/details
+                ctx.fillStyle = '#aa771c';
+                ctx.fillRect(-player.width/2 - 2, -player.height/2, player.width + 4, 10);
+
+                ctx.restore();
+            }
+
+            // Particles Render
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.restore();
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = '#0b0c10';
+            ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height);
+
+            // Subtle background giant clock face & brass aesthetics
+            ctx.strokeStyle = '#1f2833';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(level.width / 2, level.height / 2, 600, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Grid lines
+            ctx.strokeStyle = '#151b22';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < level.width; x += 150) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, level.height);
+                ctx.stroke();
+            }
+        }
+
+        function togglePause() {
+            if (currentState === STATE.PLAYING) {
+                currentState = STATE.PAUSED;
+                showScreen('menu-pause');
+            } else if (currentState === STATE.PAUSED) {
+                resumeGame();
+            }
+        }
+
+        function resumeGame() {
+            currentState = STATE.PLAYING;
+            showScreen('play');
+        }
+
+        function restartGame() {
+            startGameMode(gameMode);
+        }
+
+        function returnToMenu() {
+            currentState = STATE.MENU;
+            showScreen('menu-main');
+        }
+
+        function triggerVictory() {
+            currentState = STATE.VICTORY;
+            const stageScore = score + (fragmentsCollected * 200);
+            if (gameMode === 'campaign' && stageScore > playerStats.highScores.campaign) playerStats.highScores.campaign = stageScore;
+            if (gameMode === 'endless' && stageScore > playerStats.highScores.endless) playerStats.highScores.endless = stageScore;
+            if (gameMode === 'timeattack' && stageScore > playerStats.highScores.timeattack) playerStats.highScores.timeattack = stageScore;
+            saveStats();
+
+            // Advance checkpoint section when victory is reached
+            checkpointSection = level.sectionId + 1;
+
+            document.getElementById('victory-score').innerText = stageScore;
+            document.getElementById('victory-bonus').innerText = fragmentsCollected * 200;
+            showScreen('menu-victory');
+        }
+
+        function nextSection() {
+            level.sectionId++;
+            currentState = STATE.PLAYING;
+            fragmentsCollected = 0;
+            showScreen('play');
+            initPlayer();
+            generateLevel();
+        }
+
+        function triggerGameOver() {
+            currentState = STATE.GAMEOVER;
+            if (score > playerStats.highScores[gameMode]) {
+                playerStats.highScores[gameMode] = score;
+                saveStats();
+            }
+
+            document.getElementById('gameover-score').innerText = score;
+            document.getElementById('gameover-fragments').innerText = fragmentsCollected;
+            document.getElementById('gameover-section').innerText = '1-' + level.sectionId;
+            showScreen('menu-gameover');
+        }
+
+        // Retry from current Checkpoint section instead of resetting back to 1-1
+        function restartGame() {
+            currentState = STATE.PLAYING;
+            level.sectionId = checkpointSection;
+            fragmentsCollected = 0;
+            activePowerups = {};
+            showScreen('play');
+            initPlayer();
+            generateLevel();
+        }
+
+        function returnToMenu() {
+            currentState = STATE.MENU;
+            showScreen('menu-main');
+        }
+
+        function nextSection() {
+            level.sectionId++;
+            currentState = STATE.PLAYING;
+            fragmentsCollected = 0;
+            showScreen('play');
+            initPlayer();
+            generateLevel();
+        }
+
+        function triggerGameOver() {
+            currentState = STATE.GAMEOVER;
+            if (score > playerStats.highScores[gameMode]) {
+                playerStats.highScores[gameMode] = score;
+                saveStats();
+            }
+
+            document.getElementById('gameover-score').innerText = score;
+            document.getElementById('gameover-fragments').innerText = fragmentsCollected;
+            document.getElementById('gameover-section').innerText = '1-' + level.sectionId;
+            showScreen('menu-gameover');
+        }
+
+        // Main Loop Tick
+        function gameLoop() {
+            if (player.invincibleTimer > 0) player.invincibleTimer--;
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize Menu View
+        showScreen('menu-main');
+        requestAnimationFrame(gameLoop);
+
+    </script>
+</body>
+</html>

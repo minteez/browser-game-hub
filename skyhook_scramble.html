@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Skyhook Scramble</title>
+    <!-- Tailwind CSS for rich UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for arcade icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Orbitron for futuristic arcade typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+        }
+        .font-arcade {
+            font-family: 'Orbitron', sans-serif;
+        }
+        /* Custom scrollbars for modals */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 3px;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)); }
+            50% { filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.9)); }
+        }
+        .arcade-glow {
+            animation: pulseGlow 3s infinite ease-in-out;
+        }
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #020617, #0f172a, #1e1b4b);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative flex flex-col justify-between select-none">
+
+    <!-- Game Canvas -->
+    <div id="canvas-container" class="absolute inset-0 z-0">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- HUD Overlay (Hidden by default, shown during gameplay) -->
+    <div id="hud" class="absolute inset-0 z-10 pointer-events-none p-4 md:p-6 flex flex-col justify-between hidden">
+        <!-- Top Bar -->
+        <div class="flex justify-between items-start">
+            <!-- Score & Combo -->
+            <div class="flex flex-col gap-1 bg-slate-900/80 backdrop-blur-md p-3 rounded-xl border border-blue-500/30 shadow-lg pointer-events-auto">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-arcade text-blue-400 uppercase tracking-wider">Score</span>
+                    <span id="hud-score" class="text-2xl md:text-3xl font-black font-arcade text-white">0</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1">
+                        <i class="fa-solid fa-fire text-amber-400 text-xs animate-bounce"></i>
+                        <span id="hud-combo" class="text-sm font-bold text-amber-300">x1</span>
+                    </div>
+                    <span class="text-xs text-slate-400">|</span>
+                    <div class="flex items-center gap-1">
+                        <i class="fa-solid fa-ring text-cyan-400 text-xs"></i>
+                        <span id="hud-rings" class="text-sm font-bold text-cyan-300">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Info: Mode / Timer -->
+            <div id="hud-mode-info" class="hidden bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-purple-500/30 shadow-lg text-center pointer-events-auto">
+                <span id="hud-timer-label" class="text-xs font-arcade text-purple-400 block uppercase">Time Attack</span>
+                <span id="hud-timer" class="text-xl font-bold font-arcade text-white">60s</span>
+            </div>
+
+            <!-- Right Controls: Pause / Sound -->
+            <div class="flex items-center gap-2 pointer-events-auto">
+                <button onclick="toggleSound()" id="hud-sound-btn" class="w-10 h-10 rounded-xl bg-slate-900/80 backdrop-blur-md border border-slate-700 hover:border-blue-500 text-white flex items-center justify-center transition shadow-lg">
+                    <i class="fa-solid fa-volume-high text-sm"></i>
+                </button>
+                <button onclick="pauseGame()" class="w-10 h-10 rounded-xl bg-slate-900/80 backdrop-blur-md border border-slate-700 hover:border-blue-500 text-white flex items-center justify-center transition shadow-lg">
+                    <i class="fa-solid fa-pause text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Mobile Touch Controls & Warning -->
+        <div class="flex justify-between items-end w-full pb-2">
+            <!-- Left: Movement Pads -->
+            <div class="flex gap-3 pointer-events-auto md:hidden">
+                <button id="btn-left" class="w-16 h-16 rounded-2xl bg-slate-900/70 border border-blue-500/40 backdrop-blur-md text-white flex items-center justify-center active:bg-blue-600/50 transition shadow-lg">
+                    <i class="fa-solid fa-arrow-left text-xl"></i>
+                </button>
+                <button id="btn-right" class="w-16 h-16 rounded-2xl bg-slate-900/70 border border-blue-500/40 backdrop-blur-md text-white flex items-center justify-center active:bg-blue-600/50 transition shadow-lg">
+                    <i class="fa-solid fa-arrow-right text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Right: Grapple Action -->
+            <div class="flex gap-3 pointer-events-auto md:hidden">
+                <button id="btn-grapple" class="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 border border-blue-400/60 backdrop-blur-md text-white flex flex-col items-center justify-center active:scale-95 transition shadow-lg">
+                    <i class="fa-solid fa-anchor text-xl mb-1"></i>
+                    <span class="text-[10px] font-arcade uppercase font-bold">Hook</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Arcade Menu -->
+    <div id="main-menu" class="absolute inset-0 z-20 flex flex-col items-center justify-between p-6 bg-slate-950/90 backdrop-blur-xl">
+        <!-- Top branding -->
+        <div class="text-center mt-4 md:mt-8">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-arcade mb-3 arcade-glow">
+                <i class="fa-solid fa-bolt"></i> ARCADE EDITION v2.4
+            </div>
+            <h1 class="text-4xl md:text-7xl font-black font-arcade tracking-wider bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
+                SKYHOOK SCRAMBLE
+            </h1>
+            <p class="text-slate-400 text-sm md:text-base mt-2 max-w-md mx-auto">
+                Swing, launch, and defy gravity through the endless cybernetic skies!
+            </p>
+        </div>
+
+        <!-- Center Menu Options -->
+        <div class="flex flex-col gap-3 w-full max-w-xs md:max-w-sm my-auto">
+            <button onclick="openModeSelect()" class="group relative px-6 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-arcade font-bold tracking-wider shadow-lg shadow-blue-500/25 border border-blue-400/30 flex items-center justify-between transition-all active:scale-95">
+                <span class="flex items-center gap-3"><i class="fa-solid fa-play text-cyan-300"></i> PLAY GAME</span>
+                <i class="fa-solid fa-chevron-right text-xs opacity-70 group-hover:translate-x-1 transition"></i>
+            </button>
+            <button onclick="openModal('highscores-modal'); loadHighScores();" class="px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white font-arcade font-semibold tracking-wide border border-slate-700/80 flex items-center justify-between transition active:scale-95">
+                <span class="flex items-center gap-3"><i class="fa-solid fa-trophy text-amber-400"></i> HIGH SCORES</span>
+                <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
+            </button>
+            <button onclick="openModal('howtoplay-modal')" class="px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white font-arcade font-semibold tracking-wide border border-slate-700/80 flex items-center justify-between transition active:scale-95">
+                <span class="flex items-center gap-3"><i class="fa-solid fa-book-open text-emerald-400"></i> HOW TO PLAY</span>
+                <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
+            </button>
+            <button onclick="openModal('about-modal')" class="px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white font-arcade font-semibold tracking-wide border border-slate-700/80 flex items-center justify-between transition active:scale-95">
+                <span class="flex items-center gap-3"><i class="fa-solid fa-circle-info text-blue-400"></i> ABOUT THE GAME</span>
+                <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
+            </button>
+            <button onclick="openModal('settings-modal')" class="px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white font-arcade font-semibold tracking-wide border border-slate-700/80 flex items-center justify-between transition active:scale-95">
+                <span class="flex items-center gap-3"><i class="fa-solid fa-gear text-purple-400"></i> SETTINGS & ACCESSIBILITY</span>
+                <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
+            </button>
+        </div>
+
+        <!-- Footer / Credits -->
+        <div class="text-center text-xs text-slate-500 pb-2">
+            Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved.
+        </div>
+    </div>
+
+    <!-- Mode Selection Modal -->
+    <div id="modeselect-modal" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-blue-500/40 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
+            <button onclick="closeModal('modeselect-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-2xl font-arcade font-bold text-white mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-gamepad text-blue-400"></i> SELECT GAME MODE
+            </h2>
+            <p class="text-slate-400 text-sm mb-6">Choose your challenge level and style of ascent.</p>
+
+            <div class="flex flex-col gap-4">
+                <button onclick="startGame('endless')" class="p-4 rounded-xl bg-gradient-to-r from-blue-900/50 to-indigo-900/50 hover:from-blue-800/60 hover:to-indigo-800/60 border border-blue-500/50 text-left transition group">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-arcade font-bold text-lg text-blue-300">ENDLESS ASCENT</span>
+                        <i class="fa-solid fa-arrow-up text-blue-400 group-hover:-translate-y-1 transition"></i>
+                    </div>
+                    <p class="text-slate-300 text-xs">Climb as high as possible. Speed increases over time. Checkpoints save progress!</p>
+                </button>
+
+                <button onclick="startGame('timeattack')" class="p-4 rounded-xl bg-gradient-to-r from-purple-900/50 to-pink-900/50 hover:from-purple-800/60 hover:to-pink-800/60 border border-purple-500/50 text-left transition group">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-arcade font-bold text-lg text-purple-300">TIME ATTACK (60S)</span>
+                        <i class="fa-solid fa-stopwatch text-purple-400 group-hover:rotate-12 transition"></i>
+                    </div>
+                    <p class="text-slate-300 text-xs">Score as many points as you can within 60 seconds. Collecting rings adds bonus time!</p>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- High Scores Modal -->
+    <div id="highscores-modal" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
+            <button onclick="closeModal('highscores-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-2xl font-arcade font-bold text-white mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-trophy text-amber-400"></i> HIGH SCORES
+            </h2>
+            <p class="text-slate-400 text-sm mb-4">Top skyhook scramble records saved locally.</p>
+
+            <div class="space-y-4 mb-6">
+                <div>
+                    <h3 class="text-xs font-arcade text-blue-400 uppercase mb-2">Endless Mode</h3>
+                    <div id="endless-scores-list" class="bg-slate-950/60 rounded-xl p-3 border border-slate-800 space-y-2 max-h-36 overflow-y-auto">
+                        <div class="text-slate-500 text-xs text-center py-2">No records yet</div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xs font-arcade text-purple-400 uppercase mb-2">Time Attack Mode</h3>
+                    <div id="timeattack-scores-list" class="bg-slate-950/60 rounded-xl p-3 border border-slate-800 space-y-2 max-h-36 overflow-y-auto">
+                        <div class="text-slate-500 text-xs text-center py-2">No records yet</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <button onclick="clearScores()" class="text-xs text-red-400 hover:text-red-300 transition">
+                    <i class="fa-solid fa-trash-can mr-1"></i> Clear Scores
+                </button>
+                <button onclick="closeModal('highscores-modal')" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-arcade text-xs transition">
+                    CLOSE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- How To Play Modal -->
+    <div id="howtoplay-modal" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('howtoplay-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-2xl font-arcade font-bold text-white mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-book-open text-emerald-400"></i> HOW TO PLAY
+            </h2>
+            <p class="text-slate-400 text-sm mb-6">Master the cybernetic grapple hook to conquer the skies.</p>
+
+            <div class="space-y-4 text-slate-300 text-sm">
+                <div class="flex gap-3 items-start bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 font-arcade font-bold">1</div>
+                    <div>
+                        <strong class="text-white block mb-0.5">Grapple & Swing</strong>
+                        Click/Tap on any anchor point (pulsing blue nodes) or press <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-xs text-blue-300">Space</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-xs text-blue-300">Click</kbd> to attach your hook. Swing around anchors with momentum.
+                    </div>
+                </div>
+
+                <div class="flex gap-3 items-start bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 font-arcade font-bold">2</div>
+                    <div>
+                        <strong class="text-white block mb-0.5">Momentum & Launch</strong>
+                        Use Left/Right arrows or A/D keys (or onscreen buttons) to thrust while swinging. Release grapple to launch yourself forward at high speed!
+                    </div>
+                </div>
+
+                <div class="flex gap-3 items-start bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 font-arcade font-bold">3</div>
+                    <div>
+                        <strong class="text-white block mb-0.5">Collect Rings & Combos</strong>
+                        Fly through cyan energy rings to build your score multiplier. Collect power-ups for shields, magnet boosts, and speed surges!
+                    </div>
+                </div>
+
+                <div class="flex gap-3 items-start bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 font-arcade font-bold">4</div>
+                    <div>
+                        <strong class="text-white block mb-0.5">Avoid Hazards</strong>
+                        Watch out for flying drones, moving platforms, breakable glass platforms, and deadly red laser barriers!
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <button onclick="closeModal('howtoplay-modal')" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-arcade text-xs transition">
+                    GOT IT!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About The Game Modal -->
+    <div id="about-modal" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-blue-500/40 rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('about-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-2xl font-arcade font-bold text-white mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-blue-400"></i> ABOUT THE GAME
+            </h2>
+            <p class="text-slate-400 text-sm mb-4">Concept, inspiration, and development details.</p>
+
+            <div class="space-y-4 text-slate-300 text-sm leading-relaxed">
+                <p>
+                    <strong class="text-white">Concept:</strong> Skyhook Scramble is a high-octane 2D arcade platformer built around momentum-based physics and precision grappling mechanics. Set in a futuristic cyber-sky filled with drifting platforms, kinetic wind streams, and energy anomalies, players must use fluid pendulum physics to ascend endlessly.
+                </p>
+                <p>
+                    <strong class="text-white">Inspiration:</strong> Inspired by classic arcade swinging games and modern momentum platformers, Skyhook Scramble captures the pure rush of high-speed aerial acrobatics combined with satisfying combo multipliers and procedural level generation.
+                </p>
+                <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400">
+                    <span class="text-blue-400 font-bold block mb-1">CREDITS & COPYRIGHT</span>
+                    Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved. Built with HTML5 Canvas, Tailwind CSS, and Web Audio API synthesizer.
+                </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <button onclick="closeModal('about-modal')" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-arcade text-xs transition">
+                    CLOSE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-purple-500/40 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
+            <button onclick="closeModal('settings-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-2xl font-arcade font-bold text-white mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-gear text-purple-400"></i> SETTINGS & ACCESSIBILITY
+            </h2>
+            <p class="text-slate-400 text-sm mb-6">Customize your audiovisual and accessibility preferences.</p>
+
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950/50 border border-slate-800">
+                    <div>
+                        <span class="text-white text-sm font-medium block">Sound Effects (SFX)</span>
+                        <span class="text-slate-400 text-xs">Procedural synth sound effects</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="setting-sfx" checked onchange="toggleSetting('sfx')" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950/50 border border-slate-800">
+                    <div>
+                        <span class="text-white text-sm font-medium block">Screen Shake Effects</span>
+                        <span class="text-slate-400 text-xs">Dynamic impact camera shake</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="setting-shake" checked onchange="toggleSetting('shake')" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950/50 border border-slate-800">
+                    <div>
+                        <span class="text-white text-sm font-medium block">High Contrast / Accessibility</span>
+                        <span class="text-slate-400 text-xs">Enhanced visibility for anchor points</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="setting-contrast" onchange="toggleSetting('contrast')" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <button onclick="closeModal('settings-modal')" class="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-arcade text-xs transition">
+                    SAVE & CLOSE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Modal -->
+    <div id="pause-modal" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-blue-500/40 rounded-2xl p-6 md:p-8 max-w-sm w-full shadow-2xl text-center">
+            <h2 class="text-2xl font-arcade font-bold text-white mb-2">GAME PAUSED</h2>
+            <p class="text-slate-400 text-sm mb-6">Take a breather, sky-scrambler.</p>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="resumeGame()" class="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-arcade font-bold tracking-wide transition shadow-lg shadow-blue-500/20">
+                    RESUME GAME
+                </button>
+                <button onclick="restartGame()" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-arcade font-semibold transition">
+                    RESTART
+                </button>
+                <button onclick="returnToMenu()" class="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-red-400 hover:text-red-300 font-arcade font-semibold transition border border-red-500/30">
+                    QUIT TO MENU
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameover-modal" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-red-500/40 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl text-center relative overflow-hidden">
+            <div class="absolute -top-12 -right-12 w-32 h-32 bg-red-500/10 rounded-full blur-2xl"></div>
+            
+            <h2 class="text-3xl font-black font-arcade text-red-400 mb-1 tracking-wider">MISSION FAILED</h2>
+            <p class="text-slate-400 text-sm mb-6" id="gameover-subtitle">You plummeted into the atmospheric abyss.</p>
+
+            <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 mb-6 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400 text-xs font-arcade uppercase">Final Score</span>
+                    <span id="go-score" class="text-2xl font-bold font-arcade text-white">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400 text-xs font-arcade uppercase">Max Height Reached</span>
+                    <span id="go-height" class="text-lg font-bold font-arcade text-blue-400">0m</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400 text-xs font-arcade uppercase">Rings Collected</span>
+                    <span id="go-rings" class="text-lg font-bold font-arcade text-cyan-400">0</span>
+                </div>
+            </div>
+
+            <!-- New High Score Alert -->
+            <div id="new-highscore-badge" class="hidden mb-4 p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-arcade text-xs font-bold animate-pulse">
+                <i class="fa-solid fa-trophy mr-1"></i> NEW HIGH SCORE RECORD!
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="restartGame()" class="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-arcade font-bold tracking-wide transition shadow-lg shadow-blue-500/25">
+                    PLAY AGAIN
+                </button>
+                <button onclick="returnToMenu()" class="px-5 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-arcade font-semibold transition">
+                    MENU
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game Script -->
+    <script>
+        // --- AUDIO SYSTEM (Web Audio API Procedural Synthesizer) ---
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'grapple') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'ring') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, now); // D5
+                    osc.frequency.setValueAtTime(880, now + 0.08); // A5
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'powerup') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(900, now + 0.3);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'hit') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(40, now + 0.2);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'checkpoint') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.1);
+                    osc.frequency.setValueAtTime(659.25, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                }
+            } catch (e) {
+                console.error("Audio error", e);
+            }
+        }
+
+        // --- GAME VARIABLES & STATE ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let gameState = 'MENU'; // MENU, PLAYING, PAUSED, GAMEOVER
+        let gameMode = 'endless'; // endless, timeattack
+        let score = 0;
+        let ringsCollected = 0;
+        let combo = 1;
+        let comboTimer = 0;
+        let maxScore = 0;
+        let maxPosY = 0; // Max height reached
+        let gameTimer = 60; // For time attack
+        let globalSpeedMultiplier = 1;
+
+        // Settings
+        let settings = {
+            sfx: true,
+            shake: true,
+            contrast: false
+        };
+
+        // Camera
+        let camera = { x: 0, y: 0, shakeX: 0, shakeY: 0, shakeDuration: 0, shakeIntensity: 0 };
+
+        // Player Object
+        let player = {
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            radius: 14,
+            isGrappled: false,
+            grappleAnchor: null,
+            grappleLength: 0,
+            facing: 1,
+            shield: false,
+            magnetTimer: 0,
+            speedBoostTimer: 0
+        };
+
+        // World Entities
+        let platforms = [];
+        let anchors = [];
+        let rings = [];
+        let hazards = []; // Drones, Lasers
+        let windZones = [];
+        let powerUps = [];
+        let particles = [];
+        let checkpoints = [];
+
+        // Input Tracking
+        let keys = { left: false, right: false, up: false, down: false, grapple: false };
+        let mouse = { x: 0, y: 0, isDown: false, clickX: 0, clickY: 0 };
+
+        // Resize Canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- PROCEDURAL GENERATION & LEVEL SETUP ---
+        let worldTopY = 0; // Negative Y is higher up
+        let lastGeneratedY = 0;
+
+        function resetGame(mode) {
+            gameMode = mode;
+            score = 0;
+            ringsCollected = 0;
+            combo = 1;
+            comboTimer = 0;
+            maxPosY = 0;
+            globalSpeedMultiplier = 1;
+            gameTimer = 60;
+            particles = [];
+
+            // Spawn player at bottom center
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 150;
+            player.vx = 0;
+            player.vy = -5;
+            player.isGrappled = false;
+            player.grappleAnchor = null;
+            player.shield = false;
+            player.magnetTimer = 0;
+            player.speedBoostTimer = 0;
+
+            camera.x = player.x - canvas.width / 2;
+            camera.y = player.y - canvas.height / 2;
+
+            // Clear entities
+            platforms = [];
+            anchors = [];
+            rings = [];
+            hazards = [];
+            windZones = [];
+            powerUps = [];
+            checkpoints = [];
+
+            worldTopY = player.y - canvas.height * 2;
+            lastGeneratedY = player.y + 200;
+
+            // Generate initial starting area
+            generateInitialArea();
+            generateChunk(player.y - canvas.height * 3, player.y + 300);
+        }
+
+        function generateInitialArea() {
+            // Safe starting platform
+            platforms.push({
+                x: canvas.width / 2 - 100,
+                y: player.y + 80,
+                w: 200,
+                h: 20,
+                type: 'normal',
+                alpha: 1
+            });
+            // Starting anchor overhead
+            anchors.push({
+                x: canvas.width / 2,
+                y: player.y - 100,
+                radius: 12
+            });
+        }
+
+        function generateChunk(targetTopY, targetBottomY) {
+            let currentY = lastGeneratedY;
+            while (currentY > targetTopY) {
+                currentY -= Math.floor(Math.random() * 120) + 90; // Vertical spacing
+
+                let pWidth = Math.floor(Math.random() * 80) + 100;
+                let pX = Math.random() * (canvas.width - pWidth - 100) + 50;
+                let pType = 'normal';
+                
+                // Platform variety
+                let randType = Math.random();
+                if (randType < 0.25) pType = 'moving';
+                else if (randType < 0.4) pType = 'breakable';
+                else if (randType < 0.55) pType = 'bouncy';
+
+                platforms.push({
+                    x: pX,
+                    y: currentY,
+                    w: pWidth,
+                    h: 18,
+                    type: pType,
+                    moveDir: Math.random() < 0.5 ? 1 : -1,
+                    moveSpeed: Math.random() * 1.5 + 1,
+                    originalX: pX,
+                    range: Math.random() * 120 + 80,
+                    alpha: 1,
+                    broken: false
+                });
+
+                // Anchor points near platforms
+                if (Math.random() < 0.8) {
+                    anchors.push({
+                        x: pX + pWidth / 2 + (Math.random() * 100 - 50),
+                        y: currentY - (Math.random() * 80 + 60),
+                        radius: 10
+                    });
+                }
+
+                // Rings pattern
+                if (Math.random() < 0.7) {
+                    let ringCount = Math.floor(Math.random() * 3) + 2;
+                    for (let r = 0; r < ringCount; r++) {
+                        rings.push({
+                            x: pX + pWidth / 2 + (r * 35) - (ringCount * 18),
+                            y: currentY - 140 - (r * 25),
+                            radius: 14,
+                            collected: false
+                        });
+                    }
+                }
+
+                // Hazards (Drones or Lasers)
+                if (Math.abs(currentY) > 500 && Math.random() < 0.35) {
+                    if (Math.random() < 0.5) {
+                        // Flying Drone
+                        hazards.push({
+                            type: 'drone',
+                            x: Math.random() * (canvas.width - 100) + 50,
+                            y: currentY - 40,
+                            startX: pX,
+                            range: 150,
+                            speed: Math.random() * 2 + 1,
+                            dir: 1,
+                            radius: 16
+                        });
+                    } else {
+                        // Laser Barrier
+                        hazards.push({
+                            type: 'laser',
+                            x1: pX - 40,
+                            y1: currentY - 50,
+                            x2: pX + pWidth + 40,
+                            y2: currentY - 50,
+                            activeTimer: 0,
+                            activeInterval: 120
+                        });
+                    }
+                }
+
+                // Wind Zones
+                if (Math.abs(currentY) > 800 && Math.random() < 0.2) {
+                    windZones.push({
+                        x: 50,
+                        y: currentY - 60,
+                        w: canvas.width - 100,
+                        h: 80,
+                        forceY: -0.35
+                    });
+                }
+
+                // Power-ups
+                if (Math.abs(currentY) > 1000 && Math.random() < 0.12) {
+                    let pTypes = ['shield', 'magnet', 'speed'];
+                    let chosenPowerup = pTypes[Math.floor(Math.random() * pTypes.length)];
+                    powerUps.push({
+                        x: pX + pWidth / 2,
+                        y: currentY - 90,
+                        type: chosenPowerup,
+                        radius: 16,
+                        collected: false
+                    });
+                }
+
+                // Checkpoints every 2000m height
+                if (Math.abs(currentY) % 2000 < 150 && Math.random() < 0.4) {
+                    checkpoints.push({
+                        x: pX + pWidth / 2,
+                        y: currentY - 20,
+                        w: 50,
+                        h: 10,
+                        activated: false
+                    });
+                }
+            }
+            lastGeneratedY = targetTopY;
+        }
+
+        // --- GAME LOOP & UPDATE ---
+        let lastTime = performance.now();
+
+        function gameLoop(timestamp) {
+            let dt = (timestamp - lastTime) / 1000;
+            if (dt > 0.1) dt = 0.1;
+            lastTime = timestamp;
+
+            update(dt);
+            render();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(dt) {
+            if (gameState !== 'PLAYING') return;
+
+            // Speed scaling over time
+            globalSpeedMultiplier = 1 + Math.min(1.5, Math.abs(player.y - (canvas.height - 150)) / 10000);
+
+            // Time attack countdown
+            if (gameMode === 'timeattack') {
+                gameTimer -= dt;
+                document.getElementById('hud-timer').innerText = Math.ceil(gameTimer) + 's';
+                if (gameTimer <= 0) {
+                    gameOver('Time expired!');
+                    return;
+                }
+            }
+
+            // Combo decay
+            if (comboTimer > 0) {
+                comboTimer -= dt;
+                if (comboTimer <= 0) {
+                    combo = 1;
+                }
+            }
+
+            // Power-up timers
+            if (player.magnetTimer > 0) player.magnetTimer -= dt;
+            if (player.speedBoostTimer > 0) player.speedBoostTimer -= dt;
+
+            // Input handling (Keyboard / Touch)
+            let moveInput = 0;
+            if (keys.left) moveInput = -1;
+            if (keys.right) moveInput = 1;
+
+            // Grapple mechanics
+            if (keys.grapple && !player.isGrappled) {
+                findClosestAnchor();
+            } else if (!keys.grapple && player.isGrappled) {
+                releaseGrapple(true); // Launch boost on release
+            }
+
+            // Physics update
+            if (player.isGrappled && player.grappleAnchor) {
+                // Swinging Physics (Pendulum)
+                let dx = player.x - player.grappleAnchor.x;
+                let dy = player.y - player.grappleAnchor.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+
+                // Swing thrust input
+                if (moveInput !== 0) {
+                    let perpX = -dy / dist;
+                    let perpY = dx / dist;
+                    player.vx += perpX * moveInput * 0.8;
+                    player.vy += perpY * moveInput * 0.8;
+                }
+
+                // Rope constraint
+                let targetLen = player.grappleLength;
+                if (dist > targetLen) {
+                    let pullForce = (dist - targetLen) * 0.1;
+                    player.vx -= (dx / dist) * pullForce;
+                    player.vy -= (dy / dist) * pullForce;
+                }
+
+                // Damping
+                player.vx *= 0.99;
+                player.vy *= 0.99;
+
+                player.x += player.vx;
+                player.y += player.vy;
+
+            } else {
+                // Free Flight Physics
+                let gravity = 0.35;
+                if (player.speedBoostTimer > 0) gravity = 0.2;
+
+                player.vy += gravity;
+                player.vx += moveInput * 0.5;
+                player.vx *= 0.96; // Air resistance
+
+                player.x += player.vx;
+                player.y += player.vy;
+
+                // Platform Collisions
+                platforms.forEach(plat => {
+                    if (!plat.broken &&
+                        player.x + player.radius > plat.x &&
+                        player.x - player.radius < plat.x + plat.w &&
+                        player.y + player.radius >= plat.y &&
+                        player.y - player.radius <= plat.y + plat.h &&
+                        player.vy > 0) {
+                        
+                        // Landed on platform
+                        player.y = plat.y - player.radius;
+                        player.vy = -2; // Small bounce
+
+                        if (plat.type === 'bouncy') {
+                            player.vy = -14;
+                            playSound('powerup');
+                            triggerShake(6, 0.2);
+                        } else if (plat.type === 'breakable') {
+                            plat.broken = true;
+                            playSound('hit');
+                            triggerShake(4, 0.15);
+                        }
+                    }
+                });
+            }
+
+            // Update moving platforms
+            platforms.forEach(plat => {
+                if (plat.type === 'moving') {
+                    plat.x += plat.moveDir * plat.moveSpeed * globalSpeedMultiplier;
+                    if (plat.x < plat.originalX - plat.range || plat.x > plat.originalX + plat.range) {
+                        plat.moveDir *= -1;
+                    }
+                }
+            });
+
+            // Update hazards
+            hazards.forEach(hz => {
+                if (hz.type === 'drone') {
+                    hz.x += hz.dir * hz.speed;
+                    if (hz.x < hz.startX - hz.range || hz.x > hz.startX + hz.range) {
+                        hz.dir *= -1;
+                    }
+                    // Collision with player
+                    let d = Math.hypot(player.x - hz.x, player.y - hz.y);
+                    if (d < player.radius + hz.radius) {
+                        handlePlayerHit();
+                    }
+                } else if (hz.type === 'laser') {
+                    hz.activeTimer++;
+                    if (hz.activeTimer % hz.activeInterval < hz.activeInterval / 2) {
+                        // Laser active collision check
+                        if (lineIntersection(player.x, player.y, player.x, player.y, hz.x1, hz.y1, hz.x2, hz.y2, player.radius)) {
+                            handlePlayerHit();
+                        }
+                    }
+                }
+            });
+
+            // Update wind zones
+            windZones.forEach(w => {
+                if (player.x > w.x && player.x < w.x + w.w && player.y > w.y && player.y < w.y + w.h) {
+                    player.vy += w.forceY;
+                }
+            });
+
+            // Ring collection & Magnet effect
+            rings.forEach(ring => {
+                if (!ring.collected) {
+                    let d = Math.hypot(player.x - ring.x, player.y - ring.y);
+                    if (player.magnetTimer > 0 && d < 180) {
+                        ring.x += (player.x - ring.x) * 0.15;
+                        ring.y += (player.y - ring.y) * 0.15;
+                        d = Math.hypot(player.x - ring.x, player.y - ring.y);
+                    }
+                    if (d < player.radius + ring.radius) {
+                        ring.collected = true;
+                        ringsCollected++;
+                        score += 100 * combo;
+                        combo = Math.min(10, combo + 1);
+                        comboTimer = 4;
+                        playSound('ring');
+                        if (gameMode === 'timeattack') gameTimer += 2; // Bonus time
+
+                        // Spawn ring particles
+                        for (let i = 0; i < 8; i++) {
+                            particles.push({
+                                x: ring.x, y: ring.y,
+                                vx: (Math.random() - 0.5) * 6,
+                                vy: (Math.random() - 0.5) * 6,
+                                color: '#22d3ee',
+                                life: 1, decay: 0.03
+                            });
+                        }
+                    }
+                }
+            });
+
+            // Power-up collection
+            powerUps.forEach(pu => {
+                if (!pu.collected) {
+                    let d = Math.hypot(player.x - pu.x, player.y - pu.y);
+                    if (d < player.radius + pu.radius) {
+                        pu.collected = true;
+                        playSound('powerup');
+                        if (pu.type === 'shield') player.shield = true;
+                        if (pu.type === 'magnet') player.magnetTimer = 10;
+                        if (pu.type === 'speed') player.speedBoostTimer = 8;
+                        score += 500;
+                    }
+                }
+            });
+
+            // Checkpoints
+            checkpoints.forEach(cp => {
+                if (!cp.activated && Math.abs(player.y - cp.y) < 40 && Math.abs(player.x - cp.x) < 60) {
+                    cp.activated = true;
+                    playSound('checkpoint');
+                    score += 1000;
+                }
+            });
+
+            // Update particles
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= p.decay;
+            });
+            particles = particles.filter(p => p.life > 0);
+
+            // Camera tracking (smooth follow)
+            let targetCamX = player.x - canvas.width / 2;
+            let targetCamY = player.y - canvas.height / 2 - 50;
+            camera.x += (targetCamX - camera.x) * 0.1;
+            camera.y += (targetCamY - camera.y) * 0.1;
+
+            // Height tracking
+            let currentHeight = Math.floor((canvas.height - 150 - player.y) / 10);
+            if (currentHeight > maxPosY) maxPosY = currentHeight;
+            score += Math.max(0, Math.floor((maxPosY - currentHeight) * 0.1));
+
+            // Procedural generation forward trigger
+            if (player.y - canvas.height < lastGeneratedY) {
+                generateChunk(lastGeneratedY - canvas.height * 2, lastGeneratedY);
+            }
+
+            // Fall off screen check (Game Over)
+            if (player.y > camera.y + canvas.height + 100) {
+                gameOver('You plummeted into the atmospheric abyss.');
+            }
+
+            // Screen shake countdown
+            if (camera.shakeDuration > 0) {
+                camera.shakeDuration -= dt;
+                camera.shakeX = (Math.random() - 0.5) * camera.shakeIntensity;
+                camera.shakeY = (Math.random() - 0.5) * camera.shakeIntensity;
+            } else {
+                camera.shakeX = 0;
+                camera.shakeY = 0;
+            }
+
+            // Update HUD
+            document.getElementById('hud-score').innerText = score;
+            document.getElementById('hud-rings').innerText = ringsCollected;
+            document.getElementById('hud-combo').innerText = 'x' + combo;
+        }
+
+        // --- RENDERING GRAPHICS ---
+        function render() {
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Apply camera shake & translation
+            ctx.translate(-camera.x + camera.shakeX, -camera.y + camera.shakeY);
+
+            // Render Background Grid / Particles
+            renderBackground();
+
+            // Render Wind Zones
+            windZones.forEach(w => {
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.05)';
+                ctx.fillRect(w.x, w.y, w.w, w.h);
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+                ctx.setLineDash([4, 4]);
+                ctx.strokeRect(w.x, w.y, w.w, w.h);
+                ctx.setLineDash([]);
+            });
+
+            // Render Checkpoints
+            checkpoints.forEach(cp => {
+                ctx.fillStyle = cp.activated ? '#10b981' : '#64748b';
+                ctx.fillRect(cp.x - cp.w/2, cp.y, cp.w, cp.h);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px Orbitron';
+                ctx.textAlign = 'center';
+                ctx.fillText('CHECKPOINT', cp.x, cp.y - 6);
+            });
+
+            // Render Platforms
+            platforms.forEach(plat => {
+                if (plat.broken) return;
+                ctx.save();
+                if (plat.type === 'normal') ctx.fillStyle = '#334155';
+                else if (plat.type === 'moving') ctx.fillStyle = '#4f46e5';
+                else if (plat.type === 'breakable') ctx.fillStyle = '#b91c1c';
+                else if (plat.type === 'bouncy') ctx.fillStyle = '#059669';
+
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.roundRect(plat.x, plat.y, plat.w, plat.h, 6);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // Render Anchor Points
+            anchors.forEach(anc => {
+                let distToPlayer = Math.hypot(player.x - anc.x, player.y - anc.y);
+                let isNearby = distToPlayer < 250;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(anc.x, anc.y, anc.radius, 0, Math.PI * 2);
+                ctx.fillStyle = settings.contrast ? '#fbbf24' : (isNearby ? '#3b82f6' : '#64748b');
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.shadowBlur = isNearby ? 15 : 5;
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+                ctx.restore();
+            });
+
+            // Render Grapple Rope
+            if (player.isGrappled && player.grappleAnchor) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(player.x, player.y);
+                ctx.lineTo(player.grappleAnchor.x, player.grappleAnchor.y);
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#38bdf8';
+                ctx.shadowBlur = 12;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Render Rings
+            rings.forEach(ring => {
+                if (!ring.collected) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#22d3ee';
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#22d3ee';
+                    ctx.shadowBlur = 10;
+                    ctx.stroke();
+                    ctx.fillStyle = 'rgba(34, 211, 238, 0.2)';
+                    ctx.fill();
+                    ctx.restore();
+                }
+            });
+
+            // Render Power-ups
+            powerUps.forEach(pu => {
+                if (!pu.collected) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(pu.x, pu.y, pu.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = pu.type === 'shield' ? '#3b82f6' : (pu.type === 'magnet' ? '#ec4899' : '#eab308');
+                    ctx.shadowColor = ctx.fillStyle;
+                    ctx.shadowBlur = 15;
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '12px FontAwesome';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    let icon = pu.type === 'shield' ? '\uf3ed' : (pu.type === 'magnet' ? '\uf076' : '\uf0e7');
+                    ctx.fillText(icon, pu.x, pu.y);
+                    ctx.restore();
+                }
+            });
+
+            // Render Hazards
+            hazards.forEach(hz => {
+                if (hz.type === 'drone') {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(hz.x, hz.y, hz.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.shadowColor = '#ef4444';
+                    ctx.shadowBlur = 12;
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.restore();
+                } else if (hz.type === 'laser') {
+                    if ((hz.activeTimer % hz.activeInterval) < (hz.activeInterval / 2)) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(hz.x1, hz.y1);
+                        ctx.lineTo(hz.x2, hz.y2);
+                        ctx.strokeStyle = '#ef4444';
+                        ctx.lineWidth = 4;
+                        ctx.shadowColor = '#ef4444';
+                        ctx.shadowBlur = 15;
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            });
+
+            // Render Particles
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // Render Player
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = player.speedBoostTimer > 0 ? '#eab308' : '#3b82f6';
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+
+            // Shield aura
+            if (player.shield) {
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, player.radius + 6, 0, Math.PI * 2);
+                ctx.strokeStyle = '#60a5fa';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        function renderBackground() {
+            // Subtle starfield / grid lines based on camera position
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            let gridSize = 100;
+            let startX = Math.floor(camera.x / gridSize) * gridSize;
+            let startY = Math.floor(camera.y / gridSize) * gridSize;
+
+            for (let x = startX; x < startX + canvas.width + gridSize; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, camera.y);
+                ctx.lineTo(x, camera.y + canvas.height);
+                ctx.stroke();
+            }
+            for (let y = startY; y < startY + canvas.height + gridSize; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(camera.x, y);
+                ctx.lineTo(camera.x + canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        // --- HELPER FUNCTIONS & MECHANICS ---
+        function findClosestAnchor() {
+            let closest = null;
+            let minDist = 220; // Max grapple range
+
+            anchors.forEach(anc => {
+                let d = Math.hypot(player.x - anc.x, player.y - anc.y);
+                if (d < minDist) {
+                    minDist = d;
+                    closest = anc;
+                }
+            });
+
+            if (closest) {
+                player.isGrappled = true;
+                player.grappleAnchor = closest;
+                player.grappleLength = Math.hypot(player.x - closest.x, player.y - closest.y);
+                playSound('grapple');
+            }
+        }
+
+        function releaseGrapple(launch = true) {
+            if (player.isGrappled && launch) {
+                // Boost velocity on release based on swing momentum
+                let dx = player.x - player.grappleAnchor.x;
+                let dy = player.y - player.grappleAnchor.y;
+                let angle = Math.atan2(dy, dx);
+                let speed = Math.hypot(player.vx, player.vy) * 1.2 + 6;
+
+                // Tangent launch direction
+                let tangent = angle + Math.PI / 2;
+                player.vx = Math.cos(tangent) * speed * (player.vx >= 0 ? 1 : -1);
+                player.vy = Math.sin(tangent) * speed - 4;
+            }
+            player.isGrappled = false;
+            player.grappleAnchor = null;
+        }
+
+        function handlePlayerHit() {
+            if (player.shield) {
+                player.shield = false;
+                playSound('hit');
+                triggerShake(8, 0.25);
+                return;
+            }
+            gameOver('Destroyed by hazard obstruction.');
+        }
+
+        function triggerShake(intensity, duration) {
+            if (!settings.shake) return;
+            camera.shakeIntensity = intensity;
+            camera.shakeDuration = duration;
+        }
+
+        function lineIntersection(x1, y1, x2, y2, x3, y3, x4, y4, r) {
+            // Simple distance check from circle to line segment
+            let A = x2 - x1;
+            let B = y2 - y1;
+            let C = x3 - x1;
+            let D = y3 - y1;
+            let dot = A * C + B * D;
+            let lenSq = A * A + B * B;
+            let param = lenSq !== 0 ? dot / lenSq : -1;
+            let xx, yy;
+
+            if (param < 0) { xx = x1; yy = y1; }
+            else if (param > 1) { xx = x2; yy = y2; }
+            else { xx = x1 + param * A; yy = y1 + param * B; }
+
+            let d = Math.hypot(x3 - xx, y3 - yy);
+            return d < r;
+        }
+
+        // --- GAME STATE TRANSITIONS ---
+        function openModeSelect() {
+            initAudio();
+            document.getElementById('modeselect-modal').classList.remove('hidden');
+        }
+
+        function startGame(mode) {
+            closeModal('modeselect-modal');
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            if (mode === 'timeattack') {
+                document.getElementById('hud-mode-info').classList.remove('hidden');
+            } else {
+                document.getElementById('hud-mode-info').classList.add('hidden');
+            }
+            resetGame(mode);
+            gameState = 'PLAYING';
+        }
+
+        function pauseGame() {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                document.getElementById('pause-modal').classList.remove('hidden');
+            }
+        }
+
+        function resumeGame() {
+            document.getElementById('pause-modal').classList.add('hidden');
+            gameState = 'PLAYING';
+        }
+
+        function restartGame() {
+            document.getElementById('pause-modal').classList.add('hidden');
+            document.getElementById('gameover-modal').classList.add('hidden');
+            resetGame(gameMode);
+            gameState = 'PLAYING';
+        }
+
+        function returnToMenu() {
+            document.getElementById('pause-modal').classList.add('hidden');
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+            gameState = 'MENU';
+        }
+
+        function gameOver(reason) {
+            gameState = 'GAMEOVER';
+            playSound('hit');
+            triggerShake(12, 0.4);
+
+            document.getElementById('gameover-subtitle').innerText = reason;
+            document.getElementById('go-score').innerText = score;
+            document.getElementById('go-height').innerText = maxPosY + 'm';
+            document.getElementById('go-rings').innerText = ringsCollected;
+
+            // Save High Score
+            let isNewHigh = saveHighScore(gameMode, score);
+            if (isNewHigh) {
+                document.getElementById('new-highscore-badge').classList.remove('hidden');
+            } else {
+                document.getElementById('new-highscore-badge').classList.add('hidden');
+            }
+
+            document.getElementById('gameover-modal').classList.remove('hidden');
+        }
+
+        // --- HIGH SCORES & LOCAL STORAGE ---
+        function saveHighScore(mode, newScore) {
+            let key = 'skyhook_scores_' + mode;
+            let scores = JSON.parse(localStorage.getItem(key) || '[]');
+            scores.push({ score: newScore, date: new Date().toLocaleDateString() });
+            scores.sort((a, b) => b.score - a.score);
+            scores = scores.slice(0, 5); // Top 5
+            localStorage.setItem(key, JSON.stringify(scores));
+            return scores[0].score === newScore;
+        }
+
+        function loadHighScores() {
+            let endless = JSON.parse(localStorage.getItem('skyhook_scores_endless') || '[]');
+            let timeattack = JSON.parse(localStorage.getItem('skyhook_scores_timeattack') || '[]');
+
+            let endlessHtml = endless.length ? endless.map((s, i) => `<div class="flex justify-between text-xs text-slate-300 py-1 border-b border-slate-800"><span>#${i+1} ${s.date}</span><span class="font-bold text-blue-400 font-arcade">${s.score}</span></div>`).join('') : '<div class="text-slate-500 text-xs text-center py-2">No records yet</div>';
+            let taHtml = timeattack.length ? timeattack.map((s, i) => `<div class="flex justify-between text-xs text-slate-300 py-1 border-b border-slate-800"><span>#${i+1} ${s.date}</span><span class="font-bold text-purple-400 font-arcade">${s.score}</span></div>`).join('') : '<div class="text-slate-500 text-xs text-center py-2">No records yet</div>';
+
+            document.getElementById('endless-scores-list').innerHTML = endlessHtml;
+            document.getElementById('timeattack-scores-list').innerHTML = taHtml;
+        }
+
+        function clearScores() {
+            localStorage.removeItem('skyhook_scores_endless');
+            localStorage.removeItem('skyhook_scores_timeattack');
+            loadHighScores();
+        }
+
+        // --- SETTINGS & MODAL UTILS ---
+        function toggleSetting(name) {
+            settings[name] = document.getElementById('setting-' + name).checked;
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            let btn = document.getElementById('hud-sound-btn');
+            btn.innerHTML = soundEnabled ? '<i class="fa-solid fa-volume-high text-sm"></i>' : '<i class="fa-solid fa-volume-xmark text-sm text-red-400"></i>';
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // --- INPUT LISTENERS (Keyboard & Touch) ---
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                if (!keys.grapple) {
+                    keys.grapple = true;
+                }
+            }
+            if (e.code === 'Escape') {
+                if (gameState === 'PLAYING') pauseGame();
+                else if (gameState === 'PAUSED') resumeGame();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                keys.grapple = false;
+            }
+        });
+
+        // Mouse click for grappling anywhere on canvas
+        canvas.addEventListener('mousedown', (e) => {
+            if (gameState !== 'PLAYING') return;
+            initAudio();
+            keys.grapple = true;
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            keys.grapple = false;
+        });
+
+        // Mobile touch controls setup
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+        const btnGrapple = document.getElementById('btn-grapple');
+
+        btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; });
+        btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; });
+        btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; });
+        btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; });
+        
+        btnGrapple.addEventListener('touchstart', (e) => { e.preventDefault(); initAudio(); keys.grapple = true; });
+        btnGrapple.addEventListener('touchend', (e) => { e.preventDefault(); keys.grapple = false; });
+
+        // Start animation loop
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

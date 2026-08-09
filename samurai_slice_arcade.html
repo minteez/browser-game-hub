@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Samurai Slice - Arcade Action</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Noto+Serif+JP:wght@700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0b0c10;
+            font-family: 'Rajdhani', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .jp-font {
+            font-family: 'Noto Serif JP', serif;
+        }
+        .cinzel-font {
+            font-family: 'Cinzel', serif;
+        }
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 3s infinite ease-in-out;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.8);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 4px;
+        }
+        body.high-contrast {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+        }
+        body.high-contrast .bg-slate-900, 
+        body.high-contrast .bg-slate-950 {
+            background-color: #050505 !important;
+            border-color: #ffffff !important;
+        }
+        body.large-text {
+            font-size: 1.25rem !important;
+        }
+    </style>
+</head>
+<body class="bg-[#0b0c10] text-slate-100 h-screen w-screen flex flex-col justify-between relative overflow-hidden">
+
+    <div id="game-container" class="absolute inset-0 w-full h-full z-0">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <div id="hud" class="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-6 hidden">
+        <div class="flex justify-between items-start">
+            <div class="flex flex-col">
+                <div class="text-xs uppercase tracking-widest text-amber-400 font-bold cinzel-font">Score</div>
+                <div id="hud-score" class="text-4xl font-extrabold text-white tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">0</div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div id="hud-timer-container" class="hidden flex-col items-center">
+                    <div class="text-xs uppercase tracking-widest text-red-400 font-bold cinzel-font">Time Left</div>
+                    <div id="hud-timer" class="text-3xl font-extrabold text-red-500">60</div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <div class="text-xs uppercase tracking-widest text-amber-400 font-bold cinzel-font">Lives / Shields</div>
+                    <div id="hud-lives" class="text-2xl font-bold flex gap-1 text-red-500">❤️❤️❤️</div>
+                </div>
+                <button id="pause-btn" class="pointer-events-auto bg-slate-900/80 border border-amber-500/50 hover:bg-amber-600/30 text-amber-300 px-4 py-2 rounded-lg font-bold tracking-wider transition shadow-lg">PAUSE</button>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center w-full">
+            <div id="combo-display" class="transition-all duration-300 transform scale-0 opacity-0">
+                <div class="text-amber-300 font-black text-2xl jp-font italic drop-shadow-[0_0_10px_rgba(245,158,11,0.8)]" id="combo-text">5x COMBO!</div>
+            </div>
+            <div id="ability-bar-container" class="flex flex-col items-end bg-slate-950/60 p-3 rounded-xl border border-amber-500/30 backdrop-blur-sm">
+                <div class="flex justify-between w-48 text-xs font-bold text-amber-400 mb-1">
+                    <span>BLADE FOCUS (Q)</span>
+                    <span id="ability-status">READY</span>
+                </div>
+                <div class="w-48 h-2.5 bg-slate-800 rounded-full overflow-hidden border border-amber-500/40">
+                    <div id="ability-progress" class="h-full bg-gradient-to-r from-amber-500 to-yellow-300 w-full transition-all duration-100"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-end text-xs text-slate-400 uppercase tracking-widest">
+            <div id="hud-mode" class="bg-slate-950/80 px-3 py-1.5 rounded border border-slate-800 text-amber-400 font-bold">Endless Mode</div>
+            <div class="bg-slate-950/80 px-3 py-1.5 rounded border border-slate-800">Swipe / Drag / Slash</div>
+        </div>
+    </div>
+
+    <div id="main-menu" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-b from-[#0b0c10]/95 via-[#11131a]/95 to-[#0b0c10]/95 p-6 backdrop-blur-md overflow-y-auto">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.08)_0%,transparent_70%)] pointer-events-none"></div>
+        
+        <div class="text-center mb-10 relative">
+            <div class="text-amber-500 tracking-[0.4em] text-base uppercase font-extrabold mb-2 cinzel-font animate-pulse-slow">Artisan Blade Action</div>
+            <h1 class="text-7xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-200 to-amber-500 jp-font drop-shadow-[0_8px_25px_rgba(245,158,11,0.4)] leading-none">侍斬</h1>
+            <h2 class="text-4xl md:text-6xl font-black tracking-[0.2em] text-amber-400 cinzel-font mt-3 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">SAMURAI SLICE</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 w-full max-w-3xl mb-6">
+            <button onclick="openGameModesModal()" class="group relative px-5 py-3.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 rounded-xl font-extrabold text-base tracking-wider text-white shadow-xl border border-amber-400/50 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-between">
+                <span class="cinzel-font">PLAY GAME</span>
+                <span class="text-xs bg-amber-950/60 px-2 py-1 rounded text-amber-300">Start</span>
+            </button>
+            <button onclick="openHighScoresModal()" class="group relative px-5 py-3.5 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 rounded-xl font-extrabold text-base tracking-wider text-slate-100 shadow-xl border border-slate-700 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-between">
+                <span class="cinzel-font">HIGH SCORES</span>
+                <span class="text-xs bg-slate-950 px-2 py-1 rounded text-amber-400">Records</span>
+            </button>
+            <button onclick="openAchievementsModal()" class="group relative px-5 py-3.5 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 rounded-xl font-extrabold text-base tracking-wider text-slate-100 shadow-xl border border-slate-700 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-between">
+                <span class="cinzel-font">ACHIEVEMENTS</span>
+                <span id="menu-ach-badge" class="text-xs bg-slate-950 px-2 py-1 rounded text-amber-400">0/5</span>
+            </button>
+            <button onclick="openStatisticsModal()" class="group relative px-5 py-3.5 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 rounded-xl font-extrabold text-base tracking-wider text-slate-100 shadow-xl border border-slate-700 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-between">
+                <span class="cinzel-font">STATISTICS</span>
+                <span class="text-xs bg-slate-950 px-2 py-1 rounded text-slate-300">Career</span>
+            </button>
+            <button onclick="openSettingsModal()" class="group relative px-5 py-3.5 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 rounded-xl font-extrabold text-base tracking-wider text-slate-100 shadow-xl border border-slate-700 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-between">
+                <span class="cinzel-font">SETTINGS</span>
+                <span class="text-xs bg-slate-950 px-2 py-1 rounded text-slate-300">Audio/GFX</span>
+            </button>
+            <button onclick="openAccessibilityModal()" class="group relative px-5 py-3.5 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 rounded-xl font-extrabold text-base tracking-wider text-slate-100 shadow-xl border border-slate-700 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-between">
+                <span class="cinzel-font">ACCESSIBILITY</span>
+                <span class="text-xs bg-slate-950 px-2 py-1 rounded text-cyan-400">Options</span>
+            </button>
+            <button onclick="openHowToPlayModal()" class="group relative px-5 py-3.5 bg-gradient-to-r from-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 rounded-xl font-extrabold text-base tracking-wider text-slate-300 shadow-xl border border-slate-800 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-between">
+                <span class="cinzel-font">HOW TO PLAY</span>
+                <span class="text-xs bg-slate-900 px-2 py-1 rounded text-slate-400">Guide</span>
+            </button>
+            <button onclick="openAboutModal()" class="group relative px-5 py-3.5 bg-gradient-to-r from-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 rounded-xl font-extrabold text-base tracking-wider text-slate-300 shadow-xl border border-slate-800 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-between">
+                <span class="cinzel-font">ABOUT GAME</span>
+                <span class="text-xs bg-slate-900 px-2 py-1 rounded text-slate-400">Lore</span>
+            </button>
+            <button onclick="openCreditsModal()" class="group relative px-5 py-3.5 bg-gradient-to-r from-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 rounded-xl font-extrabold text-base tracking-wider text-slate-300 shadow-xl border border-slate-800 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-between">
+                <span class="cinzel-font">CREDITS</span>
+                <span class="text-xs bg-slate-900 px-2 py-1 rounded text-slate-400">Authors</span>
+            </button>
+        </div>
+
+        <div class="text-xs text-slate-400 tracking-wider flex items-center gap-4">
+            <span>Mouse Swipe / Touch Drag</span>
+            <span>•</span>
+            <span>Keyboard Slash (A, S, D, W, Space)</span>
+            <span>•</span>
+            <span>Press [Q] for Blade Focus</span>
+        </div>
+    </div>
+
+    <div id="gamemodes-modal" class="absolute inset-0 z-30 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative">
+            <button onclick="closeModal('gamemodes-modal')" class="absolute top-6 right-6 text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            <h3 class="text-3xl font-extrabold text-amber-400 cinzel-font mb-2">SELECT GAME MODE</h3>
+            <div class="text-xs text-slate-400 uppercase tracking-widest mb-6">Choose your path of discipline</div>
+
+            <div class="space-y-4 mb-6">
+                <button onclick="startGame('endless'); closeModal('gamemodes-modal');" class="w-full text-left p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 rounded-xl transition group">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-lg font-bold text-white cinzel-font group-hover:text-amber-400">ENDLESS MODE</span>
+                        <span class="text-xs bg-amber-950/80 text-amber-400 px-2 py-1 rounded">Classic Arcade</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Standard survival. Slice flying fruits and items while avoiding bombs. Lose 3 lives and you fall.</p>
+                </button>
+                <button onclick="startGame('challenge'); closeModal('gamemodes-modal');" class="w-full text-left p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 rounded-xl transition group">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-lg font-bold text-white cinzel-font group-hover:text-amber-400">CHALLENGE MODE</span>
+                        <span class="text-xs bg-slate-950 text-slate-300 px-2 py-1 rounded">Armoured & Bosses</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Face armored targets requiring multiple precise slashes and high-speed projectile volleys.</p>
+                </button>
+                <button onclick="startGame('timeattack'); closeModal('gamemodes-modal');" class="w-full text-left p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 rounded-xl transition group">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-lg font-bold text-white cinzel-font group-hover:text-amber-400">TIME ATTACK</span>
+                        <span class="text-xs bg-slate-950 text-amber-400 px-2 py-1 rounded">60 Seconds</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Rack up the highest possible score in 60 seconds. Missed targets do not cost lives.</p>
+                </button>
+            </div>
+            <button onclick="closeModal('gamemodes-modal')" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl cinzel-font tracking-wider transition">BACK</button>
+        </div>
+    </div>
+
+    <div id="highscores-modal" class="absolute inset-0 z-30 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative">
+            <button onclick="closeModal('highscores-modal')" class="absolute top-6 right-6 text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            <h3 class="text-3xl font-extrabold text-amber-400 cinzel-font mb-2">HIGH SCORES</h3>
+            <div class="text-xs text-slate-400 uppercase tracking-widest mb-6">Saved locally on your device</div>
+
+            <div class="space-y-4 mb-6">
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <div class="text-xs text-slate-400 cinzel-font">Endless Mode Best</div>
+                        <div id="hs-endless" class="text-2xl font-black text-amber-400">0</div>
+                    </div>
+                    <div class="text-xs text-slate-500">Classic</div>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <div class="text-xs text-slate-400 cinzel-font">Challenge Mode Best</div>
+                        <div id="hs-challenge" class="text-2xl font-black text-amber-400">0</div>
+                    </div>
+                    <div class="text-xs text-slate-500">Hardcore</div>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <div class="text-xs text-slate-400 cinzel-font">Time Attack Best</div>
+                        <div id="hs-timeattack" class="text-2xl font-black text-amber-400">0</div>
+                    </div>
+                    <div class="text-xs text-slate-500">60s Speed</div>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <div class="text-xs text-slate-400 cinzel-font">Best Combo Record</div>
+                        <div id="hs-combo" class="text-2xl font-black text-amber-400">0x</div>
+                    </div>
+                    <div class="text-xs text-slate-500">Multiplier</div>
+                </div>
+            </div>
+            <button onclick="closeModal('highscores-modal')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl cinzel-font tracking-wider transition">BACK TO MENU</button>
+        </div>
+    </div>
+
+    <div id="achievements-modal" class="absolute inset-0 z-30 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-8 max-w-xl w-full shadow-2xl relative">
+            <button onclick="closeModal('achievements-modal')" class="absolute top-6 right-6 text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            <h3 class="text-3xl font-extrabold text-amber-400 cinzel-font mb-2">ACHIEVEMENTS</h3>
+            <div class="text-xs text-slate-400 uppercase tracking-widest mb-6" id="ach-subtitle">Unlocked 0 of 5</div>
+
+            <div class="space-y-3 mb-6 max-h-[50vh] overflow-y-auto pr-2" id="achievements-list"></div>
+            <button onclick="closeModal('achievements-modal')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl cinzel-font tracking-wider transition">BACK TO MENU</button>
+        </div>
+    </div>
+
+    <div id="statistics-modal" class="absolute inset-0 z-30 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative">
+            <button onclick="closeModal('statistics-modal')" class="absolute top-6 right-6 text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            <h3 class="text-3xl font-extrabold text-amber-400 cinzel-font mb-2">STATISTICS</h3>
+            <div class="text-xs text-slate-400 uppercase tracking-widest mb-6">Lifetime Career Records</div>
+
+            <div class="space-y-3 mb-6 max-h-[50vh] overflow-y-auto pr-2">
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <span class="text-sm text-slate-300 cinzel-font">Total Games Played</span>
+                    <span id="stat-games" class="text-lg font-bold text-amber-400">0</span>
+                </div>
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <span class="text-sm text-slate-300 cinzel-font">Total Objects Sliced</span>
+                    <span id="stat-sliced" class="text-lg font-bold text-amber-400">0</span>
+                </div>
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <span class="text-sm text-slate-300 cinzel-font">Highest Score Achieved</span>
+                    <span id="stat-highscore" class="text-lg font-bold text-amber-400">0</span>
+                </div>
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <span class="text-sm text-slate-300 cinzel-font">Best Combo Multiplier</span>
+                    <span id="stat-bestcombo" class="text-lg font-bold text-amber-400">0x</span>
+                </div>
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <span class="text-sm text-slate-300 cinzel-font">Total Playtime</span>
+                    <span id="stat-playtime" class="text-lg font-bold text-amber-400">0m 0s</span>
+                </div>
+            </div>
+            <button onclick="closeModal('statistics-modal')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl cinzel-font tracking-wider transition">BACK TO MENU</button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="absolute inset-0 z-30 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative">
+            <button onclick="closeModal('settings-modal')" class="absolute top-6 right-6 text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            <h3 class="text-3xl font-extrabold text-amber-400 cinzel-font mb-2">SETTINGS</h3>
+            <div class="text-xs text-slate-400 uppercase tracking-widest mb-6">Customize your experience</div>
+
+            <div class="space-y-4 mb-6 max-h-[50vh] overflow-y-auto pr-2">
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-bold cinzel-font text-slate-200">Sound Effects (SFX)</span>
+                    <button onclick="toggleSetting('sfx')" id="set-sfx" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-amber-600 text-white transition">ON</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-bold cinzel-font text-slate-200">Screen Shake</span>
+                    <button onclick="toggleSetting('shake')" id="set-shake" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-amber-600 text-white transition">ON</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-bold cinzel-font text-slate-200">Particle Effects</span>
+                    <button onclick="toggleSetting('particles')" id="set-particles" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-amber-600 text-white transition">ON</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-bold cinzel-font text-slate-200">Fullscreen Mode</span>
+                    <button onclick="toggleFullscreen()" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 transition">TOGGLE</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-bold cinzel-font text-red-400">Reset Saved Data</span>
+                    <button onclick="resetAllData()" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800 transition">RESET</button>
+                </div>
+            </div>
+            <button onclick="closeModal('settings-modal')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl cinzel-font tracking-wider transition">SAVE & BACK</button>
+        </div>
+    </div>
+
+    <div id="accessibility-modal" class="absolute inset-0 z-30 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="bg-slate-900 border border-cyan-500/40 rounded-2xl p-8 max-w-lg w-full shadow-2xl relative">
+            <button onclick="closeModal('accessibility-modal')" class="absolute top-6 right-6 text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            <h3 class="text-3xl font-extrabold text-cyan-400 cinzel-font mb-2">ACCESSIBILITY</h3>
+            <div class="text-xs text-slate-400 uppercase tracking-widest mb-6">Inclusive gameplay features</div>
+
+            <div class="space-y-4 mb-6 max-h-[50vh] overflow-y-auto pr-2">
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div>
+                        <div class="text-sm font-bold cinzel-font text-slate-200">High Contrast Mode</div>
+                        <div class="text-xs text-slate-400">Pure black backgrounds and stark borders</div>
+                    </div>
+                    <button onclick="toggleAccessibility('highContrast')" id="acc-contrast" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-slate-800 text-slate-300 transition">OFF</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div>
+                        <div class="text-sm font-bold cinzel-font text-slate-200">Large UI Text</div>
+                        <div class="text-xs text-slate-400">Increase readability across interface</div>
+                    </div>
+                    <button onclick="toggleAccessibility('largeText')" id="acc-text" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-slate-800 text-slate-300 transition">OFF</button>
+                </div>
+            </div>
+            <button onclick="closeModal('accessibility-modal')" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl cinzel-font tracking-wider transition">SAVE & BACK</button>
+        </div>
+    </div>
+
+    <div id="howtoplay-modal" class="absolute inset-0 z-30 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-6 overflow-y-auto">
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-8 max-w-2xl w-full shadow-2xl my-auto relative">
+            <button onclick="closeModal('howtoplay-modal')" class="absolute top-6 right-6 text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            <h3 class="text-3xl font-extrabold text-amber-400 cinzel-font mb-2">HOW TO PLAY</h3>
+            <div class="text-xs text-amber-500/80 uppercase tracking-widest mb-6">Master the Blade</div>
+
+            <div class="space-y-4 text-slate-300 text-sm leading-relaxed mb-8 max-h-[60vh] overflow-y-auto pr-2">
+                <div>
+                    <h4 class="text-white font-bold cinzel-font text-base mb-1 text-amber-300">CORE OBJECTIVE</h4>
+                    <p>Defend your dojo by slicing flying fruits, bamboo, and targets as they arc across the screen. Avoid explosive red bombs at all costs!</p>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold cinzel-font text-base mb-1 text-amber-300">CONTROLS</h4>
+                    <ul class="list-disc list-inside space-y-1 text-slate-300">
+                        <li><strong>Mouse / Touch:</strong> Click and drag/swipe quickly across targets to leave glowing katana slashes.</li>
+                        <li><strong>Keyboard Slashes:</strong> Use <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-amber-300">A</kbd> (Left), <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-amber-300">D</kbd> (Right), <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-amber-300">W</kbd> (Up), <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-amber-300">S</kbd> (Down), and <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-amber-300">Space</kbd> (360° Sweep).</li>
+                        <li><strong>Blade Focus [Q]:</strong> Fill your focus meter to trigger slow-motion time precision.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold cinzel-font text-base mb-1 text-amber-300">SCORING & COMBOS</h4>
+                    <p>Slice multiple objects in a single continuous swipe to trigger high-multiplier combos and critical sparks for bonus points.</p>
+                </div>
+            </div>
+            <button onclick="closeModal('howtoplay-modal')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl cinzel-font tracking-wider transition">BACK TO MENU</button>
+        </div>
+    </div>
+
+    <div id="about-modal" class="absolute inset-0 z-30 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-6 overflow-y-auto">
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-8 max-w-2xl w-full shadow-2xl my-auto relative">
+            <button onclick="closeModal('about-modal')" class="absolute top-6 right-6 text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            <h3 class="text-3xl font-extrabold text-amber-400 cinzel-font mb-2">ABOUT THE GAME</h3>
+            <div class="text-xs text-amber-500/80 uppercase tracking-widest mb-6">Concept & Inspiration</div>
+
+            <div class="space-y-4 text-slate-300 text-sm leading-relaxed mb-8 max-h-[60vh] overflow-y-auto pr-2">
+                <div>
+                    <h4 class="text-white font-bold cinzel-font text-base mb-1 text-amber-300">RECREATED EXPERIENCE</h4>
+                    <p>Samurai Slice is a recreated, reimagined-style arcade tribute to the popular mobile classic <strong>Fruit Ninja</strong>. Built from scratch with custom 2D canvas physics, Web Audio procedural sound generation, and traditional Japanese sumi-e ink aesthetics, it brings high-speed slicing action directly to your browser.</p>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold cinzel-font text-base mb-1 text-amber-300">UNIQUE FEATURES</h4>
+                    <p>Featuring tactical armored targets, rare explosive bombs, slow-motion Blade Focus ability, screen shake impact feedback, comprehensive career statistics, and local arcade high score tracking.</p>
+                </div>
+            </div>
+            <button onclick="closeModal('about-modal')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl cinzel-font tracking-wider transition">BACK TO MENU</button>
+        </div>
+    </div>
+
+    <div id="credits-modal" class="absolute inset-0 z-30 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-6">
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-8 max-w-lg w-full shadow-2xl text-center relative">
+            <button onclick="closeModal('credits-modal')" class="absolute top-6 right-6 text-slate-400 hover:text-white text-xl font-bold">✕</button>
+            <h3 class="text-3xl font-extrabold text-amber-400 cinzel-font mb-2">CREDITS</h3>
+            <div class="text-xs text-amber-500/80 uppercase tracking-widest mb-6">Development Team</div>
+
+            <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 mb-6">
+                <p class="text-base font-bold text-white cinzel-font leading-relaxed">
+                    "Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved."
+                </p>
+            </div>
+            <button onclick="closeModal('credits-modal')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl cinzel-font tracking-wider transition">BACK TO MENU</button>
+        </div>
+    </div>
+
+    <div id="pause-modal" class="absolute inset-0 z-30 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-6">
+        <div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-8 max-w-md w-full text-center shadow-2xl">
+            <h3 class="text-3xl font-extrabold text-amber-400 cinzel-font mb-6">GAME PAUSED</h3>
+            <div class="flex flex-col gap-3">
+                <button onclick="resumeGame()" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl cinzel-font tracking-wider transition">RESUME</button>
+                <button onclick="restartGame()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl cinzel-font tracking-wider transition">RESTART</button>
+                <button onclick="openSettingsModal()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl cinzel-font tracking-wider transition">SETTINGS</button>
+                <button onclick="openHowToPlayModal()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl cinzel-font tracking-wider transition">HOW TO PLAY</button>
+                <button onclick="returnToMenu()" class="w-full py-3 bg-slate-950 hover:bg-slate-900 text-red-400 font-bold rounded-xl cinzel-font tracking-wider transition border border-red-900/30">QUIT TO MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameover-modal" class="absolute inset-0 z-30 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-6">
+        <div class="bg-slate-900 border border-red-500/40 rounded-2xl p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-amber-500 to-red-600"></div>
+            <h3 id="go-title" class="text-3xl font-extrabold text-red-500 cinzel-font mb-1">DEFEAT</h3>
+            <div id="new-highscore-badge" class="text-xs text-amber-400 font-bold uppercase tracking-widest mb-4 hidden">★ NEW HIGH SCORE RECORD! ★</div>
+            <div id="go-subtitle" class="text-xs text-slate-400 uppercase tracking-widest mb-6">The blade rests</div>
+
+            <div class="bg-slate-950/80 rounded-xl p-4 mb-6 border border-slate-800 flex justify-around">
+                <div>
+                    <div class="text-xs text-slate-400 cinzel-font">Final Score</div>
+                    <div id="go-score" class="text-3xl font-black text-white">0</div>
+                </div>
+                <div class="border-r border-slate-800"></div>
+                <div>
+                    <div class="text-xs text-slate-400 cinzel-font">Best Combo</div>
+                    <div id="go-combo" class="text-3xl font-black text-amber-400">0x</div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="restartGame()" class="w-full py-3.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold rounded-xl cinzel-font tracking-wider transition shadow-lg">PLAY AGAIN</button>
+                <button onclick="returnToMenu()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl cinzel-font tracking-wider transition">MAIN MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Persistent LocalStorage State & Settings ---
+        let gameData = {
+            highScores: { endless: 0, challenge: 0, timeattack: 0, combo: 0 },
+            statistics: { gamesPlayed: 0, totalSliced: 0, highestScore: 0, bestCombo: 0, playtimeSeconds: 0 },
+            achievements: {
+                firstSlice: { name: 'First Blood', desc: 'Slice your very first object', unlocked: false },
+                comboMaster: { name: 'Combo Master', desc: 'Reach a 5x combo chain', unlocked: false },
+                centuryScore: { name: 'Century Club', desc: 'Score over 100 points in a single run', unlocked: false },
+                focusZen: { name: 'Zen Master', desc: 'Activate Blade Focus ability', unlocked: false },
+                timeRunner: { name: 'Time Runner', desc: 'Complete a Time Attack run', unlocked: false }
+            },
+            settings: { sfx: true, shake: true, particles: true, highContrast: false, largeText: false }
+        };
+
+        function loadGameData() {
+            const saved = localStorage.getItem('samurai_slice_save_data');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    gameData = { ...gameData, ...parsed };
+                } catch (e) { console.error("Error loading save data:", e); }
+            }
+            applySettingsToDOM();
+        }
+
+        function saveGameData() {
+            localStorage.setItem('samurai_slice_save_data', JSON.stringify(gameData));
+        }
+
+        function resetAllData() {
+            localStorage.removeItem('samurai_slice_save_data');
+            location.reload();
+        }
+
+        loadGameData();
+
+        // --- Web Audio API Synth Generator ---
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!gameData.settings.sfx) return;
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (!gameData.settings.sfx || !audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                
+                if (type === 'slice') {
+                    // Smooth sword swoosh using filtered low-pass white noise sweep
+                    const bufferSize = audioCtx.sampleRate * 0.15;
+                    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+
+                    const whiteNoise = audioCtx.createBufferSource();
+                    whiteNoise.buffer = buffer;
+
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(600, now);
+                    filter.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+                    filter.Q.setValueAtTime(4, now);
+
+                    const gain = audioCtx.createGain();
+                    gain.gain.setValueAtTime(0.35, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                    whiteNoise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    whiteNoise.start(now);
+                    whiteNoise.stop(now + 0.15);
+                } else if (type === 'explode') {
+                    // Deep, muffled traditional arcade gong thud for bomb hits
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(80, now);
+                    osc.frequency.exponentialRampToValueAtTime(20, now + 0.4);
+                    gain.gain.setValueAtTime(0.5, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    if (type === 'critical') {
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(1000, now);
+                        osc.frequency.exponentialRampToValueAtTime(400, now + 0.2);
+                        gain.gain.setValueAtTime(0.3, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                        osc.start(now);
+                        osc.stop(now + 0.2);
+                    } else if (type === 'ability') {
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(440, now);
+                        osc.frequency.exponentialRampToValueAtTime(880, now + 0.4);
+                        gain.gain.setValueAtTime(0.25, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                        osc.start(now);
+                        osc.stop(now + 0.4);
+                    }
+                }
+            } catch (e) { console.error("Audio error:", e); }
+        }
+
+        // --- Game Setup & State ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let gameState = 'MENU'; // MENU, PLAYING, PAUSED, GAMEOVER
+        let gameMode = 'endless'; // endless, challenge, timeattack
+        let score = 0;
+        let lives = 3;
+        let timeLeft = 60;
+        let timerInterval = null;
+        let playtimeInterval = null;
+        let comboCount = 0;
+        let maxCombo = 0;
+        let comboTimer = null;
+        let bladeFocus = 100;
+        let isFocusActive = false;
+        let focusTimer = 0;
+
+        let screenShakeDuration = 0;
+        let screenShakeIntensity = 0;
+
+        let objects = [];
+        let particles = [];
+        let slashTrails = [];
+        let floatingTexts = [];
+
+        let mouseTrail = [];
+        let isMouseDown = false;
+        let activeTouches = new Map();
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- Object Types & Spawning ---
+        const objectTypes = [
+            { type: 'fruit', name: 'Melon', color: '#10b981', radius: 42, points: 10, armor: 1, isWatermelon: true },
+            { type: 'fruit', name: 'Apple', color: '#ef4444', radius: 32, points: 15, armor: 1, isApple: true },
+            { type: 'fruit', name: 'Orange', color: '#f97316', radius: 34, points: 15, armor: 1, isOrange: true },
+            { type: 'fruit', name: 'Dragonfruit', color: '#ec4899', radius: 38, points: 25, armor: 1, isDragonfruit: true },
+            { type: 'fruit', name: 'Banana', color: '#eab308', radius: 35, points: 20, armor: 1, isBanana: true },
+            { type: 'fruit', name: 'Coconut', color: '#78350f', radius: 36, points: 30, armor: 1, isCoconut: true },
+            { type: 'bamboo', name: 'Bamboo', color: '#84cc16', radius: 25, points: 20, armor: 1, isBamboo: true },
+            { type: 'target', name: 'Dojo Target', color: '#3b82f6', radius: 38, points: 25, armor: 1 },
+            { type: 'armoured', name: 'Armoured Orb', color: '#64748b', radius: 35, points: 40, armor: 2 },
+            { type: 'bonus', name: 'Golden Lotus', color: '#fbbf24', radius: 28, points: 100, armor: 1, isBonus: true },
+            { type: 'bomb', name: 'Bomb', color: '#ef4444', radius: 32, points: -50, armor: 1, isBomb: true }
+        ];
+
+        let spawnTimer = 0;
+
+        function startGame(mode) {
+            gameMode = mode;
+            score = 0;
+            lives = 3;
+            timeLeft = 60;
+            comboCount = 0;
+            maxCombo = 0;
+            bladeFocus = 100;
+            isFocusActive = false;
+            objects = [];
+            particles = [];
+            slashTrails = [];
+            floatingTexts = [];
+
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('pause-modal').classList.add('hidden');
+
+            const timerContainer = document.getElementById('hud-timer-container');
+            const modeLabel = document.getElementById('hud-mode');
+
+            if (mode === 'endless') {
+                timerContainer.classList.add('hidden');
+                modeLabel.innerText = 'Endless Mode';
+            } else if (mode === 'challenge') {
+                timerContainer.classList.add('hidden');
+                modeLabel.innerText = 'Challenge Mode';
+            } else if (mode === 'timeattack') {
+                timerContainer.classList.remove('hidden');
+                modeLabel.innerText = 'Time Attack';
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    if (gameState === 'PLAYING') {
+                        timeLeft--;
+                        document.getElementById('hud-timer').innerText = timeLeft;
+                        if (timeLeft <= 0) {
+                            clearInterval(timerInterval);
+                            endGame();
+                        }
+                    }
+                }, 1000);
+            }
+
+            if (playtimeInterval) clearInterval(playtimeInterval);
+            playtimeInterval = setInterval(() => {
+                if (gameState === 'PLAYING') {
+                    gameData.statistics.playtimeSeconds++;
+                }
+            }, 1000);
+
+            gameData.statistics.gamesPlayed++;
+            saveGameData();
+
+            gameState = 'PLAYING';
+        }
+
+        function pauseGame() {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                document.getElementById('pause-modal').classList.remove('hidden');
+            }
+        }
+
+        function resumeGame() {
+            gameState = 'PLAYING';
+            document.getElementById('pause-modal').classList.add('hidden');
+        }
+
+        function restartGame() {
+            startGame(gameMode);
+        }
+
+        function returnToMenu() {
+            gameState = 'MENU';
+            if (timerInterval) clearInterval(timerInterval);
+            if (playtimeInterval) clearInterval(playtimeInterval);
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('pause-modal').classList.add('hidden');
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+        }
+
+        function endGame() {
+            gameState = 'GAMEOVER';
+            if (timerInterval) clearInterval(timerInterval);
+            if (playtimeInterval) clearInterval(playtimeInterval);
+
+            let isNewHigh = false;
+            if (gameMode === 'endless' && score > gameData.highScores.endless) {
+                gameData.highScores.endless = score;
+                isNewHigh = true;
+            } else if (gameMode === 'challenge' && score > gameData.highScores.challenge) {
+                gameData.highScores.challenge = score;
+                isNewHigh = true;
+            } else if (gameMode === 'timeattack' && score > gameData.highScores.timeattack) {
+                gameData.highScores.timeattack = score;
+                isNewHigh = true;
+            }
+
+            if (maxCombo > gameData.highScores.combo) {
+                gameData.highScores.combo = maxCombo;
+            }
+            if (score > gameData.statistics.highestScore) {
+                gameData.statistics.highestScore = score;
+            }
+            if (maxCombo > gameData.statistics.bestCombo) {
+                gameData.statistics.bestCombo = maxCombo;
+            }
+
+            // Check achievements
+            if (score >= 100) gameData.achievements.centuryScore.unlocked = true;
+            if (gameMode === 'timeattack') gameData.achievements.timeRunner.unlocked = true;
+
+            saveGameData();
+
+            document.getElementById('go-score').innerText = score;
+            document.getElementById('go-combo').innerText = maxCombo + 'x';
+            const badge = document.getElementById('new-highscore-badge');
+            if (isNewHigh) badge.classList.remove('hidden');
+            else badge.classList.add('hidden');
+
+            document.getElementById('gameover-modal').classList.remove('hidden');
+        }
+
+        function activateBladeFocus() {
+            if (bladeFocus >= 100 && !isFocusActive && gameState === 'PLAYING') {
+                isFocusActive = true;
+                focusTimer = 300; // ~5 seconds at 60fps
+                bladeFocus = 0;
+                playSound('ability');
+                gameData.achievements.focusZen.unlocked = true;
+                saveGameData();
+            }
+        }
+
+        function spawnObject() {
+            const proto = objectTypes[Math.floor(Math.random() * objectTypes.length)];
+            // In endless/time attack, reduce bomb frequency slightly compared to fruits
+            let typeDef = proto;
+            if (gameMode === 'endless' && Math.random() < 0.12) {
+                typeDef = objectTypes.find(o => o.isBomb);
+            }
+
+            const x = Math.random() * (window.innerWidth - 200) + 100;
+            const y = window.innerHeight + 50;
+            const targetX = window.innerWidth / 2 + (Math.random() - 0.5) * (window.innerWidth * 0.5);
+            const targetY = window.innerHeight * 0.25 + Math.random() * 150;
+
+            const angle = Math.atan2(targetY - y, targetX - x);
+            const speed = 12 + Math.random() * 6;
+
+            objects.push({
+                ...typeDef,
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                gravity: 0.35,
+                rotation: Math.random() * Math.PI,
+                vRot: (Math.random() - 0.5) * 0.08,
+                sliced: false,
+                currentArmor: typeDef.armor
+            });
+        }
+
+        function triggerScreenShake(intensity, duration) {
+            if (!gameData.settings.shake) return;
+            screenShakeIntensity = intensity;
+            screenShakeDuration = duration;
+        }
+
+        function addParticles(x, y, color, count = 12) {
+            if (!gameData.settings.particles) return;
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 8;
+                particles.push({
+                    x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: 2 + Math.random() * 4,
+                    color,
+                    alpha: 1.0,
+                    decay: 0.02 + Math.random() * 0.03
+                });
+            }
+        }
+
+        function addFloatingText(x, y, text, color) {
+            floatingTexts.push({ x, y, text, color, alpha: 1.0, vy: -1.5 });
+        }
+
+        function checkLineSlice(x1, y1, x2, y2) {
+            objects.forEach(obj => {
+                if (obj.sliced) return;
+
+                // Distance from circle center to line segment
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const len = Math.hypot(dx, dy);
+                if (len === 0) return;
+
+                const u = ((obj.x - x1) * dx + (obj.y - y1) * dy) / (len * len);
+                const clampedU = Math.max(0, Math.min(1, u));
+                const nearestX = x1 + clampedU * dx;
+                const nearestY = y1 + clampedU * dy;
+                const dist = Math.hypot(obj.x - nearestX, obj.y - nearestY);
+
+                if (dist < obj.radius + 15) {
+                    obj.currentArmor--;
+                    if (obj.currentArmor <= 0) {
+                        obj.sliced = true;
+                        gameData.achievements.firstSlice.unlocked = true;
+                        gameData.statistics.totalSliced++;
+
+                        if (obj.isBomb) {
+                            playSound('explode');
+                            triggerScreenShake(15, 20);
+                            addParticles(obj.x, obj.y, '#ef4444', 35);
+                            lives--;
+                            document.getElementById('hud-lives').innerText = '❤️'.repeat(Math.max(0, lives));
+                            if (lives <= 0) {
+                                endGame();
+                            }
+                        } else {
+                            playSound(obj.isBonus ? 'critical' : 'slice');
+                            addParticles(obj.x, obj.y, obj.color, 16);
+                            score += obj.points;
+                            document.getElementById('hud-score').innerText = score;
+
+                            comboCount++;
+                            if (comboCount > maxCombo) maxCombo = comboCount;
+                            if (comboCount >= 5) {
+                                gameData.achievements.comboMaster.unlocked = true;
+                                showComboPopup(comboCount);
+                            }
+                            if (comboTimer) clearTimeout(comboTimer);
+                            comboTimer = setTimeout(() => { comboCount = 0; }, 600);
+
+                            addFloatingText(obj.x, obj.y, `+${obj.points}`, obj.isBonus ? '#fbbf24' : '#ffffff');
+                        }
+                    } else {
+                        playSound('slice');
+                        addParticles(obj.x, obj.y, '#94a3b8', 8);
+                        addFloatingText(obj.x, obj.y, 'ARMOR HIT!', '#94a3b8');
+                    }
+                }
+            });
+        }
+
+        function showComboPopup(count) {
+            const display = document.getElementById('combo-display');
+            document.getElementById('combo-text').innerText = `${count}x COMBO!`;
+            display.classList.remove('scale-0', 'opacity-0');
+            display.classList.add('scale-100', 'opacity-100');
+            setTimeout(() => {
+                display.classList.remove('scale-100', 'opacity-100');
+                display.classList.add('scale-0', 'opacity-0');
+            }, 1000);
+        }
+
+        function checkSlices(currX, currY) {
+            if (mouseTrail.length < 2) return;
+            const prev = mouseTrail[mouseTrail.length - 2];
+            createSlashEffect(prev.x, prev.y, currX, currY);
+            checkLineSlice(prev.x, prev.y, currX, currY);
+        }
+
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            // Screen shake decrement
+            if (screenShakeDuration > 0) screenShakeDuration--;
+
+            // Blade focus update
+            if (isFocusActive) {
+                focusTimer--;
+                if (focusTimer <= 0) isFocusActive = false;
+            } else {
+                if (bladeFocus < 100) bladeFocus += 0.25;
+            }
+            document.getElementById('ability-progress').style.width = `${bladeFocus}%`;
+            document.getElementById('ability-status').innerText = bladeFocus >= 100 ? 'READY' : `${Math.floor(bladeFocus)}%`;
+
+            // Spawner
+            const timeScale = isFocusActive ? 0.35 : 1.0;
+            spawnTimer += timeScale;
+            if (spawnTimer > 45) {
+                spawnTimer = 0;
+                spawnObject();
+                if (Math.random() < 0.4) spawnObject();
+            }
+
+            // Update objects
+            for (let i = objects.length - 1; i >= 0; i--) {
+                let obj = objects[i];
+                obj.x += obj.vx * timeScale;
+                obj.y += obj.vy * timeScale;
+                obj.vy += obj.gravity * timeScale;
+                obj.rotation += obj.vRot * timeScale;
+
+                if (!obj.sliced && obj.y > window.innerHeight + 100 && obj.vy > 0) {
+                    if (!obj.isBomb && gameMode === 'endless') {
+                        lives--;
+                        document.getElementById('hud-lives').innerText = '❤️'.repeat(Math.max(0, lives));
+                        if (lives <= 0) {
+                            endGame();
+                        }
+                    }
+                    objects.splice(i, 1);
+                } else if (obj.y > window.innerHeight + 200) {
+                    objects.splice(i, 1);
+                }
+            }
+
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx * timeScale;
+                p.y += p.vy * timeScale;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            // Update floating texts
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                let ft = floatingTexts[i];
+                ft.y += ft.vy;
+                ft.alpha -= 0.02;
+                if (ft.alpha <= 0) floatingTexts.splice(i, 1);
+            }
+
+            // Update slash trails
+            for (let i = slashTrails.length - 1; i >= 0; i--) {
+                slashTrails[i].alpha -= 0.08;
+                if (slashTrails[i].alpha <= 0) slashTrails.splice(i, 1);
+            }
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Dojo Wood / Tatami Gradient Background
+            const bgGrad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 100, canvas.width/2, canvas.height/2, canvas.width * 0.8);
+            bgGrad.addColorStop(0, '#1a1c24');
+            bgGrad.addColorStop(1, '#0b0c10');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (screenShakeDuration > 0) {
+                ctx.save();
+                const sx = (Math.random() - 0.5) * screenShakeIntensity;
+                const sy = (Math.random() - 0.5) * screenShakeIntensity;
+                ctx.translate(sx, sy);
+            }
+
+            // Render slash trails
+            slashTrails.forEach(st => {
+                ctx.save();
+                ctx.strokeStyle = `rgba(245, 158, 11, ${st.alpha})`;
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.shadowColor = '#f59e0b';
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.moveTo(st.x1, st.y1);
+                ctx.lineTo(st.x2, st.y2);
+                ctx.stroke();
+                ctx.restore();
+            });
+
+            // Live mouse drag trail
+            if (mouseTrail.length > 1) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.moveTo(mouseTrail[0].x, mouseTrail[0].y);
+                for (let i = 1; i < mouseTrail.length; i++) {
+                    ctx.lineTo(mouseTrail[i].x, mouseTrail[i].y);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            objects.forEach(obj => {
+                ctx.save();
+                ctx.translate(obj.x, obj.y);
+                ctx.rotate(obj.rotation);
+
+                if (obj.isBomb) {
+                    const bodyGrad = ctx.createRadialGradient(-8, -8, 5, 0, 0, obj.radius);
+                    bodyGrad.addColorStop(0, '#64748b');
+                    bodyGrad.addColorStop(0.3, '#1e293b');
+                    bodyGrad.addColorStop(1, '#090d16');
+                    ctx.fillStyle = bodyGrad;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, obj.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+                    ctx.beginPath();
+                    ctx.arc(-10, -10, obj.radius * 0.35, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#334155';
+                    ctx.beginPath();
+                    ctx.roundRect(-8, -obj.radius - 8, 16, 12, 3);
+                    ctx.fill();
+                    ctx.strokeStyle = '#0f172a';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#d4b28c';
+                    ctx.lineWidth = 4;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -obj.radius - 8);
+                    ctx.quadraticCurveTo(25, -obj.radius - 35, 45, -obj.radius - 20);
+                    ctx.stroke();
+
+                    const sparkX = 45;
+                    const sparkY = -obj.radius - 20;
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i * Math.PI / 4) + (Date.now() * 0.01);
+                        const dist = i % 2 === 0 ? 12 : 6;
+                        const sx = sparkX + Math.cos(angle) * dist;
+                        const sy = sparkY + Math.sin(angle) * dist;
+                        if (i === 0) ctx.moveTo(sx, sy);
+                        else ctx.lineTo(sx, sy);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(sparkX, sparkY, 3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (obj.isWatermelon) {
+                    if (obj.sliced) {
+                        ctx.save();
+                        ctx.translate(-18, 0);
+                        ctx.rotate(-0.2);
+                        ctx.fillStyle = '#14532d';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius, 0, Math.PI); ctx.fill();
+                        ctx.fillStyle = '#e2e8f0';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius - 6, 0, Math.PI); ctx.fill();
+                        ctx.fillStyle = '#ef4444';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius - 12, 0, Math.PI); ctx.fill();
+                        ctx.fillStyle = '#0f172a';
+                        for (let a = 0.4; a < Math.PI - 0.3; a += 0.5) {
+                            ctx.beginPath();
+                            ctx.ellipse(Math.cos(a) * (obj.radius * 0.5), Math.sin(a) * (obj.radius * 0.5), 3, 5, a, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.restore();
+
+                        ctx.save();
+                        ctx.translate(18, 0);
+                        ctx.rotate(0.2);
+                        ctx.fillStyle = '#14532d';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius, 0, Math.PI); ctx.fill();
+                        ctx.fillStyle = '#e2e8f0';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius - 6, 0, Math.PI); ctx.fill();
+                        ctx.fillStyle = '#ef4444';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius - 12, 0, Math.PI); ctx.fill();
+                        ctx.fillStyle = '#0f172a';
+                        for (let a = 0.4; a < Math.PI - 0.3; a += 0.5) {
+                            ctx.beginPath();
+                            ctx.ellipse(Math.cos(a) * (obj.radius * 0.5), Math.sin(a) * (obj.radius * 0.5), 3, 5, a, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                    } else {
+                        const melonGrad = ctx.createRadialGradient(-10, -10, 5, 0, 0, obj.radius);
+                        melonGrad.addColorStop(0, '#4ade80');
+                        melonGrad.addColorStop(0.7, '#16a34a');
+                        melonGrad.addColorStop(1, '#14532d');
+                        ctx.fillStyle = melonGrad;
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius, 0, Math.PI * 2); ctx.fill();
+
+                        ctx.fillStyle = '#052e16';
+                        for (let angle = 0; angle < Math.PI * 2; angle += 0.9) {
+                            ctx.beginPath();
+                            ctx.ellipse(Math.cos(angle) * (obj.radius * 0.4), Math.sin(angle) * (obj.radius * 0.4), 8, obj.radius * 0.85, angle, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        ctx.fillStyle = '#3f6212';
+                        ctx.beginPath(); ctx.arc(0, -obj.radius + 4, 5, 0, Math.PI * 2); ctx.fill();
+                    }
+                } else if (obj.isApple) {
+                    if (obj.sliced) {
+                        ctx.save();
+                        ctx.translate(-14, 0);
+                        ctx.rotate(-0.15);
+                        ctx.fillStyle = '#dc2626';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.9, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#fef08a';
+                        ctx.beginPath(); ctx.arc(4, 0, obj.radius * 0.65, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#713f12';
+                        ctx.beginPath(); ctx.arc(4, -3, 2, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(2, 4, 2, 0, Math.PI * 2); ctx.fill();
+                        ctx.restore();
+
+                        ctx.save();
+                        ctx.translate(14, 0);
+                        ctx.rotate(0.15);
+                        ctx.fillStyle = '#dc2626';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.9, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#fef08a';
+                        ctx.beginPath(); ctx.arc(-4, 0, obj.radius * 0.65, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#713f12';
+                        ctx.beginPath(); ctx.arc(-4, -3, 2, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(-2, 4, 2, 0, Math.PI * 2); ctx.fill();
+                        ctx.restore();
+                    } else {
+                        const appleGrad = ctx.createRadialGradient(-8, -8, 4, 0, 0, obj.radius);
+                        appleGrad.addColorStop(0, '#f87171');
+                        appleGrad.addColorStop(0.7, '#dc2626');
+                        appleGrad.addColorStop(1, '#991b1b');
+                        ctx.fillStyle = appleGrad;
+                        ctx.beginPath();
+                        ctx.moveTo(0, -obj.radius * 0.85);
+                        ctx.bezierCurveTo(obj.radius * 1.1, -obj.radius * 0.9, obj.radius * 1.1, obj.radius * 0.8, 0, obj.radius * 0.85);
+                        ctx.bezierCurveTo(-obj.radius * 1.1, obj.radius * 0.8, -obj.radius * 1.1, -obj.radius * 0.9, 0, -obj.radius * 0.85);
+                        ctx.fill();
+
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+                        ctx.beginPath();
+                        ctx.ellipse(-10, -6, 6, 12, -0.4, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.strokeStyle = '#451a03';
+                        ctx.lineWidth = 3.5;
+                        ctx.lineCap = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(0, -obj.radius * 0.7);
+                        ctx.quadraticCurveTo(6, -obj.radius - 10, 12, -obj.radius - 14);
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#15803d';
+                        ctx.beginPath();
+                        ctx.ellipse(14, -obj.radius - 10, 9, 4.5, -0.6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                } else if (obj.isOrange) {
+                    if (obj.sliced) {
+                        ctx.save();
+                        ctx.translate(-14, 0);
+                        ctx.fillStyle = '#ea580c';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.9, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#ffedd5';
+                        for (let a = 0; a < Math.PI * 2; a += Math.PI / 3) {
+                            ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, obj.radius * 0.75, a, a + 0.8); ctx.fill();
+                        }
+                        ctx.fillStyle = '#ea580c';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.25, 0, Math.PI * 2); ctx.fill();
+                        ctx.restore();
+
+                        ctx.save();
+                        ctx.translate(14, 0);
+                        ctx.fillStyle = '#ea580c';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.9, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#ffedd5';
+                        for (let a = 0; a < Math.PI * 2; a += Math.PI / 3) {
+                            ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, obj.radius * 0.75, a, a + 0.8); ctx.fill();
+                        }
+                        ctx.fillStyle = '#ea580c';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.25, 0, Math.PI * 2); ctx.fill();
+                        ctx.restore();
+                    } else {
+                        const orgGrad = ctx.createRadialGradient(-8, -8, 5, 0, 0, obj.radius);
+                        orgGrad.addColorStop(0, '#fb923c');
+                        orgGrad.addColorStop(0.8, '#f97316');
+                        orgGrad.addColorStop(1, '#c2410c');
+                        ctx.fillStyle = orgGrad;
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius, 0, Math.PI * 2); ctx.fill();
+
+                        ctx.fillStyle = 'rgba(234, 88, 12, 0.4)';
+                        for (let i = 0; i < 18; i++) {
+                            const rx = (Math.sin(i * 12) * 0.6) * obj.radius;
+                            const ry = (Math.cos(i * 17) * 0.6) * obj.radius;
+                            ctx.beginPath(); ctx.arc(rx, ry, 2.5, 0, Math.PI * 2); ctx.fill();
+                        }
+
+                        ctx.fillStyle = '#451a03';
+                        ctx.beginPath(); ctx.arc(0, -obj.radius + 3, 3.5, 0, Math.PI * 2); ctx.fill();
+                    }
+                } else if (obj.isDragonfruit) {
+                    if (obj.sliced) {
+                        ctx.save();
+                        ctx.translate(-14, 0);
+                        ctx.fillStyle = '#be185d';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.9, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.75, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#0f172a';
+                        for (let i = 0; i < 6; i++) {
+                            ctx.beginPath(); ctx.arc((i - 2.5) * 6, (i % 2 === 0 ? 5 : -5), 2, 0, Math.PI * 2); ctx.fill();
+                        }
+                        ctx.restore();
+
+                        ctx.save();
+                        ctx.translate(14, 0);
+                        ctx.fillStyle = '#be185d';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.9, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.75, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#0f172a';
+                        for (let i = 0; i < 6; i++) {
+                            ctx.beginPath(); ctx.arc((i - 2.5) * 6, (i % 2 === 0 ? -5 : 5), 2, 0, Math.PI * 2); ctx.fill();
+                        }
+                        ctx.restore();
+                    } else {
+                        const dfGrad = ctx.createRadialGradient(-8, -8, 5, 0, 0, obj.radius);
+                        dfGrad.addColorStop(0, '#f472b6');
+                        dfGrad.addColorStop(0.8, '#db2777');
+                        dfGrad.addColorStop(1, '#831843');
+                        ctx.fillStyle = dfGrad;
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius, 0, Math.PI * 2); ctx.fill();
+
+                        ctx.fillStyle = '#15803d';
+                        for (let a = 0; a < Math.PI * 2; a += Math.PI / 2) {
+                            ctx.beginPath();
+                            ctx.moveTo(Math.cos(a) * (obj.radius * 0.8), Math.sin(a) * (obj.radius * 0.8));
+                            ctx.lineTo(Math.cos(a) * (obj.radius * 1.3), Math.sin(a) * (obj.radius * 1.3));
+                            ctx.lineTo(Math.cos(a + 0.3) * (obj.radius * 0.9), Math.sin(a + 0.3) * (obj.radius * 0.9));
+                            ctx.closePath();
+                            ctx.fill();
+                        }
+                    }
+                } else if (obj.isBanana) {
+                    if (obj.sliced) {
+                        ctx.save();
+                        ctx.translate(-12, 0);
+                        ctx.rotate(-0.2);
+                        ctx.fillStyle = '#facc15';
+                        ctx.beginPath(); ctx.ellipse(0, 0, 10, obj.radius * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#fef08a';
+                        ctx.beginPath(); ctx.ellipse(0, 0, 6, obj.radius * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+                        ctx.restore();
+
+                        ctx.save();
+                        ctx.translate(12, 0);
+                        ctx.rotate(0.2);
+                        ctx.fillStyle = '#facc15';
+                        ctx.beginPath(); ctx.ellipse(0, 0, 10, obj.radius * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#fef08a';
+                        ctx.beginPath(); ctx.ellipse(0, 0, 6, obj.radius * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+                        ctx.restore();
+                    } else {
+                        const banGrad = ctx.createLinearGradient(-obj.radius, -obj.radius, obj.radius, obj.radius);
+                        banGrad.addColorStop(0, '#fef08a');
+                        banGrad.addColorStop(0.5, '#eab308');
+                        banGrad.addColorStop(1, '#ca8a04');
+                        ctx.fillStyle = banGrad;
+                        ctx.beginPath();
+                        ctx.moveTo(-obj.radius * 0.8, -obj.radius * 0.6);
+                        ctx.quadraticCurveTo(0, obj.radius * 1.1, obj.radius * 0.8, -obj.radius * 0.4);
+                        ctx.quadraticCurveTo(0, obj.radius * 0.5, -obj.radius * 0.8, -obj.radius * 0.6);
+                        ctx.fill();
+
+                        ctx.fillStyle = '#713f12';
+                        ctx.beginPath();
+                        ctx.arc(obj.radius * 0.75, -obj.radius * 0.35, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                } else if (obj.isCoconut) {
+                    if (obj.sliced) {
+                        ctx.save();
+                        ctx.translate(-14, 0);
+                        ctx.fillStyle = '#451a03';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.9, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.7, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#0284c7';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.3, 0, Math.PI * 2); ctx.fill();
+                        ctx.restore();
+
+                        ctx.save();
+                        ctx.translate(14, 0);
+                        ctx.fillStyle = '#451a03';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.9, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.7, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#0284c7';
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.3, 0, Math.PI * 2); ctx.fill();
+                        ctx.restore();
+                    } else {
+                        const cocoGrad = ctx.createRadialGradient(-8, -8, 5, 0, 0, obj.radius);
+                        cocoGrad.addColorStop(0, '#9a3412');
+                        cocoGrad.addColorStop(0.7, '#78350f');
+                        cocoGrad.addColorStop(1, '#451a03');
+                        ctx.fillStyle = cocoGrad;
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius, 0, Math.PI * 2); ctx.fill();
+
+                        ctx.strokeStyle = '#292524';
+                        ctx.lineWidth = 1.5;
+                        for (let i = 0; i < 12; i++) {
+                            const angle = i * (Math.PI / 6);
+                            ctx.beginPath();
+                            ctx.moveTo(Math.cos(angle) * (obj.radius * 0.7), Math.sin(angle) * (obj.radius * 0.7));
+                            ctx.lineTo(Math.cos(angle) * obj.radius, Math.sin(angle) * obj.radius);
+                            ctx.stroke();
+                        }
+
+                        ctx.fillStyle = '#1c1917';
+                        ctx.beginPath(); ctx.arc(-6, -8, 3.5, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(6, -8, 3.5, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(0, -2, 4, 0, Math.PI * 2); ctx.fill();
+                    }
+                } else if (obj.isBonus) {
+                    const lotusGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, obj.radius);
+                    lotusGrad.addColorStop(0, '#fef08a');
+                    lotusGrad.addColorStop(0.7, '#f59e0b');
+                    lotusGrad.addColorStop(1, '#b45309');
+                    ctx.fillStyle = lotusGrad;
+                    ctx.beginPath();
+                    for (let i = 0; i < 10; i++) {
+                        const angle = i * (Math.PI / 5);
+                        const px = Math.cos(angle) * obj.radius;
+                        const py = Math.sin(angle) * obj.radius;
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.fillStyle = '#fffbeb';
+                    ctx.beginPath(); ctx.arc(0, 0, obj.radius * 0.35, 0, Math.PI * 2); ctx.fill();
+                } else if (obj.sliced) {
+                    ctx.fillStyle = obj.color;
+                    ctx.beginPath(); ctx.arc(-15, 0, obj.radius * 0.8, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(15, 0, obj.radius * 0.8, 0, Math.PI * 2); ctx.fill();
+                } else {
+                    ctx.fillStyle = obj.color;
+                    ctx.beginPath();
+                    if (obj.isBamboo) {
+                        ctx.roundRect(-obj.radius/2, -obj.radius, obj.radius, obj.radius*2, 6);
+                        ctx.fill();
+                        ctx.strokeStyle = '#365314';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(-obj.radius/2, -obj.radius * 0.3); ctx.lineTo(obj.radius/2, -obj.radius * 0.3);
+                        ctx.moveTo(-obj.radius/2, obj.radius * 0.3); ctx.lineTo(obj.radius/2, obj.radius * 0.3);
+                        ctx.stroke();
+                    } else {
+                        ctx.arc(0, 0, obj.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    if (obj.armor > 1) {
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath(); ctx.arc(0, 0, obj.radius + 4, 0, Math.PI * 2); ctx.stroke();
+                    }
+                }
+                ctx.restore();
+            });
+
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            floatingTexts.forEach(ft => {
+                ctx.save();
+                ctx.globalAlpha = ft.alpha;
+                ctx.fillStyle = ft.color;
+                ctx.font = 'bold 22px Rajdhani, sans-serif';
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            });
+
+            if (screenShakeDuration > 0) {
+                ctx.restore();
+            }
+        }
+
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Event Listeners & Input ---
+        function addSlashPoint(x, y) {
+            const now = Date.now();
+            mouseTrail.push({ x, y, time: now });
+            if (mouseTrail.length > 25) mouseTrail.shift();
+
+            if (gameState === 'PLAYING') {
+                checkSlices(x, y);
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            initAudio();
+            addSlashPoint(e.clientX, e.clientY);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isMouseDown) {
+                addSlashPoint(e.clientX, e.clientY);
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            initAudio();
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
+                addSlashPoint(t.clientX, t.clientY);
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchmove', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
+                addSlashPoint(t.clientX, t.clientY);
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                activeTouches.delete(e.changedTouches[i].identifier);
+            }
+        }, { passive: true });
+
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2;
+            initAudio();
+
+            if (key === 'a') {
+                createSlashEffect(cx - 150, cy, cx + 150, cy);
+                checkLineSlice(cx - 150, cy, cx + 150, cy);
+            } else if (key === 'd') {
+                createSlashEffect(cx + 150, cy, cx - 150, cy);
+                checkLineSlice(cx + 150, cy, cx - 150, cy);
+            } else if (key === 'w') {
+                createSlashEffect(cx, cy + 150, cx, cy - 150);
+                checkLineSlice(cx, cy + 150, cx, cy - 150);
+            } else if (key === 's') {
+                createSlashEffect(cx, cy - 150, cx, cy + 150);
+                checkLineSlice(cx, cy - 150, cx, cy + 150);
+            } else if (key === ' ' || key === 'spacebar') {
+                createSlashEffect(cx - 200, cy - 200, cx + 200, cy + 200);
+                checkLineSlice(cx - 200, cy - 200, cx + 200, cy + 200);
+            } else if (key === 'q') {
+                activateBladeFocus();
+            }
+        });
+
+        function createSlashEffect(x1, y1, x2, y2) {
+            slashTrails.push({ x1, y1, x2, y2, alpha: 1.0 });
+            playSound('slice');
+        }
+
+        // --- Modals Management ---
+        function openGameModesModal() { document.getElementById('gamemodes-modal').classList.remove('hidden'); }
+        function openHighScoresModal() {
+            document.getElementById('hs-endless').innerText = gameData.highScores.endless;
+            document.getElementById('hs-challenge').innerText = gameData.highScores.challenge;
+            document.getElementById('hs-timeattack').innerText = gameData.highScores.timeattack;
+            document.getElementById('hs-combo').innerText = gameData.highScores.combo + 'x';
+            document.getElementById('highscores-modal').classList.remove('hidden');
+        }
+        function openAchievementsModal() {
+            const listContainer = document.getElementById('achievements-list');
+            listContainer.innerHTML = '';
+            let unlockedCount = 0;
+            Object.keys(gameData.achievements).forEach(key => {
+                const ach = gameData.achievements[key];
+                if (ach.unlocked) unlockedCount++;
+                const item = document.createElement('div');
+                item.className = `p-3.5 rounded-xl border flex justify-between items-center ${ach.unlocked ? 'bg-amber-950/30 border-amber-500/50 text-amber-300' : 'bg-slate-950 border-slate-800 text-slate-500'}`;
+                item.innerHTML = `<div><div class="font-bold cinzel-font text-sm ${ach.unlocked ? 'text-amber-400' : 'text-slate-400'}">${ach.name}</div><div class="text-xs ${ach.unlocked ? 'text-slate-300' : 'text-slate-600'}">${ach.desc}</div></div><span class="text-xs px-2 py-1 rounded font-bold ${ach.unlocked ? 'bg-amber-500 text-slate-950' : 'bg-slate-900 text-slate-600'}">${ach.unlocked ? 'UNLOCKED' : 'LOCKED'}</span>`;
+                listContainer.appendChild(item);
+            });
+            document.getElementById('ach-subtitle').innerText = `Unlocked ${unlockedCount} of ${Object.keys(gameData.achievements).length}`;
+            document.getElementById('menu-ach-badge').innerText = `${unlockedCount}/${Object.keys(gameData.achievements).length}`;
+            document.getElementById('achievements-modal').classList.remove('hidden');
+        }
+        function openStatisticsModal() {
+            document.getElementById('stat-games').innerText = gameData.statistics.gamesPlayed;
+            document.getElementById('stat-sliced').innerText = gameData.statistics.totalSliced;
+            document.getElementById('stat-highscore').innerText = gameData.statistics.highestScore;
+            document.getElementById('stat-bestcombo').innerText = gameData.statistics.bestCombo + 'x';
+            const mins = Math.floor(gameData.statistics.playtimeSeconds / 60);
+            const secs = gameData.statistics.playtimeSeconds % 60;
+            document.getElementById('stat-playtime').innerText = `${mins}m ${secs}s`;
+            document.getElementById('statistics-modal').classList.remove('hidden');
+        }
+        function openSettingsModal() { document.getElementById('settings-modal').classList.remove('hidden'); }
+        function openAccessibilityModal() { document.getElementById('accessibility-modal').classList.remove('hidden'); }
+        function openHowToPlayModal() { document.getElementById('howtoplay-modal').classList.remove('hidden'); }
+        function openAboutModal() { document.getElementById('about-modal').classList.remove('hidden'); }
+        function openCreditsModal() { document.getElementById('credits-modal').classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function toggleSetting(setting) {
+            gameData.settings[setting] = !gameData.settings[setting];
+            saveGameData();
+            applySettingsToDOM();
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(e => {
+                        console.warn("Fullscreen permission denied or restricted:", e);
+                    });
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(e => {
+                        console.warn("Exit fullscreen failed:", e);
+                    });
+                }
+            }
+        }
+
+        function toggleAccessibility(feat) {
+            gameData.settings[feat] = !gameData.settings[feat];
+            saveGameData();
+            applySettingsToDOM();
+        }
+
+        function applySettingsToDOM() {
+            const sfxBtn = document.getElementById('set-sfx');
+            if (sfxBtn) { sfxBtn.innerText = gameData.settings.sfx ? 'ON' : 'OFF'; sfxBtn.className = `px-4 py-1.5 rounded-lg font-bold text-xs transition ${gameData.settings.sfx ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400'}`; }
+            const shakeBtn = document.getElementById('set-shake');
+            if (shakeBtn) { shakeBtn.innerText = gameData.settings.shake ? 'ON' : 'OFF'; shakeBtn.className = `px-4 py-1.5 rounded-lg font-bold text-xs transition ${gameData.settings.shake ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400'}`; }
+            const partBtn = document.getElementById('set-particles');
+            if (partBtn) { partBtn.innerText = gameData.settings.particles ? 'ON' : 'OFF'; partBtn.className = `px-4 py-1.5 rounded-lg font-bold text-xs transition ${gameData.settings.particles ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400'}`; }
+
+            const contrastBtn = document.getElementById('acc-contrast');
+            if (contrastBtn) { contrastBtn.innerText = gameData.settings.highContrast ? 'ON' : 'OFF'; contrastBtn.className = `px-4 py-1.5 rounded-lg font-bold text-xs transition ${gameData.settings.highContrast ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-300'}`; }
+            const textBtn = document.getElementById('acc-text');
+            if (textBtn) { textBtn.innerText = gameData.settings.largeText ? 'ON' : 'OFF'; textBtn.className = `px-4 py-1.5 rounded-lg font-bold text-xs transition ${gameData.settings.largeText ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-300'}`; }
+
+            if (gameData.settings.highContrast) document.body.classList.add('high-contrast');
+            else document.body.classList.remove('high-contrast');
+
+            if (gameData.settings.largeText) document.body.classList.add('large-text');
+            else document.body.classList.remove('large-text');
+        }
+
+        // --- Start Game & Loop Init ---
+        window.onload = function() {
+            applySettingsToDOM();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>

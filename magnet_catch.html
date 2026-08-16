@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Magnet Catch</title>
+    <!-- Tailwind CSS for modern UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for iconography -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Orbitron -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            overflow: hidden;
+        }
+        .font-arcade {
+            font-family: 'Orbitron', sans-serif;
+        }
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+        .glow-amber {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        }
+        .glow-red {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+        /* Custom scrollbar for menus */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(6, 182, 212, 0.4);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(6, 182, 212, 0.8);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden select-none">
+
+    <div id="app" class="relative w-full h-full flex flex-col justify-between items-center overflow-hidden">
+        
+        <!-- Game Canvas Background Layer -->
+        <canvas id="gameCanvas" class="absolute inset-0 z-0 w-full h-full"></canvas>
+
+        <!-- HUD Header (Always visible during gameplay) -->
+        <div id="hud" class="relative z-10 w-full max-w-5xl flex justify-between items-center p-4 md:p-6 pointer-events-none opacity-0 transition-opacity duration-300">
+            <div class="flex items-center space-x-4">
+                <div class="bg-slate-900/80 border border-slate-700/60 backdrop-blur-md px-4 py-2 rounded-xl flex items-center space-x-3 shadow-lg">
+                    <i class="fa-solid fa-trophy text-amber-400"></i>
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase font-arcade tracking-wider">Score</div>
+                        <div id="hud-score" class="text-xl font-bold font-arcade text-white">0</div>
+                    </div>
+                </div>
+                <div class="bg-slate-900/80 border border-slate-700/60 backdrop-blur-md px-4 py-2 rounded-xl flex items-center space-x-3 shadow-lg">
+                    <i class="fa-solid fa-fire text-orange-500"></i>
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase font-arcade tracking-wider">Combo</div>
+                        <div id="hud-combo" class="text-xl font-bold font-arcade text-orange-400">1x</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Status (Lives / Timer) -->
+            <div id="hud-center-status" class="bg-slate-900/80 border border-slate-700/60 backdrop-blur-md px-6 py-2 rounded-xl flex items-center space-x-4 shadow-lg">
+                <div id="hud-lives" class="flex items-center space-x-1.5 text-red-500 text-lg">
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+                <div id="hud-timer-container" class="hidden flex items-center space-x-2 text-cyan-400 font-arcade">
+                    <i class="fa-solid fa-clock"></i>
+                    <span id="hud-timer" class="text-xl font-bold">60s</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <div id="hud-powerup" class="hidden bg-cyan-950/80 border border-cyan-500/50 px-3 py-1.5 rounded-xl text-cyan-300 text-xs font-arcade animate-pulse flex items-center space-x-2">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span id="hud-powerup-text">MEGA MAG</span>
+                </div>
+                <button onclick="game.togglePause()" class="pointer-events-auto bg-slate-800/80 hover:bg-slate-700 border border-slate-600 p-3 rounded-xl text-white transition shadow-lg active:scale-95">
+                    <i class="fa-solid fa-pause"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN MENU SCREEN -->
+        <div id="screen-menu" class="relative z-20 w-full h-full flex flex-col justify-center items-center p-4 md:p-6 bg-gradient-to-b from-slate-950/95 via-slate-900/95 to-slate-950/95 backdrop-blur-sm overflow-y-auto">
+            <div class="max-w-md w-full text-center space-y-4 my-auto py-8">
+                <div class="space-y-1">
+                    <div class="inline-block p-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 mb-1 glow-cyan">
+                        <i class="fa-solid fa-magnet text-3xl animate-bounce"></i>
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-black font-arcade tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500">
+                        MAGNET CATCH
+                    </h1>
+                    <p class="text-[11px] text-slate-400 font-arcade">Industrial Scrap & Artifact Collection Simulator</p>
+                </div>
+
+                <!-- Game Mode Selection -->
+                <div class="space-y-2.5">
+                    <button onclick="game.startMode('classic')" class="w-full py-3 px-5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-2xl shadow-lg shadow-cyan-500/20 transition transform active:scale-98 flex items-center justify-between group">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-play text-cyan-200 group-hover:scale-110 transition"></i>
+                            <span class="font-arcade tracking-wide text-xs">Classic Arcade</span>
+                        </div>
+                        <span class="text-[9px] bg-cyan-950/60 px-2 py-0.5 rounded-lg text-cyan-300 font-arcade">Lives Based</span>
+                    </button>
+
+                    <button onclick="game.startMode('timeAttack')" class="w-full py-3 px-5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold rounded-2xl shadow-lg shadow-amber-500/20 transition transform active:scale-98 flex items-center justify-between group">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-stopwatch text-amber-200 group-hover:scale-110 transition"></i>
+                            <span class="font-arcade tracking-wide text-xs">Time Attack</span>
+                        </div>
+                        <span class="text-[9px] bg-amber-950/60 px-2 py-0.5 rounded-lg text-amber-300 font-arcade">60 Seconds</span>
+                    </button>
+
+                    <button onclick="game.startMode('endless')" class="w-full py-3 px-5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-2xl shadow-lg shadow-purple-500/20 transition transform active:scale-98 flex items-center justify-between group">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-infinity text-purple-200 group-hover:scale-110 transition"></i>
+                            <span class="font-arcade tracking-wide text-xs">Endless Mode</span>
+                        </div>
+                        <span class="text-[9px] bg-purple-950/60 px-2 py-0.5 rounded-lg text-purple-300 font-arcade">No Fail</span>
+                    </button>
+                </div>
+
+                <!-- Navigation Grid for Sub-menus -->
+                <div class="grid grid-cols-3 gap-2 pt-0.5">
+                    <button onclick="game.openSubMenu('highscores')" class="py-2.5 px-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-xl font-arcade text-[10px] text-slate-200 transition flex flex-col items-center justify-center space-y-1">
+                        <i class="fa-solid fa-trophy text-amber-400 text-xs"></i>
+                        <span>Scores</span>
+                    </button>
+                    <button onclick="game.openSubMenu('statistics')" class="py-2.5 px-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-xl font-arcade text-[10px] text-slate-200 transition flex flex-col items-center justify-center space-y-1">
+                        <i class="fa-solid fa-chart-line text-cyan-400 text-xs"></i>
+                        <span>Stats</span>
+                    </button>
+                    <button onclick="game.openSubMenu('achievements')" class="py-2.5 px-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-xl font-arcade text-[10px] text-slate-200 transition flex flex-col items-center justify-center space-y-1">
+                        <i class="fa-solid fa-award text-purple-400 text-xs"></i>
+                        <span>Badges</span>
+                    </button>
+                    <button onclick="game.openSubMenu('shop')" class="py-2.5 px-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-xl font-arcade text-[10px] text-slate-200 transition flex flex-col items-center justify-center space-y-1">
+                        <i class="fa-solid fa-store text-emerald-400 text-xs"></i>
+                        <span>Upgrades</span>
+                    </button>
+                    <button onclick="game.openSubMenu('howToPlay')" class="py-2.5 px-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-xl font-arcade text-[10px] text-slate-200 transition flex flex-col items-center justify-center space-y-1">
+                        <i class="fa-solid fa-book text-blue-400 text-xs"></i>
+                        <span>How To</span>
+                    </button>
+                    <button onclick="game.openSubMenu('about')" class="py-2.5 px-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-xl font-arcade text-[10px] text-slate-200 transition flex flex-col items-center justify-center space-y-1">
+                        <i class="fa-solid fa-circle-info text-pink-400 text-xs"></i>
+                        <span>About</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="game.openSubMenu('settings')" class="py-2.5 px-3 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-xl font-arcade text-[11px] text-slate-200 transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-gear text-slate-400"></i>
+                        <span>Settings</span>
+                    </button>
+                    <button onclick="game.openSubMenu('accessibility')" class="py-2.5 px-3 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-xl font-arcade text-[11px] text-slate-200 transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-universal-access text-teal-400"></i>
+                        <span>Accessibility</span>
+                    </button>
+                </div>
+
+                <button onclick="game.openSubMenu('credits')" class="w-full py-2 bg-slate-900/60 hover:bg-slate-800 border border-slate-800 rounded-xl font-arcade text-[9px] text-slate-400 transition">
+                    Credits & Copyright
+                </button>
+            </div>
+        </div>
+
+        <!-- SUB-MENUS UNIVERSAL MODAL CONTAINER -->
+        <div id="screen-submenu" class="absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-md flex flex-col justify-center items-center p-4 md:p-6 hidden">
+            <div class="max-w-lg w-full bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-3xl shadow-2xl space-y-6 max-h-[85vh] flex flex-col">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                    <h2 id="submenu-title" class="text-xl font-black font-arcade text-white uppercase tracking-wider">SUBMENU</h2>
+                    <button onclick="game.closeSubMenu()" class="text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                
+                <div id="submenu-content" class="flex-1 overflow-y-auto space-y-4 pr-1 text-sm text-slate-300">
+                    <!-- Dynamic content injected here -->
+                </div>
+
+                <div class="pt-2 border-t border-slate-800 flex justify-end">
+                    <button onclick="game.closeSubMenu()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl font-arcade text-xs text-white transition">
+                        Back to Menu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAUSE MENU MODAL -->
+        <div id="screen-pause" class="absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-md flex flex-col justify-center items-center p-6 hidden">
+            <div class="max-w-sm w-full bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl text-center space-y-6">
+                <h2 class="text-2xl font-black font-arcade text-white">GAME PAUSED</h2>
+                <div class="space-y-3">
+                    <button onclick="game.togglePause()" class="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 font-bold font-arcade text-sm text-white rounded-xl shadow-lg shadow-cyan-500/20 transition">Resume</button>
+                    <button onclick="game.restartGame()" class="w-full py-3.5 bg-slate-800 hover:bg-slate-700 font-bold font-arcade text-sm text-slate-200 rounded-xl transition">Restart</button>
+                    <button onclick="game.openSubMenuFromPause('settings')" class="w-full py-3 bg-slate-800/60 hover:bg-slate-700 font-arcade text-xs text-slate-300 rounded-xl transition">Settings</button>
+                    <button onclick="game.openSubMenuFromPause('accessibility')" class="w-full py-3 bg-slate-800/60 hover:bg-slate-700 font-arcade text-xs text-slate-300 rounded-xl transition">Accessibility</button>
+                    <button onclick="game.openSubMenuFromPause('howToPlay')" class="w-full py-3 bg-slate-800/60 hover:bg-slate-700 font-arcade text-xs text-slate-300 rounded-xl transition">How To Play</button>
+                    <button onclick="game.returnToMenu()" class="w-full py-3.5 bg-red-950/60 hover:bg-red-900/60 border border-red-500/30 font-bold font-arcade text-sm text-red-300 rounded-xl transition">Main Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAMEOVER SCREEN -->
+        <div id="screen-gameover" class="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md flex flex-col justify-center items-center p-6 hidden">
+            <div class="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl text-center space-y-6">
+                <div class="inline-block p-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 glow-red">
+                    <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-3xl font-black font-arcade text-white">SYSTEM FAILURE</h2>
+                    <p id="go-newrecord" class="hidden text-xs text-amber-400 font-arcade font-bold mt-1 animate-pulse">★ NEW HIGH SCORE RECORD! ★</p>
+                    <p class="text-xs text-slate-400 mt-1">Collector Unit Overloaded / Destroyed</p>
+                </div>
+
+                <div class="bg-slate-950/60 border border-slate-800/80 p-4 rounded-2xl grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase font-arcade">Final Score</div>
+                        <div id="go-score" class="text-2xl font-bold font-arcade text-cyan-400">0</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase font-arcade">Best Combo</div>
+                        <div id="go-combo" class="text-2xl font-bold font-arcade text-amber-400">1x</div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <button onclick="game.restartGame()" class="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 font-bold font-arcade text-sm rounded-xl shadow-lg shadow-cyan-500/20 transition">Play Again</button>
+                    <button onclick="game.returnToMenu()" class="w-full py-3.5 bg-slate-800 hover:bg-slate-700 font-bold font-arcade text-sm text-slate-300 rounded-xl transition">Main Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NOTIFICATION TOAST -->
+        <div id="toast-container" class="absolute top-20 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    </div>
+
+    <script>
+        // Web Audio API Synthesizer & Sound System
+        class SoundFX {
+            constructor() {
+                this.enabled = true;
+                this.volume = 0.7;
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playCatch(type = 'metal') {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                if (type === 'gold') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+                } else if (type === 'powerup') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.linearRampToValueAtTime(600, now + 0.2);
+                } else {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(110, now + 0.1);
+                }
+
+                gain.gain.setValueAtTime(0.2 * this.volume, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+
+            playBomb() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(100, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+
+                gain.gain.setValueAtTime(0.3 * this.volume, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+
+            playSpecialRound() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                [0, 0.15, 0.3].forEach((delay, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300 + i * 150, now + delay);
+                    gain.gain.setValueAtTime(0.15 * this.volume, now + delay);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.1);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + delay);
+                    osc.stop(now + delay + 0.1);
+                });
+            }
+        }
+
+        const ITEM_TYPES = {
+            STANDARD_METAL: { name: 'Iron Bolt', points: 10, weight: 1, color: '#94a3b8', type: 'metal', radius: 14, icon: 'bolt' },
+            HEAVY_GEAR: { name: 'Heavy Gear', points: 25, weight: 2.5, color: '#64748b', type: 'metal', radius: 20, icon: 'gear' },
+            GOLDEN_INGOT: { name: 'Gold Scrap', points: 100, weight: 1.2, color: '#fbbf24', type: 'gold', radius: 16, icon: 'gem' },
+            BATTERY: { name: 'Power Cell', points: 50, weight: 1, color: '#06b6d4', type: 'powerup', radius: 15, icon: 'battery' },
+            FAKE_SHARD: { name: 'Fool’s Shard', points: -50, weight: 1, color: '#a855f7', type: 'fake', radius: 15, icon: 'skull' },
+            BOMB: { name: 'Unstable Mine', points: 0, weight: 1.5, color: '#ef4444', type: 'bomb', radius: 18, icon: 'bomb' }
+        };
+
+        class MagnetCatchGame {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.sound = new SoundFX();
+
+                this.state = 'MENU'; // MENU, PLAYING, PAUSED, GAMEOVER, SUBMENU
+                this.gameMode = 'classic'; // classic, timeAttack, endless
+
+                // Player State
+                this.player = {
+                    x: 0,
+                    y: 0,
+                    width: 120,
+                    height: 35,
+                    vx: 0,
+                    speed: 12,
+                    magnetStrength: 1.0,
+                    magnetRadius: 180,
+                    targetX: 0
+                };
+
+                // Game Loop Variables
+                this.score = 0;
+                this.combo = 1;
+                this.comboTimer = 0;
+                this.lives = 3;
+                this.scrapCurrency = 0;
+                this.timeLeft = 60;
+                this.gameTimer = null;
+                this.spawnTimer = 0;
+                this.specialRoundTimer = 0;
+                this.isSpecialRound = false;
+                this.playTimeCounter = 0;
+
+                // Powerups
+                this.powerupActive = null;
+                this.powerupTimer = 0;
+
+                // Arrays
+                this.items = [];
+                this.particles = [];
+                this.floatingTexts = [];
+
+                // Persistence Data Stores
+                this.highScores = {
+                    classic: 0,
+                    timeAttack: 0,
+                    endless: 0
+                };
+                this.bestCombos = {
+                    classic: 1,
+                    timeAttack: 1,
+                    endless: 1
+                };
+                this.statistics = {
+                    gamesPlayed: 0,
+                    highestScore: 0,
+                    totalPlaytimeSeconds: 0,
+                    bestCombo: 1,
+                    itemsCollected: 0,
+                    enemiesDefeated: 0
+                };
+                this.settings = {
+                    soundEnabled: true,
+                    soundVolume: 0.7,
+                    particlesEnabled: true,
+                    screenShake: true,
+                    gameSpeed: 1.0
+                };
+                this.accessibility = {
+                    highContrast: false,
+                    colorBlindFriendly: false,
+                    reducedMotion: false,
+                    largeText: false
+                };
+
+                // Upgrades
+                this.upgrades = {
+                    radius: { level: 1, cost: 100, max: 5 },
+                    speed: { level: 1, cost: 150, max: 5 },
+                    magnetism: { level: 1, cost: 200, max: 5 }
+                };
+
+                // Achievements
+                this.achievements = [
+                    { id: 'first_catch', name: 'Junkyard Rookie', desc: 'Catch your first piece of scrap', unlocked: false },
+                    { id: 'combo_5', name: 'Chain Reaction', desc: 'Reach a 5x combo multiplier', unlocked: false },
+                    { id: 'rich', name: 'Scrap Baron', desc: 'Accumulate 500 scrap currency', unlocked: false },
+                    { id: 'golden', name: 'Midas Touch', desc: 'Collect 10 golden ingots', unlocked: false }
+                ];
+                this.goldCollectedCount = 0;
+
+                this.loadSaveData();
+                this.initResize();
+                this.initInputs();
+            }
+
+            loadSaveData() {
+                const saved = localStorage.getItem('magnet_catch_comprehensive_save');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        this.scrapCurrency = data.scrapCurrency || 0;
+                        if (data.highScores) this.highScores = data.highScores;
+                        if (data.bestCombos) this.bestCombos = data.bestCombos;
+                        if (data.statistics) this.statistics = data.statistics;
+                        if (data.settings) {
+                            this.settings = data.settings;
+                            this.sound.enabled = this.settings.soundEnabled;
+                            this.sound.volume = this.settings.soundVolume;
+                        }
+                        if (data.accessibility) this.accessibility = data.accessibility;
+                        if (data.upgrades) this.upgrades = data.upgrades;
+                        if (data.achievements) {
+                            data.achievements.forEach(savedAch => {
+                                const found = this.achievements.find(a => a.id === savedAch.id);
+                                if (found) found.unlocked = savedAch.unlocked;
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Failed to load comprehensive save data', e);
+                    }
+                }
+            }
+
+            saveData() {
+                const data = {
+                    scrapCurrency: this.scrapCurrency,
+                    highScores: this.highScores,
+                    bestCombos: this.bestCombos,
+                    statistics: this.statistics,
+                    settings: this.settings,
+                    accessibility: this.accessibility,
+                    upgrades: this.upgrades,
+                    achievements: this.achievements.map(a => ({ id: a.id, unlocked: a.unlocked }))
+                };
+                localStorage.setItem('magnet_catch_comprehensive_save', JSON.stringify(data));
+            }
+
+            resetSaveData() {
+                if (confirm('Are you sure you want to reset all game data, high scores, and upgrades?')) {
+                    localStorage.removeItem('magnet_catch_comprehensive_save');
+                    location.reload();
+                }
+            }
+
+            initResize() {
+                const resize = () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                    this.player.y = this.canvas.height - 70;
+                    if (this.state === 'MENU') {
+                        this.player.x = this.canvas.width / 2 - this.player.width / 2;
+                        this.player.targetX = this.player.x;
+                    }
+                };
+                window.addEventListener('resize', resize);
+                resize();
+            }
+
+            initInputs() {
+                this.keys = {};
+                window.addEventListener('keydown', e => {
+                    this.keys[e.key] = true;
+                    if (e.key === 'p' || e.key === 'P') {
+                        if (this.state === 'PLAYING' || this.state === 'PAUSED') this.togglePause();
+                    }
+                });
+                window.addEventListener('keyup', e => {
+                    this.keys[e.key] = false;
+                });
+
+                const updateTargetX = (clientX) => {
+                    if (this.state === 'PLAYING') {
+                        this.player.targetX = clientX - this.player.width / 2;
+                    }
+                };
+
+                window.addEventListener('mousemove', e => updateTargetX(e.clientX));
+                window.addEventListener('touchmove', e => {
+                    if (e.touches.length > 0) {
+                        updateTargetX(e.touches[0].clientX);
+                    }
+                }, { passive: true });
+                window.addEventListener('touchstart', e => {
+                    if (e.touches.length > 0) {
+                        updateTargetX(e.touches[0].clientX);
+                    }
+                }, { passive: true });
+            }
+
+            // Universal Menu System
+            openSubMenu(menuType) {
+                const modal = document.getElementById('screen-submenu');
+                const titleEl = document.getElementById('submenu-title');
+                const contentEl = document.getElementById('submenu-content');
+                modal.classList.remove('hidden');
+
+                if (menuType === 'highscores') {
+                    titleEl.innerText = 'High Scores & Records';
+                    contentEl.innerHTML = `
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 text-center">
+                                    <div class="text-[10px] text-slate-400 font-arcade">Classic Mode</div>
+                                    <div class="text-2xl font-bold font-arcade text-cyan-400 mt-1">${this.highScores.classic}</div>
+                                    <div class="text-[10px] text-slate-500 mt-1">Best Combo: ${this.bestCombos.classic}x</div>
+                                </div>
+                                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 text-center">
+                                    <div class="text-[10px] text-slate-400 font-arcade">Time Attack</div>
+                                    <div class="text-2xl font-bold font-arcade text-amber-400 mt-1">${this.highScores.timeAttack}</div>
+                                    <div class="text-[10px] text-slate-500 mt-1">Best Combo: ${this.bestCombos.timeAttack}x</div>
+                                </div>
+                                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 text-center">
+                                    <div class="text-[10px] text-slate-400 font-arcade">Endless Mode</div>
+                                    <div class="text-2xl font-bold font-arcade text-purple-400 mt-1">${this.highScores.endless}</div>
+                                    <div class="text-[10px] text-slate-500 mt-1">Best Combo: ${this.bestCombos.endless}x</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (menuType === 'statistics') {
+                    titleEl.innerText = 'Lifetime Statistics';
+                    const mins = Math.floor(this.statistics.totalPlaytimeSeconds / 60);
+                    const secs = this.statistics.totalPlaytimeSeconds % 60;
+                    contentEl.innerHTML = `
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                                <span class="text-xs text-slate-400 font-arcade">Games Played</span>
+                                <span class="font-bold font-arcade text-white">${this.statistics.gamesPlayed}</span>
+                            </div>
+                            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                                <span class="text-xs text-slate-400 font-arcade">Highest Score</span>
+                                <span class="font-bold font-arcade text-cyan-400">${this.statistics.highestScore}</span>
+                            </div>
+                            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                                <span class="text-xs text-slate-400 font-arcade">Total Playtime</span>
+                                <span class="font-bold font-arcade text-amber-400">${mins}m ${secs}s</span>
+                            </div>
+                            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                                <span class="text-xs text-slate-400 font-arcade">Best Combo</span>
+                                <span class="font-bold font-arcade text-orange-400">${this.statistics.bestCombo}x</span>
+                            </div>
+                            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                                <span class="text-xs text-slate-400 font-arcade">Items Collected</span>
+                                <span class="font-bold font-arcade text-emerald-400">${this.statistics.itemsCollected}</span>
+                            </div>
+                            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                                <span class="text-xs text-slate-400 font-arcade">Hazards Hit</span>
+                                <span class="font-bold font-arcade text-red-400">${this.statistics.enemiesDefeated}</span>
+                            </div>
+                        </div>
+                    `;
+                } else if (menuType === 'achievements') {
+                    titleEl.innerText = 'Badges & Achievements';
+                    let html = '<div class="space-y-3">';
+                    const unlockedCount = this.achievements.filter(a => a.unlocked).length;
+                    const pct = Math.round((unlockedCount / this.achievements.length) * 100);
+                    html += `<div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between items-center mb-2"><span class="text-xs text-slate-400 font-arcade">Completion Rate</span><span class="font-arcade text-amber-400 font-bold">${pct}% (${unlockedCount}/${this.achievements.length})</span></div>`;
+                    
+                    this.achievements.forEach(ach => {
+                        html += `
+                            <div class="bg-slate-950/60 border ${ach.unlocked ? 'border-amber-500/40 bg-amber-950/10' : 'border-slate-800'} p-3 rounded-2xl flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-xl ${ach.unlocked ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-slate-800 text-slate-600'} flex items-center justify-center text-lg">
+                                    <i class="fa-solid fa-award"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-bold text-xs text-white font-arcade">${ach.name}</div>
+                                    <div class="text-[11px] text-slate-400">${ach.desc}</div>
+                                </div>
+                                <div class="text-[10px] ${ach.unlocked ? 'text-amber-400 font-bold' : 'text-slate-600'} font-arcade">
+                                    ${ach.unlocked ? 'UNLOCKED' : 'LOCKED'}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    contentEl.innerHTML = html;
+                } else if (menuType === 'shop') {
+                    titleEl.innerText = 'Magnetic Upgrades';
+                    let html = `
+                        <div class="flex items-center justify-between bg-slate-950/60 p-3 rounded-xl border border-slate-800 mb-3">
+                            <span class="text-xs font-arcade text-slate-400">Available Scrap</span>
+                            <span class="text-lg font-bold font-arcade text-amber-400">${this.scrapCurrency}</span>
+                        </div>
+                        <div class="space-y-3">
+                    `;
+                    const upgradeDetails = [
+                        { key: 'radius', name: 'Magnetic Field Radius', desc: 'Expand object pulling range', icon: 'fa-circle-dot' },
+                        { key: 'speed', name: 'Collector Thrusters', desc: 'Increase horizontal speed', icon: 'fa-gauge-high' },
+                        { key: 'magnetism', name: 'Super-Conductor Core', desc: 'Increase magnetic pull acceleration', icon: 'fa-bolt' }
+                    ];
+                    upgradeDetails.forEach(u => {
+                        const currentLevel = this.upgrades[u.key].level;
+                        const maxLevel = this.upgrades[u.key].max;
+                        const cost = this.upgrades[u.key].cost * currentLevel;
+                        const isMax = currentLevel >= maxLevel;
+
+                        html += `
+                            <div class="bg-slate-950/60 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                                        <i class="fa-solid ${u.icon}"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-xs text-white font-arcade">${u.name}</div>
+                                        <div class="text-[11px] text-slate-400">${u.desc}</div>
+                                        <div class="text-[10px] text-cyan-400 font-arcade mt-0.5">Level ${currentLevel}/${maxLevel}</div>
+                                    </div>
+                                </div>
+                                <button onclick="game.buyUpgrade('${u.key}')" ${isMax || this.scrapCurrency < cost ? 'disabled' : ''} class="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 font-bold font-arcade text-xs rounded-xl transition">
+                                    ${isMax ? 'MAX' : cost + ' Scrap'}
+                                </button>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    contentEl.innerHTML = html;
+                } else if (menuType === 'settings') {
+                    titleEl.innerText = 'Game Settings';
+                    contentEl.innerHTML = `
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-xs font-arcade text-slate-300">Sound Effects</span>
+                                <input type="checkbox" id="setting-sound" ${this.settings.soundEnabled ? 'checked' : ''} onchange="game.updateSetting('soundEnabled', this.checked)" class="w-5 h-5 accent-cyan-500 rounded cursor-pointer">
+                            </div>
+                            <div class="flex items-center justify-between bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-xs font-arcade text-slate-300">Visual Particles</span>
+                                <input type="checkbox" id="setting-particles" ${this.settings.particlesEnabled ? 'checked' : ''} onchange="game.updateSetting('particlesEnabled', this.checked)" class="w-5 h-5 accent-cyan-500 rounded cursor-pointer">
+                            </div>
+                            <div class="flex items-center justify-between bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-xs font-arcade text-slate-300">Screen Shake</span>
+                                <input type="checkbox" id="setting-shake" ${this.settings.screenShake ? 'checked' : ''} onchange="game.updateSetting('screenShake', this.checked)" class="w-5 h-5 accent-cyan-500 rounded cursor-pointer">
+                            </div>
+                            <div class="flex items-center justify-between bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-xs font-arcade text-slate-300">Game Speed Multiplier</span>
+                                <select onchange="game.updateSetting('gameSpeed', parseFloat(this.value))" class="bg-slate-900 border border-slate-700 text-xs text-cyan-400 font-arcade p-2 rounded-lg">
+                                    <option value="0.8" ${this.settings.gameSpeed === 0.8 ? 'selected' : ''}>0.8x (Relaxed)</option>
+                                    <option value="1.0" ${this.settings.gameSpeed === 1.0 ? 'selected' : ''}>1.0x (Normal)</option>
+                                    <option value="1.2" ${this.settings.gameSpeed === 1.2 ? 'selected' : ''}>1.2x (Fast)</option>
+                                </select>
+                            </div>
+                            <div class="pt-2">
+                                <button onclick="game.resetSaveData()" class="w-full py-3 bg-red-950/40 hover:bg-red-900/50 border border-red-500/30 text-red-400 font-arcade text-xs rounded-xl transition">
+                                    Reset All Saved Data
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else if (menuType === 'accessibility') {
+                    titleEl.innerText = 'Accessibility Options';
+                    contentEl.innerHTML = `
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                                <div>
+                                    <div class="text-xs font-arcade text-slate-300">High Contrast Mode</div>
+                                    <div class="text-[10px] text-slate-400">Enhance element borders and UI legibility</div>
+                                </div>
+                                <input type="checkbox" ${this.accessibility.highContrast ? 'checked' : ''} onchange="game.updateAccessibility('highContrast', this.checked)" class="w-5 h-5 accent-cyan-500 rounded cursor-pointer">
+                            </div>
+                            <div class="flex items-center justify-between bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                                <div>
+                                    <div class="text-xs font-arcade text-slate-300">Reduced Motion</div>
+                                    <div class="text-[10px] text-slate-400">Minimize flashing lights and particle bursts</div>
+                                </div>
+                                <input type="checkbox" ${this.accessibility.reducedMotion ? 'checked' : ''} onchange="game.updateAccessibility('reducedMotion', this.checked)" class="w-5 h-5 accent-cyan-500 rounded cursor-pointer">
+                            </div>
+                            <div class="flex items-center justify-between bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                                <div>
+                                    <div class="text-xs font-arcade text-slate-300">Color-Blind Friendly Assets</div>
+                                    <div class="text-[10px] text-slate-400">Add icon markers on hazardous items</div>
+                                </div>
+                                <input type="checkbox" ${this.accessibility.colorBlindFriendly ? 'checked' : ''} onchange="game.updateAccessibility('colorBlindFriendly', this.checked)" class="w-5 h-5 accent-cyan-500 rounded cursor-pointer">
+                            </div>
+                        </div>
+                    `;
+                } else if (menuType === 'howToPlay') {
+                    titleEl.innerText = 'How To Play';
+                    contentEl.innerHTML = `
+                        <div class="space-y-4 text-xs leading-relaxed">
+                            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                                <div class="font-bold font-arcade text-cyan-400">OBJECTIVE</div>
+                                <p class="text-slate-300">Operate your magnetic collector rig at the bottom of the screen. Guide valuable metallic scrap, gears, and power cells into your magnetic field while dodging explosive unstable mines and fool's shards.</p>
+                            </div>
+                            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                                <div class="font-bold font-arcade text-amber-400">CONTROLS</div>
+                                <p class="text-slate-300"><strong>Mouse / Touch:</strong> Move pointer/finger left or right to slide the collector.<br><strong>Keyboard:</strong> Use A/D or Left/Right Arrow keys.</p>
+                            </div>
+                            <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                                <div class="font-bold font-arcade text-emerald-400">COMBO SYSTEM</div>
+                                <p class="text-slate-300">Catching items in quick succession multiplies your score up to 10x! Missing valuable scrap or hitting a hazard resets your multiplier.</p>
+                            </div>
+                        </div>
+                    `;
+                } else if (menuType === 'about') {
+                    titleEl.innerText = 'About Magnet Catch';
+                    contentEl.innerHTML = `
+                        <div class="space-y-4 text-xs leading-relaxed">
+                            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2">
+                                <div class="font-bold font-arcade text-cyan-400">REIMAGINED ARCADE EXPERIENCE</div>
+                                <p class="text-slate-300">Magnet Catch is an original industrial sci-fi arcade reaction simulator inspired by classic catch-and-dodge arcade machines. Built with high-performance responsive canvas physics, custom web audio sound synthesizers, and immersive progressive upgrades.</p>
+                            </div>
+                        </div>
+                    `;
+                } else if (menuType === 'credits') {
+                    titleEl.innerText = 'Credits & Copyright';
+                    contentEl.innerHTML = `
+                        <div class="space-y-4 text-center py-4">
+                            <div class="inline-block p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 mb-2">
+                                <i class="fa-solid fa-code text-3xl animate-pulse"></i>
+                            </div>
+                            <div class="text-sm font-arcade text-white font-bold leading-relaxed px-4">
+                                "Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved."
+                            </div>
+                            <p class="text-xs text-slate-400">Original Arcade Game Design & Architecture</p>
+                        </div>
+                    `;
+                }
+            }
+
+            closeSubMenu() {
+                document.getElementById('screen-submenu').classList.add('hidden');
+                if (this.state === 'PAUSED') {
+                    document.getElementById('screen-pause').classList.remove('hidden');
+                }
+            }
+
+            openSubMenuFromPause(menuType) {
+                document.getElementById('screen-pause').classList.add('hidden');
+                this.openSubMenu(menuType);
+            }
+
+            updateSetting(key, val) {
+                this.settings[key] = val;
+                if (key === 'soundEnabled') this.sound.enabled = val;
+                if (key === 'soundVolume') this.sound.volume = val;
+                this.saveData();
+            }
+
+            updateAccessibility(key, val) {
+                this.accessibility[key] = val;
+                this.saveData();
+            }
+
+            buyUpgrade(key) {
+                const upgrade = this.upgrades[key];
+                const cost = upgrade.cost * upgrade.level;
+                if (this.scrapCurrency >= cost && upgrade.level < upgrade.max) {
+                    this.scrapCurrency -= cost;
+                    upgrade.level++;
+                    this.saveData();
+                    this.openSubMenu('shop');
+                }
+            }
+
+            startMode(mode) {
+                this.gameMode = mode;
+                this.score = 0;
+                this.combo = 1;
+                this.comboTimer = 0;
+                this.lives = mode === 'endless' ? 999 : 3;
+                this.items = [];
+                this.particles = [];
+                this.floatingTexts = [];
+                this.powerupActive = null;
+                this.powerupTimer = 0;
+                this.isSpecialRound = false;
+                this.specialRoundTimer = 0;
+                this.playTimeCounter = 0;
+
+                // Apply upgrade stats
+                this.player.magnetRadius = 180 + (this.upgrades.radius.level - 1) * 30;
+                this.player.speed = (12 + (this.upgrades.speed.level - 1) * 2) * this.settings.gameSpeed;
+                this.player.magnetStrength = 1.0 + (this.upgrades.magnetism.level - 1) * 0.4;
+
+                document.getElementById('screen-menu').classList.add('hidden');
+                document.getElementById('hud').classList.remove('opacity-0');
+                
+                const timerContainer = document.getElementById('hud-timer-container');
+                const livesContainer = document.getElementById('hud-lives');
+
+                if (this.gameTimer) clearInterval(this.gameTimer);
+                if (mode === 'timeAttack') {
+                    timerContainer.classList.remove('hidden');
+                    livesContainer.classList.add('hidden');
+                    this.timeLeft = 60;
+                    this.gameTimer = setInterval(() => {
+                        this.timeLeft--;
+                        document.getElementById('hud-timer').innerText = this.timeLeft + 's';
+                        if (this.timeLeft <= 0) {
+                            clearInterval(this.gameTimer);
+                            this.gameOver();
+                        }
+                    }, 1000);
+                } else if (mode === 'endless') {
+                    timerContainer.classList.add('hidden');
+                    livesContainer.classList.add('hidden');
+                } else {
+                    timerContainer.classList.add('hidden');
+                    livesContainer.classList.remove('hidden');
+                }
+
+                // Playtime statistics ticker
+                this.playtimeTimerInterval = setInterval(() => {
+                    if (this.state === 'PLAYING') {
+                        this.statistics.totalPlaytimeSeconds++;
+                    }
+                }, 1000);
+
+                this.state = 'PLAYING';
+                this.sound.init();
+            }
+
+            togglePause() {
+                if (this.state === 'PLAYING') {
+                    this.state = 'PAUSED';
+                    document.getElementById('screen-pause').classList.remove('hidden');
+                } else if (this.state === 'PAUSED') {
+                    this.state = 'PAUSED';
+                    // handled by submenu back button
+                }
+            }
+
+            returnToMenu() {
+                if (this.gameTimer) clearInterval(this.gameTimer);
+                if (this.playtimeTimerInterval) clearInterval(this.playtimeTimerInterval);
+                this.state = 'MENU';
+                document.getElementById('screen-pause').classList.add('hidden');
+                document.getElementById('screen-gameover').classList.add('hidden');
+                document.getElementById('screen-submenu').classList.add('hidden');
+                document.getElementById('hud').classList.add('opacity-0');
+                document.getElementById('screen-menu').classList.remove('hidden');
+            }
+
+            gameOver() {
+                if (this.gameTimer) clearInterval(this.gameTimer);
+                if (this.playtimeTimerInterval) clearInterval(this.playtimeTimerInterval);
+                this.state = 'GAMEOVER';
+
+                // Update statistics
+                this.statistics.gamesPlayed++;
+                if (this.score > this.statistics.highestScore) {
+                    this.statistics.highestScore = this.score;
+                }
+                if (this.combo > this.statistics.bestCombo) {
+                    this.statistics.bestCombo = this.combo;
+                }
+
+                // Check High Score
+                let isNewRecord = false;
+                if (this.score > this.highScores[this.gameMode]) {
+                    this.highScores[this.gameMode] = this.score;
+                    isNewRecord = true;
+                }
+                if (this.combo > this.bestCombos[this.gameMode]) {
+                    this.bestCombos[this.gameMode] = this.combo;
+                }
+
+                const earnedScrap = Math.floor(this.score / 10);
+                this.scrapCurrency += earnedScrap;
+                this.checkAchievement('rich');
+                this.saveData();
+
+                document.getElementById('go-score').innerText = this.score;
+                document.getElementById('go-combo').innerText = this.combo + 'x';
+                const recordEl = document.getElementById('go-newrecord');
+                if (isNewRecord) recordEl.classList.remove('hidden');
+                else recordEl.classList.add('hidden');
+
+                document.getElementById('screen-gameover').classList.remove('hidden');
+            }
+
+            restartGame() {
+                document.getElementById('screen-gameover').classList.add('hidden');
+                document.getElementById('screen-pause').classList.add('hidden');
+                this.startMode(this.gameMode);
+            }
+
+            checkAchievement(id) {
+                const ach = this.achievements.find(a => a.id === id);
+                if (ach && !ach.unlocked) {
+                    ach.unlocked = true;
+                    this.showToast(`Achievement Unlocked: ${ach.name}!`);
+                    this.saveData();
+                }
+            }
+
+            showToast(message) {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = 'bg-slate-900 border border-cyan-500/50 text-cyan-300 px-4 py-3 rounded-xl shadow-2xl font-arcade text-xs flex items-center space-x-2 animate-bounce';
+                toast.innerHTML = `<i class="fa-solid fa-bell"></i><span>${message}</span>`;
+                container.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            }
+
+            spawnItem() {
+                const rand = Math.random();
+                let def = ITEM_TYPES.STANDARD_METAL;
+
+                if (this.isSpecialRound) {
+                    if (rand < 0.5) def = ITEM_TYPES.GOLDEN_INGOT;
+                    else if (rand < 0.8) def = ITEM_TYPES.HEAVY_GEAR;
+                    else def = ITEM_TYPES.BATTERY;
+                } else {
+                    if (rand < 0.1) def = ITEM_TYPES.GOLDEN_INGOT;
+                    else if (rand < 0.25) def = ITEM_TYPES.HEAVY_GEAR;
+                    else if (rand < 0.35) def = ITEM_TYPES.BATTERY;
+                    else if (rand < 0.45) def = ITEM_TYPES.FAKE_SHARD;
+                    else if (rand < 0.55) def = ITEM_TYPES.BOMB;
+                }
+
+                const item = {
+                    x: Math.random() * (this.canvas.width - 60) + 30,
+                    y: -40,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() * 2 + 2 + (this.score / 500)) * this.settings.gameSpeed,
+                    ...def,
+                    currentRadius: def.radius
+                };
+                this.items.push(item);
+            }
+
+            update(dt) {
+                if (this.state !== 'PLAYING') return;
+
+                if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) {
+                    this.player.targetX -= this.player.speed * 1.5;
+                }
+                if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) {
+                    this.player.targetX += this.player.speed * 1.5;
+                }
+
+                this.player.targetX = Math.max(0, Math.min(this.canvas.width - this.player.width, this.player.targetX));
+                this.player.x += (this.player.targetX - this.player.x) * 0.2;
+
+                if (this.comboTimer > 0) {
+                    this.comboTimer -= dt;
+                    if (this.comboTimer <= 0) this.combo = 1;
+                }
+
+                if (this.powerupActive) {
+                    this.powerupTimer -= dt;
+                    if (this.powerupTimer <= 0) {
+                        this.powerupActive = null;
+                        document.getElementById('hud-powerup').classList.add('hidden');
+                    }
+                }
+
+                if (this.isSpecialRound) {
+                    this.specialRoundTimer -= dt;
+                    if (this.specialRoundTimer <= 0) {
+                        this.isSpecialRound = false;
+                        document.getElementById('hud-powerup').classList.add('hidden');
+                    }
+                } else {
+                    if (Math.random() < 0.0005) {
+                        this.isSpecialRound = true;
+                        this.specialRoundTimer = 15;
+                        document.getElementById('hud-powerup-text').innerText = 'GOLD RUSH!';
+                        document.getElementById('hud-powerup').classList.remove('hidden');
+                        this.sound.playSpecialRound();
+                        this.showToast('Special Round: Gold Rush Active!');
+                    }
+                }
+
+                this.spawnTimer += dt;
+                const spawnInterval = Math.max(0.4, 1.2 - (this.score / 1000));
+                if (this.spawnTimer >= spawnInterval) {
+                    this.spawnTimer = 0;
+                    this.spawnItem();
+                    if (this.score > 300 && Math.random() < 0.4) this.spawnItem();
+                }
+
+                const magnetCenterX = this.player.x + this.player.width / 2;
+                const magnetCenterY = this.player.y;
+                const effectiveRadius = this.powerupActive === 'mega' ? this.player.magnetRadius * 1.8 : this.player.magnetRadius;
+
+                for (let i = this.items.length - 1; i >= 0; i--) {
+                    const item = this.items[i];
+                    item.y += item.vy;
+                    item.x += item.vx;
+
+                    const dx = magnetCenterX - item.x;
+                    const dy = magnetCenterY - item.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (item.type !== 'bomb' && dist < effectiveRadius && item.y < magnetCenterY) {
+                        const pullForce = (1 - dist / effectiveRadius) * (this.player.magnetStrength * 2.5) / item.weight;
+                        item.vx += (dx / dist) * pullForce;
+                        item.vy += (dy / dist) * pullForce;
+                    }
+
+                    if (
+                        item.x > this.player.x &&
+                        item.x < this.player.x + this.player.width &&
+                        item.y + item.radius >= this.player.y &&
+                        item.y - item.radius <= this.player.y + this.player.height
+                    ) {
+                        this.handleCollection(item);
+                        this.items.splice(i, 1);
+                        continue;
+                    }
+
+                    if (item.y > this.canvas.height + 50) {
+                        if (item.type === 'metal' || item.type === 'gold') this.combo = 1;
+                        this.items.splice(i, 1);
+                    }
+                }
+
+                if (this.settings.particlesEnabled && !this.accessibility.reducedMotion) {
+                    for (let i = this.particles.length - 1; i >= 0; i--) {
+                        const p = this.particles[i];
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.alpha -= 0.02;
+                        if (p.alpha <= 0) this.particles.splice(i, 1);
+                    }
+                }
+
+                for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+                    const ft = this.floatingTexts[i];
+                    ft.y -= 1.5;
+                    ft.alpha -= 0.02;
+                    if (ft.alpha <= 0) this.floatingTexts.splice(i, 1);
+                }
+
+                document.getElementById('hud-score').innerText = this.score;
+                document.getElementById('hud-combo').innerText = this.combo + 'x';
+            }
+
+            handleCollection(item) {
+                this.checkAchievement('first_catch');
+                this.statistics.itemsCollected++;
+
+                if (item.type === 'gold') {
+                    this.goldCollectedCount++;
+                    if (this.goldCollectedCount >= 10) this.checkAchievement('golden');
+                }
+
+                if (item.type === 'bomb') {
+                    this.sound.playBomb();
+                    this.statistics.enemiesDefeated++;
+                    this.combo = 1;
+                    this.createExplosion(item.x, item.y, '#ef4444');
+                    if (this.gameMode === 'classic') {
+                        this.lives--;
+                        this.updateLivesUI();
+                        if (this.lives <= 0) this.gameOver();
+                    }
+                    this.showFloatingText('-0 Pts', item.x, item.y, '#ef4444');
+                    return;
+                }
+
+                if (item.type === 'fake') {
+                    this.sound.playBomb();
+                    this.statistics.enemiesDefeated++;
+                    this.combo = 1;
+                    this.score = Math.max(0, this.score + item.points);
+                    this.showFloatingText(`${item.points} Pts`, item.x, item.y, '#a855f7');
+                    return;
+                }
+
+                if (item.type === 'powerup') {
+                    this.powerupActive = 'mega';
+                    this.powerupTimer = 8;
+                    document.getElementById('hud-powerup-text').innerText = 'MEGA MAG';
+                    document.getElementById('hud-powerup').classList.remove('hidden');
+                    this.sound.playCatch('powerup');
+                    this.showFloatingText('MEGA MAGNET!', item.x, item.y, '#06b6d4');
+                    return;
+                }
+
+                this.sound.playCatch(item.type);
+                const pointsEarned = item.points * this.combo;
+                this.score += pointsEarned;
+
+                this.combo = Math.min(10, this.combo + 1);
+                if (this.combo >= 5) this.checkAchievement('combo_5');
+                if (this.combo > this.statistics.bestCombo) this.statistics.bestCombo = this.combo;
+                this.comboTimer = 4;
+
+                this.createExplosion(item.x, item.y, item.color);
+                this.showFloatingText(`+${pointsEarned}`, item.x, item.y, item.color);
+            }
+
+            updateLivesUI() {
+                const livesContainer = document.getElementById('hud-lives');
+                let html = '';
+                for (let i = 0 ; i < this.lives; i++) html += '<i class="fa-solid fa-heart"></i>';
+                livesContainer.innerHTML = html;
+            }
+
+            createExplosion(x, y, color) {
+                if (!this.settings.particlesEnabled || this.accessibility.reducedMotion) return;
+                for (let i = 0; i < 12; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 4 + 2;
+                    this.particles.push({
+                        x, y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        color,
+                        alpha: 1,
+                        size: Math.random() * 4 + 2
+                    });
+                }
+            }
+
+            showFloatingText(text, x, y, color) {
+                this.floatingTexts.push({ text, x, y, color, alpha: 1 });
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                this.ctx.strokeStyle = this.accessibility.highContrast ? 'rgba(100, 116, 139, 0.8)' : 'rgba(30, 41, 59, 0.4)';
+                this.ctx.lineWidth = 1;
+                const gridSize = 40;
+                for (let x = 0; x < this.canvas.width; x += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.canvas.height);
+                    this.ctx.stroke();
+                }
+
+                if (this.state !== 'PLAYING' && this.state !== 'PAUSED') return;
+
+                const magnetCenterX = this.player.x + this.player.width / 2;
+                const magnetCenterY = this.player.y;
+                const effectiveRadius = this.powerupActive === 'mega' ? this.player.magnetRadius * 1.8 : this.player.magnetRadius;
+
+                const gradient = this.ctx.createRadialGradient(magnetCenterX, magnetCenterY, 10, magnetCenterX, magnetCenterY, effectiveRadius);
+                gradient.addColorStop(0, 'rgba(6, 182, 212, 0.15)');
+                gradient.addColorStop(1, 'rgba(6, 182, 212, 0)');
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(magnetCenterX, magnetCenterY, effectiveRadius, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                this.items.forEach(item => {
+                    this.ctx.save();
+                    this.ctx.translate(item.x, item.y);
+                    this.ctx.fillStyle = item.color;
+                    this.ctx.beginPath();
+                    if (item.type === 'bomb') {
+                        this.ctx.arc(0, 0, item.radius, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.fillStyle = '#f59e0b';
+                        this.ctx.fillRect(-3, -item.radius - 6, 6, 6);
+                    } else if (item.type === 'gold') {
+                        this.ctx.rect(-item.radius, -item.radius * 0.7, item.radius * 2, item.radius * 1.4);
+                        this.ctx.fill();
+                    } else {
+                        this.ctx.arc(0, 0, item.radius, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    if (this.accessibility.colorBlindFriendly) {
+                        this.ctx.fillStyle = '#ffffff';
+                        this.ctx.font = 'bold 10px sans-serif';
+                        this.ctx.fillText(item.icon === 'bomb' ? 'X' : '', -4, 4);
+                    }
+                    this.ctx.restore();
+                });
+
+                this.ctx.save();
+                this.ctx.translate(this.player.x, this.player.y);
+                this.ctx.fillStyle = '#334155';
+                this.ctx.roundRect(0, 0, this.player.width, this.player.height, 8);
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#06b6d4';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+
+                this.ctx.fillStyle = this.powerupActive ? '#06b6d4' : '#38bdf8';
+                this.ctx.beginPath();
+                this.ctx.arc(this.player.width / 2, this.player.height / 2, 12, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
+
+                this.particles.forEach(p => {
+                    this.ctx.save();
+                    this.ctx.globalAlpha = p.alpha;
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.restore();
+                });
+
+                this.floatingTexts.forEach(ft => {
+                    this.ctx.save();
+                    this.ctx.globalAlpha = ft.alpha;
+                    this.ctx.fillStyle = ft.color;
+                    this.ctx.font = 'bold 16px Orbitron, sans-serif';
+                    this.ctx.fillText(ft.text, ft.x, ft.y);
+                    this.ctx.restore();
+                });
+            }
+
+            loop(timestamp) {
+                if (!this.lastTime) this.lastTime = timestamp;
+                const dt = (timestamp - this.lastTime) / 1000;
+                this.lastTime = timestamp;
+
+                this.update(dt);
+                this.draw();
+
+                requestAnimationFrame((ts) => this.loop(ts));
+            }
+        }
+
+        const game = new MagnetCatchGame();
+        window.onload = () => {
+            requestAnimationFrame((timestamp) => game.loop(timestamp));
+        };
+    </script>
+
+</body>
+</html>

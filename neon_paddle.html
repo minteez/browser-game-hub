@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Paddle - Futuristic Arcade</title>
+    <!-- Tailwind CSS for sleek UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        neonCyan: '#00f3ff',
+                        neonPink: '#ff0055',
+                        neonYellow: '#ffe600',
+                        neonPurple: '#b000ff',
+                        darkBg: '#080812'
+                    },
+                    fontFamily: {
+                        arcade: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #080812;
+            color: #ffffff;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .neon-glow-cyan {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.7), 0 0 20px rgba(0, 243, 255, 0.5);
+        }
+        .neon-glow-pink {
+            text-shadow: 0 0 10px rgba(255, 0, 85, 0.7), 0 0 20px rgba(255, 0, 85, 0.5);
+        }
+        .neon-box-cyan {
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 15px rgba(0, 243, 255, 0.2);
+        }
+        .neon-box-pink {
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.4), inset 0 0 15px rgba(255, 0, 85, 0.2);
+        }
+        .neon-box-yellow {
+            box-shadow: 0 0 15px rgba(255, 230, 0, 0.4), inset 0 0 15px rgba(255, 230, 0, 0.2);
+        }
+
+        /* Scanline effect */
+        .scanlines {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #080812;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00f3ff;
+            border-radius: 3px;
+        }
+
+        /* Button hover scale & press */
+        .arcade-btn {
+            transition: all 0.15s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+        .arcade-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+        }
+        .arcade-btn:active {
+            transform: translateY(1px);
+        }
+
+        .high-contrast-mode {
+            filter: contrast(150%) brightness(120%);
+        }
+        .colorblind-mode {
+            filter: hue-rotate(90deg);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative flex items-center justify-center overflow-hidden">
+
+    <!-- Background Canvas for futuristic animated grid & particles -->
+    <canvas id="bgCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+    
+    <!-- Gameplay Canvas -->
+    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-10 hidden"></canvas>
+
+    <!-- CRT Scanline overlay -->
+    <div class="absolute inset-0 z-20 scanlines opacity-40"></div>
+
+    <!-- UI Overlay Root -->
+    <div id="uiRoot" class="absolute inset-0 z-30 flex items-center justify-center p-4 pointer-events-none">
+
+        <!-- LOADING / SPLASH SCREEN -->
+        <div id="screen-splash" class="flex flex-col items-center justify-center space-y-6 pointer-events-auto transition-opacity duration-500">
+            <div class="relative">
+                <div class="absolute -inset-4 bg-gradient-to-r from-neonCyan to-neonPink rounded-3xl blur-xl opacity-75 animate-pulse"></div>
+                <div class="relative bg-darkBg border-2 border-neonCyan/50 p-8 rounded-3xl text-center shadow-2xl max-w-md w-full">
+                    <h1 class="text-5xl font-black italic tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-neonCyan via-neonYellow to-neonPink neon-glow-cyan mb-2">NEON PADDLE</h1>
+                    <p class="text-xs text-neonCyan/80 tracking-widest uppercase mb-6">Futuristic Arcade Evolution</p>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mb-6 border border-slate-700">
+                        <div id="loadingBar" class="bg-gradient-to-r from-neonCyan to-neonPink h-full w-0 transition-all duration-300"></div>
+                    </div>
+                    <button id="startSplashBtn" class="w-full py-4 bg-gradient-to-r from-neonCyan to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-darkBg font-black rounded-xl tracking-wider uppercase text-lg shadow-lg arcade-btn hidden">
+                        INITIALIZE ARCADE
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN MENU -->
+        <div id="screen-main-menu" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-xl w-full">
+            <div class="text-center mb-2">
+                <h1 class="text-6xl font-black italic tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-neonCyan via-neonYellow to-neonPink neon-glow-cyan">NEON PADDLE</h1>
+                <p class="text-xs text-neonCyan/80 tracking-widest uppercase mt-1">Breakout Reimagined • 2026 Edition</p>
+            </div>
+
+            <div class="bg-darkBg/90 backdrop-blur-md border border-neonCyan/30 p-6 rounded-3xl neon-box-cyan w-full space-y-3 shadow-2xl">
+                <button onclick="GameApp.showModeSelect()" class="w-full py-4 bg-gradient-to-r from-neonCyan to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-darkBg font-black rounded-xl tracking-wider uppercase text-lg shadow-lg arcade-btn flex items-center justify-center space-x-2">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <span>PLAY / START GAME</span>
+                </button>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="GameApp.showScreen('screen-high-scores')" class="py-3 bg-slate-900/80 hover:bg-slate-800 border border-neonCyan/40 text-neonCyan font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn flex items-center justify-center space-x-2">
+                        <span>High Scores</span>
+                    </button>
+                    <button onclick="GameApp.showScreen('screen-achievements')" class="py-3 bg-slate-900/80 hover:bg-slate-800 border border-neonYellow/40 text-neonYellow font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn flex items-center justify-center space-x-2">
+                        <span>Achievements</span>
+                    </button>
+                    <button onclick="GameApp.showScreen('screen-statistics')" class="py-3 bg-slate-900/80 hover:bg-slate-800 border border-neonPink/40 text-neonPink font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn flex items-center justify-center space-x-2">
+                        <span>Statistics</span>
+                    </button>
+                    <button onclick="GameApp.showScreen('screen-settings')" class="py-3 bg-slate-900/80 hover:bg-slate-800 border border-purple-500/40 text-purple-300 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn flex items-center justify-center space-x-2">
+                        <span>Settings</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 pt-1">
+                    <button onclick="GameApp.showScreen('screen-accessibility')" class="py-2.5 bg-slate-900/60 hover:bg-slate-800 border border-slate-700 text-slate-300 font-semibold rounded-lg text-xs uppercase arcade-btn">Accessibility</button>
+                    <button onclick="GameApp.showScreen('screen-how-to-play')" class="py-2.5 bg-slate-900/60 hover:bg-slate-800 border border-slate-700 text-slate-300 font-semibold rounded-lg text-xs uppercase arcade-btn">How To Play</button>
+                    <button onclick="GameApp.showScreen('screen-about')" class="py-2.5 bg-slate-900/60 hover:bg-slate-800 border border-slate-700 text-slate-300 font-semibold rounded-lg text-xs uppercase arcade-btn">About</button>
+                </div>
+
+                <div class="flex justify-between items-center pt-2">
+                    <button onclick="GameApp.showScreen('screen-credits')" class="text-xs text-slate-400 hover:text-neonCyan underline">Credits</button>
+                    <button onclick="GameApp.quitGame()" class="text-xs text-red-400 hover:text-red-300 underline font-bold">Quit / Exit</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODE SELECT SCREEN -->
+        <div id="screen-mode-select" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-xl w-full">
+            <div class="text-center">
+                <h2 class="text-4xl font-black italic tracking-wider text-neonCyan neon-glow-cyan">SELECT GAME MODE</h2>
+                <p class="text-xs text-slate-400 tracking-widest uppercase mt-1">Choose your combat simulation</p>
+            </div>
+
+            <div class="bg-darkBg/95 backdrop-blur-md border border-neonCyan/30 p-6 rounded-3xl neon-box-cyan w-full space-y-4 shadow-2xl">
+                <div onclick="GameApp.startGame('classic')" class="group p-4 bg-slate-900/80 hover:bg-slate-800 border border-neonCyan/40 hover:border-neonCyan rounded-2xl cursor-pointer transition-all arcade-btn">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-lg font-black text-neonCyan group-hover:neon-glow-cyan">CLASSIC ARCADE</span>
+                        <span class="text-xs bg-neonCyan/20 text-neonCyan px-2 py-0.5 rounded-full font-bold">WAVE STAGES</span>
+                    </div>
+                    <p class="text-xs text-slate-300">Progress through increasingly complex block formations, boss waves, and power-up synergies.</p>
+                </div>
+
+                <div onclick="GameApp.startGame('endless')" class="group p-4 bg-slate-900/80 hover:bg-slate-800 border border-neonYellow/40 hover:border-neonYellow rounded-2xl cursor-pointer transition-all arcade-btn">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-lg font-black text-neonYellow group-hover:neon-glow-pink">ENDLESS SURVIVAL</span>
+                        <span class="text-xs bg-neonYellow/20 text-neonYellow px-2 py-0.5 rounded-full font-bold">INFINITE</span>
+                    </div>
+                    <p class="text-xs text-slate-300">Infinite procedurally generated waves with escalating speeds. Survive as long as possible!</p>
+                </div>
+
+                <div onclick="GameApp.startGame('timeattack')" class="group p-4 bg-slate-900/80 hover:bg-slate-800 border border-neonPink/40 hover:border-neonPink rounded-2xl cursor-pointer transition-all arcade-btn">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-lg font-black text-neonPink group-hover:neon-glow-pink">TIME ATTACK</span>
+                        <span class="text-xs bg-neonPink/20 text-neonPink px-2 py-0.5 rounded-full font-bold">120 SECONDS</span>
+                    </div>
+                    <p class="text-xs text-slate-300">Score as many points as possible within a strict 120-second countdown. Fast-paced action!</p>
+                </div>
+
+                <div onclick="GameApp.startGame('challenge')" class="group p-4 bg-slate-900/80 hover:bg-slate-800 border border-purple-500/40 hover:border-purple-400 rounded-2xl cursor-pointer transition-all arcade-btn">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-lg font-black text-purple-300">CHALLENGE MODE</span>
+                        <span class="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-bold">HARDCORE</span>
+                    </div>
+                    <p class="text-xs text-slate-300">One ball, indestructible walls, fast physics, and extreme block formations.</p>
+                </div>
+
+                <button onclick="GameApp.showScreen('screen-main-menu')" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn">
+                    ← Back to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- HIGH SCORES SCREEN -->
+        <div id="screen-high-scores" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-xl w-full">
+            <div class="text-center">
+                <h2 class="text-4xl font-black italic tracking-wider text-neonCyan neon-glow-cyan">HALL OF FAME</h2>
+                <p class="text-xs text-slate-400 tracking-widest uppercase mt-1">Local arcade records</p>
+            </div>
+
+            <div class="bg-darkBg/95 backdrop-blur-md border border-neonCyan/30 p-6 rounded-3xl neon-box-cyan w-full space-y-4 shadow-2xl">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-neonCyan/20 text-center">
+                        <div class="text-xs text-slate-400 uppercase font-semibold mb-1">Classic High Score</div>
+                        <div id="stat-hs-classic" class="text-2xl font-black text-neonCyan">0</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-neonYellow/20 text-center">
+                        <div class="text-xs text-slate-400 uppercase font-semibold mb-1">Endless High Score</div>
+                        <div id="stat-hs-endless" class="text-2xl font-black text-neonYellow">0</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-neonPink/20 text-center">
+                        <div class="text-xs text-slate-400 uppercase font-semibold mb-1">Time Attack Record</div>
+                        <div id="stat-hs-time" class="text-2xl font-black text-neonPink">0</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-purple-500/20 text-center">
+                        <div class="text-xs text-slate-400 uppercase font-semibold mb-1">Best Combo</div>
+                        <div id="stat-best-combo" class="text-2xl font-black text-purple-300">0x</div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Highest Wave Reached:</span>
+                        <span id="stat-highest-wave" class="font-bold text-neonCyan">1</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Longest Survival Time:</span>
+                        <span id="stat-longest-time" class="font-bold text-neonYellow">0s</span>
+                    </div>
+                </div>
+
+                <button onclick="GameApp.showScreen('screen-main-menu')" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn">
+                    ← Back to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- ACHIEVEMENTS SCREEN -->
+        <div id="screen-achievements" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-xl w-full">
+            <div class="text-center">
+                <h2 class="text-4xl font-black italic tracking-wider text-neonYellow neon-glow-cyan">ACHIEVEMENTS</h2>
+                <p id="achievementsCount" class="text-xs text-slate-400 tracking-widest uppercase mt-1">Unlocked: 0 / 6</p>
+            </div>
+
+            <div class="bg-darkBg/95 backdrop-blur-md border border-neonYellow/30 p-6 rounded-3xl neon-box-yellow w-full space-y-3 max-h-[60vh] overflow-y-auto shadow-2xl" id="achievementsListContainer">
+                <!-- Dynamically populated via JS -->
+            </div>
+
+            <button onclick="GameApp.showScreen('screen-main-menu')" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn">
+                ← Back to Menu
+            </button>
+        </div>
+
+        <!-- STATISTICS SCREEN -->
+        <div id="screen-statistics" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-xl w-full">
+            <div class="text-center">
+                <h2 class="text-4xl font-black italic tracking-wider text-neonPink neon-glow-pink">LIFETIME STATS</h2>
+                <p class="text-xs text-slate-400 tracking-widest uppercase mt-1">Your career telemetry</p>
+            </div>
+
+            <div class="bg-darkBg/95 backdrop-blur-md border border-neonPink/30 p-6 rounded-3xl neon-box-pink w-full space-y-3 shadow-2xl">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <div class="text-xs text-slate-400 uppercase">Games Played</div>
+                        <div id="stat-games-played" class="text-xl font-bold text-neonCyan">0</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <div class="text-xs text-slate-400 uppercase">Total Playtime</div>
+                        <div id="stat-total-playtime" class="text-xl font-bold text-neonYellow">0m</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <div class="text-xs text-slate-400 uppercase">Blocks Destroyed</div>
+                        <div id="stat-blocks-destroyed" class="text-xl font-bold text-neonPink">0</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <div class="text-xs text-slate-400 uppercase">Power-Ups Collected</div>
+                        <div id="stat-powerups-collected" class="text-xl font-bold text-purple-300">0</div>
+                    </div>
+                </div>
+
+                <button onclick="GameApp.showScreen('screen-main-menu')" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn">
+                    ← Back to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- SETTINGS SCREEN -->
+        <div id="screen-settings" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-xl w-full">
+            <div class="text-center">
+                <h2 class="text-4xl font-black italic tracking-wider text-purple-400">SETTINGS</h2>
+                <p class="text-xs text-slate-400 tracking-widest uppercase mt-1">Configure your arcade experience</p>
+            </div>
+
+            <div class="bg-darkBg/95 backdrop-blur-md border border-purple-500/30 p-6 rounded-3xl w-full space-y-4 shadow-2xl">
+                <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-semibold">Music</span>
+                    <button id="setting-music" onclick="GameApp.toggleSetting('music')" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-neonCyan text-darkBg">ON</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-semibold">Sound Effects</span>
+                    <button id="setting-sfx" onclick="GameApp.toggleSetting('sfx')" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-neonCyan text-darkBg">ON</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-semibold">Screen Shake</span>
+                    <button id="setting-shake" onclick="GameApp.toggleSetting('screenShake')" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-neonCyan text-darkBg">ON</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-semibold">Particle Effects</span>
+                    <button id="setting-particles" onclick="GameApp.toggleSetting('particles')" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-neonCyan text-darkBg">ON</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-semibold">Fullscreen Mode</span>
+                    <button onclick="GameApp.toggleFullscreen()" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-slate-700 hover:bg-slate-600 text-white">TOGGLE</button>
+                </div>
+
+                <button onclick="GameApp.resetData()" class="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold rounded-xl text-xs uppercase border border-red-500/40 arcade-btn">
+                    Reset All Saved Data
+                </button>
+
+                <button onclick="GameApp.showScreen('screen-main-menu')" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn">
+                    ← Back to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- ACCESSIBILITY SCREEN -->
+        <div id="screen-accessibility" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-xl w-full">
+            <div class="text-center">
+                <h2 class="text-4xl font-black italic tracking-wider text-neonCyan neon-glow-cyan">ACCESSIBILITY</h2>
+                <p class="text-xs text-slate-400 tracking-widest uppercase mt-1">Customized for your comfort</p>
+            </div>
+
+            <div class="bg-darkBg/95 backdrop-blur-md border border-neonCyan/30 p-6 rounded-3xl w-full space-y-4 shadow-2xl">
+                <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-semibold">High Contrast Visuals</span>
+                    <button id="setting-highcontrast" onclick="GameApp.toggleSetting('highContrast')" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-slate-700 text-white">OFF</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-semibold">Colorblind Filter</span>
+                    <button id="setting-colorblind" onclick="GameApp.toggleSetting('colorblind')" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-slate-700 text-white">OFF</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-semibold">Reduced Motion</span>
+                    <button id="setting-reducedmotion" onclick="GameApp.toggleSetting('reducedMotion')" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-slate-700 text-white">OFF</button>
+                </div>
+                <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <span class="text-sm font-semibold">Large UI Scaling</span>
+                    <button id="setting-largetext" onclick="GameApp.toggleSetting('largeText')" class="px-4 py-1.5 rounded-lg font-bold text-xs bg-slate-700 text-white">OFF</button>
+                </div>
+
+                <button onclick="GameApp.showScreen('screen-main-menu')" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn">
+                    ← Back to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- ABOUT SCREEN -->
+        <div id="screen-about" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-xl w-full">
+            <div class="text-center">
+                <h2 class="text-4xl font-black italic tracking-wider text-neonCyan">ABOUT NEON PADDLE</h2>
+                <p class="text-xs text-slate-400 tracking-widest uppercase mt-1">Futuristic Arcade Reimagined</p>
+            </div>
+
+            <div class="bg-darkBg/95 backdrop-blur-md border border-neonCyan/30 p-6 rounded-3xl w-full space-y-4 shadow-2xl max-h-[60vh] overflow-y-auto text-sm text-slate-300 leading-relaxed">
+                <p><strong class="text-neonCyan">Neon Paddle</strong> is an adrenaline-fueled, futuristic reimagining of classic breakout and paddle-and-ball arcade experiences. Designed for instant action, quick reflexes, and satisfying visual spectacles.</p>
+                <p><strong class="text-neonYellow">Core Objective:</strong> Control your high-velocity energy paddle at the base of the arena, keeping the plasma ball in continuous play while obliterating complex quantum block formations, dodging hazards, and collecting game-changing power-ups.</p>
+                <p>Inspired by legendary 80s arcade block-breakers, Neon Paddle introduces modern shaders, particle physics, combo multipliers, laser blasters, and multi-ball madness!</p>
+
+                <button onclick="GameApp.showScreen('screen-main-menu')" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn mt-4">
+                    ← Back to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- HOW TO PLAY SCREEN -->
+        <div id="screen-how-to-play" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-xl w-full">
+            <div class="text-center">
+                <h2 class="text-4xl font-black italic tracking-wider text-neonYellow">HOW TO PLAY</h2>
+                <p class="text-xs text-slate-400 tracking-widest uppercase mt-1">Master the energy paddle</p>
+            </div>
+
+            <div class="bg-darkBg/95 backdrop-blur-md border border-neonYellow/30 p-6 rounded-3xl w-full space-y-3 shadow-2xl max-h-[60vh] overflow-y-auto text-sm text-slate-300">
+                <div class="border-l-4 border-neonCyan pl-3 py-1">
+                    <strong class="text-neonCyan block mb-1">CONTROLS</strong>
+                    <p class="text-xs">Mouse move, Touch drag, or A/D or Left/Right Arrow keys to steer paddle. Spacebar or Tap to release ball / fire lasers.</p>
+                </div>
+                <div class="border-l-4 border-neonPink pl-3 py-1">
+                    <strong class="text-neonPink block mb-1">POWER-UPS</strong>
+                    <ul class="text-xs space-y-1 list-disc list-inside">
+                        <li><span class="text-neonCyan font-bold">Wide Paddle:</span> Expands your paddle width.</li>
+                        <li><span class="text-neonPink font-bold">Laser Blasters:</span> Equips paddle with rapid-fire lasers.</li>
+                        <li><span class="text-neonYellow font-bold">Multi-Ball:</span> Splits energy balls into three.</li>
+                        <li><span class="text-purple-300 font-bold">Slow-Mo:</span> Slows down ball speed for precision control.</li>
+                    </ul>
+                </div>
+                <div class="border-l-4 border-neonYellow pl-3 py-1">
+                    <strong class="text-neonYellow block mb-1">HAZARDS & BLOCKS</strong>
+                    <p class="text-xs">Standard blocks break in 1 hit. Reinforced blocks require 2 hits. Indestructible blocks cannot be broken. Explosive blocks detonate adjacent blocks!</p>
+                </div>
+
+                <button onclick="GameApp.showScreen('screen-main-menu')" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn mt-2">
+                    ← Back to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- CREDITS SCREEN -->
+        <div id="screen-credits" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-xl w-full">
+            <div class="text-center">
+                <h2 class="text-4xl font-black italic tracking-wider text-neonPink">CREDITS</h2>
+                <p class="text-xs text-slate-400 tracking-widest uppercase mt-1">The masterminds behind the arcade</p>
+            </div>
+
+            <div class="bg-darkBg/95 backdrop-blur-md border border-neonPink/30 p-8 rounded-3xl w-full text-center space-y-4 shadow-2xl">
+                <div class="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-neonCyan via-neonYellow to-neonPink neon-glow-pink">
+                    "Engineered by Minteez and Gemini AI, Copyright © 2026. All Rights Reserved."
+                </div>
+                <p class="text-xs text-slate-400">Built with pure HTML5 Canvas, Tailwind CSS, and lightning-fast arcade physics.</p>
+
+                <button onclick="GameApp.showScreen('screen-main-menu')" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn mt-4">
+                    ← Back to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- PAUSE MENU -->
+        <div id="screen-pause" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-md w-full">
+            <div class="bg-darkBg/95 backdrop-blur-md border border-neonCyan/40 p-6 rounded-3xl neon-box-cyan w-full space-y-3 shadow-2xl text-center">
+                <h2 class="text-3xl font-black italic tracking-wider text-neonCyan mb-2">GAME PAUSED</h2>
+                
+                <button onclick="GameApp.resumeGame()" class="w-full py-3 bg-gradient-to-r from-neonCyan to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-darkBg font-black rounded-xl tracking-wider uppercase text-sm shadow-lg arcade-btn">
+                    RESUME
+                </button>
+                <button onclick="GameApp.restartGame()" class="w-full py-3 bg-slate-900/80 hover:bg-slate-800 border border-neonYellow/40 text-neonYellow font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn">
+                    RESTART
+                </button>
+                <button onclick="GameApp.showScreen('screen-main-menu')" class="w-full py-3 bg-slate-900/80 hover:bg-slate-800 border border-red-500/40 text-red-400 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn">
+                    MAIN MENU
+                </button>
+            </div>
+        </div>
+
+        <!-- GAME OVER SCREEN -->
+        <div id="screen-gameover" class="hidden flex-col items-center justify-center space-y-6 pointer-events-auto max-w-md w-full">
+            <div class="bg-darkBg/95 backdrop-blur-md border border-neonPink/50 p-6 rounded-3xl neon-box-pink w-full space-y-4 shadow-2xl text-center">
+                <h2 id="go-title" class="text-4xl font-black italic tracking-wider text-neonPink neon-glow-pink">GAME OVER</h2>
+                <div id="go-new-highscore" class="hidden text-xs bg-neonYellow/20 border border-neonYellow text-neonYellow font-bold py-1.5 rounded-full animate-bounce">
+                    ★ NEW HIGH SCORE! ★
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-left bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase">Final Score</div>
+                        <div id="go-score" class="text-2xl font-black text-neonCyan">0</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase">Best Combo</div>
+                        <div id="go-combo" class="text-2xl font-black text-neonYellow">0x</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase">Blocks Smashed</div>
+                        <div id="go-blocks" class="text-xl font-bold text-neonPink">0</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase">Wave Reached</div>
+                        <div id="go-wave" class="text-xl font-bold text-purple-300">1</div>
+                    </div>
+                </div>
+
+                <div class="space-y-2 pt-2">
+                    <button onclick="GameApp.restartGame()" class="w-full py-3.5 bg-gradient-to-r from-neonPink to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-black rounded-xl tracking-wider uppercase text-sm shadow-lg arcade-btn">
+                        PLAY AGAIN
+                    </button>
+                    <button onclick="GameApp.showScreen('screen-main-menu')" class="w-full py-3 bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold rounded-xl tracking-wider uppercase text-sm arcade-btn">
+                        MAIN MENU
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- IN-GAME HUD -->
+        <div id="hud-overlay" class="absolute inset-0 z-20 pointer-events-none hidden flex flex-col justify-between p-4">
+            <div class="flex justify-between items-center bg-darkBg/60 backdrop-blur-sm border border-neonCyan/30 px-6 py-3 rounded-2xl">
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest">Score</div>
+                    <div id="hud-score" class="text-2xl font-black text-neonCyan">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest">Wave / Stage</div>
+                    <div id="hud-wave" class="text-2xl font-black text-neonYellow text-center">1</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest">Combo</div>
+                    <div id="hud-combo" class="text-2xl font-black text-neonPink text-right">1x</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest">Lives</div>
+                    <div id="hud-lives" class="text-2xl font-black text-purple-300 text-right">❤️❤️❤️</div>
+                </div>
+                <button onclick="GameApp.pauseGame()" class="pointer-events-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-neonCyan/40 text-neonCyan font-bold rounded-xl text-xs uppercase arcade-btn">
+                    Pause
+                </button>
+            </div>
+
+            <!-- Time Attack Timer Bar -->
+            <div id="hud-timer-container" class="hidden w-full max-w-md mx-auto bg-slate-900/80 border border-neonPink/50 p-2 rounded-2xl flex items-center space-x-3">
+                <span class="text-xs font-bold text-neonPink uppercase">Time Left:</span>
+                <div class="flex-1 bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
+                    <div id="hud-timer-bar" class="bg-gradient-to-r from-neonPink to-purple-600 h-full w-full transition-all duration-300"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /**
+         * Neon Paddle Arcade Engine
+         * Built by Minteez & Gemini AI (2026)
+         */
+
+        const GameApp = {
+            state: {
+                currentScreen: 'screen-splash',
+                gameMode: 'classic', // classic, endless, timeattack, challenge
+                isPlaying: false,
+                isPaused: false,
+                score: 0,
+                lives: 3,
+                wave: 1,
+                combo: 1,
+                comboTimer: 0,
+                blocksDestroyed: 0,
+                powerupsCollected: 0,
+                startTime: 0,
+                totalPlaytime: 0,
+                timeAttackLeft: 120,
+                highScores: {
+                    classic: 0,
+                    endless: 0,
+                    timeattack: 0,
+                    bestCombo: 1,
+                    highestWave: 1,
+                    longestSurvival: 0
+                },
+                stats: {
+                    gamesPlayed: 0,
+                    totalPlaytimeMin: 0,
+                    blocksDestroyed: 0,
+                    powerupsCollected: 0
+                },
+                settings: {
+                    music: true,
+                    sfx: true,
+                    screenShake: true,
+                    particles: true,
+                    highContrast: false,
+                    colorblind: false,
+                    reducedMotion: false,
+                    largeText: false
+                },
+                achievements: [
+                    { id: 'first_win', name: 'Quantum Cadet', desc: 'Clear your first wave of blocks.', unlocked: false },
+                    { id: 'combo_10', name: 'Combo Master', desc: 'Reach a 10x combo multiplier.', unlocked: false },
+                    { id: 'powerup_5', name: 'Tech Upgrade', desc: 'Collect 5 power-ups in a single run.', unlocked: false },
+                    { id: 'score_10k', name: 'Neon Overload', desc: 'Score over 10,000 points.', unlocked: false },
+                    { id: 'endless_survivor', name: 'Endless Run', desc: 'Survive past Wave 5 in Endless Mode.', unlocked: false },
+                    { id: 'laser_fury', name: 'Laser Blaster', desc: 'Activate Laser Paddle mode.', unlocked: false }
+                ]
+            },
+
+            init() {
+                this.loadLocalStorage();
+                this.setupCanvas();
+                this.setupInputListeners();
+                this.renderAchievementsList();
+                this.applySettingsToDOM();
+
+                // Simulate loading progress
+                let progress = 0;
+                const loadBar = document.getElementById('loadingBar');
+                const splashBtn = document.getElementById('startSplashBtn');
+                
+                const interval = setInterval(() => {
+                    progress += 4;
+                    loadBar.style.width = progress + '%';
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        loadBar.parentElement.classList.add('hidden');
+                        splashBtn.classList.remove('hidden');
+                        splashBtn.onclick = () => {
+                            this.showScreen('screen-main-menu');
+                        };
+                    }
+                }, 40);
+
+                // Start background loop
+                requestAnimationFrame(this.bgLoop.bind(this));
+            },
+
+            loadLocalStorage() {
+                try {
+                    const hs = localStorage.getItem('neon_paddle_hs');
+                    if (hs) this.state.highScores = JSON.parse(hs);
+                    const st = localStorage.getItem('neon_paddle_stats');
+                    if (st) this.state.stats = JSON.parse(st);
+                    const set = localStorage.getItem('neon_paddle_settings');
+                    if (set) this.state.settings = JSON.parse(set);
+                    const ach = localStorage.getItem('neon_paddle_ach');
+                    if (ach) {
+                        const savedAch = JSON.parse(ach);
+                        this.state.achievements.forEach(a => {
+                            const found = savedAch.find(s => s.id === a.id);
+                            if (found) a.unlocked = found.unlocked;
+                        });
+                    }
+                } catch (e) {
+                    console.error('Local storage load error', e);
+                }
+            },
+
+            saveLocalStorage() {
+                try {
+                    localStorage.setItem('neon_paddle_hs', JSON.stringify(this.state.highScores));
+                    localStorage.setItem('neon_paddle_stats', JSON.stringify(this.state.stats));
+                    localStorage.setItem('neon_paddle_settings', JSON.stringify(this.state.settings));
+                    localStorage.setItem('neon_paddle_ach', JSON.stringify(this.state.achievements));
+                } catch (e) {
+                    console.error('Local storage save error', e);
+                }
+            },
+
+            showScreen(screenId) {
+                const screens = [
+                    'screen-splash', 'screen-main-menu', 'screen-mode-select',
+                    'screen-high-scores', 'screen-achievements', 'screen-statistics',
+                    'screen-settings', 'screen-accessibility', 'screen-about',
+                    'screen-how-to-play', 'screen-credits', 'screen-pause', 'screen-gameover'
+                ];
+                screens.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.add('hidden');
+                });
+
+                const target = document.getElementById(screenId);
+                if (target) {
+                    target.classList.remove('hidden');
+                    target.classList.add('flex');
+                }
+                this.state.currentScreen = screenId;
+
+                if (screenId === 'screen-high-scores') {
+                    this.updateHighScoresDisplay();
+                } else if (screenId === 'screen-statistics') {
+                    this.updateStatisticsDisplay();
+                } else if (screenId === 'screen-achievements') {
+                    this.renderAchievementsList();
+                }
+
+                if (screenId.startsWith('screen-') && screenId !== 'screen-splash') {
+                    // Stop gameplay if going to menu screens
+                    if (this.state.isPlaying && screenId !== 'screen-pause') {
+                        this.state.isPaused = true;
+                    }
+                }
+            },
+
+            showModeSelect() {
+                this.showScreen('screen-mode-select');
+            },
+
+            toggleSetting(key) {
+                this.state.settings[key] = !this.state.settings[key];
+                this.saveLocalStorage();
+                this.applySettingsToDOM();
+            },
+
+            applySettingsToDOM() {
+                for (const [key, val] of Object.entries(this.state.settings)) {
+                    const btn = document.getElementById(`setting-${key}`);
+                    if (btn) {
+                        btn.textContent = val ? 'ON' : 'OFF';
+                        if (val) {
+                            btn.classList.remove('bg-slate-700', 'text-white');
+                            btn.classList.add('bg-neonCyan', 'text-darkBg');
+                        } else {
+                            btn.classList.remove('bg-neonCyan', 'text-darkBg');
+                            btn.classList.add('bg-slate-700', 'text-white');
+                        }
+                    }
+                }
+
+                const body = document.body;
+                if (this.state.settings.highContrast) body.classList.add('high-contrast-mode');
+                else body.classList.remove('high-contrast-mode');
+
+                if (this.state.settings.colorblind) body.classList.add('colorblind-mode');
+                else body.classList.remove('colorblind-mode');
+            },
+
+            toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.warn("Fullscreen request denied or disallowed by policy:", err);
+                        this.showNotification("Fullscreen not allowed in this preview frame.");
+                    });
+                } else {
+                    this.showNotification("Fullscreen API not supported.");
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(err => {
+                        console.warn("Exit fullscreen error:", err);
+                    });
+                }
+            }
+        },
+
+        showNotification(message) {
+            let notif = document.getElementById('customNotification');
+            if (!notif) {
+                notif = document.createElement('div');
+                notif.id = 'customNotification';
+                notif.className = 'fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-darkBg border border-neonCyan text-neonCyan px-4 py-2 rounded-xl shadow-lg text-xs font-bold transition-all duration-300 opacity-0 pointer-events-none';
+                document.body.appendChild(notif);
+            }
+            notif.textContent = message;
+            notif.classList.remove('opacity-0');
+            notif.classList.add('opacity-100');
+            setTimeout(() => {
+                notif.classList.remove('opacity-100');
+                notif.classList.add('opacity-0');
+            }, 2500);
+        },
+
+        resetData() {
+                if (confirm('Are you sure you want to reset all high scores and progress?')) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            },
+
+            quitGame() {
+                if (confirm('Are you sure you want to quit Neon Paddle?')) {
+                    window.close();
+                    alert('You can now close this browser tab.');
+                }
+            },
+
+            updateHighScoresDisplay() {
+                document.getElementById('stat-hs-classic').textContent = this.state.highScores.classic;
+                document.getElementById('stat-hs-endless').textContent = this.state.highScores.endless;
+                document.getElementById('stat-hs-time').textContent = this.state.highScores.timeattack;
+                document.getElementById('stat-best-combo').textContent = this.state.highScores.bestCombo + 'x';
+                document.getElementById('stat-highest-wave').textContent = this.state.highScores.highestWave;
+                document.getElementById('stat-longest-time').textContent = Math.floor(this.state.highScores.longestSurvival) + 's';
+            },
+
+            updateStatisticsDisplay() {
+                document.getElementById('stat-games-played').textContent = this.state.stats.gamesPlayed;
+                document.getElementById('stat-total-playtime').textContent = this.state.stats.totalPlaytimeMin + 'm';
+                document.getElementById('stat-blocks-destroyed').textContent = this.state.stats.blocksDestroyed;
+                document.getElementById('stat-powerups-collected').textContent = this.state.stats.powerupsCollected;
+            },
+
+            renderAchievementsList() {
+                const container = document.getElementById('achievementsListContainer');
+                if (!container) return;
+                let unlockedCount = 0;
+                container.innerHTML = this.state.achievements.map(ach => {
+                    if (ach.unlocked) unlockedCount++;
+                    return `
+                        <div class="p-3 rounded-2xl border ${ach.unlocked ? 'bg-slate-900 border-neonYellow/60 text-neonYellow' : 'bg-slate-900/40 border-slate-800 text-slate-500'} flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-sm ${ach.unlocked ? 'text-white' : 'text-slate-400'}">${ach.name}</div>
+                                <div class="text-xs text-slate-400">${ach.desc}</div>
+                            </div>
+                            <div class="text-xs font-bold px-2.5 py-1 rounded-full ${ach.unlocked ? 'bg-neonYellow/20 text-neonYellow border border-neonYellow/40' : 'bg-slate-800 text-slate-600'}">
+                                ${ach.unlocked ? 'UNLOCKED' : 'LOCKED'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                document.getElementById('achievementsCount').textContent = `Unlocked: ${unlockedCount} / ${this.state.achievements.length}`;
+            },
+
+            unlockAchievement(id) {
+                const ach = this.state.achievements.find(a => a.id === id);
+                if (ach && !ach.unlocked) {
+                    ach.unlocked = true;
+                    this.saveLocalStorage();
+                }
+            },
+
+            // --- GAMEPLAY ENGINE ---
+            setupCanvas() {
+                this.bgCanvas = document.getElementById('bgCanvas');
+                this.bgCtx = this.bgCanvas.getContext('2d');
+                this.gameCanvas = document.getElementById('gameCanvas');
+                this.gameCtx = this.gameCanvas.getContext('2d');
+
+                this.resizeCanvases();
+                window.addEventListener('resize', () => this.resizeCanvases());
+            },
+
+            resizeCanvases() {
+                this.bgCanvas.width = window.innerWidth;
+                this.bgCanvas.height = window.innerHeight;
+                this.gameCanvas.width = window.innerWidth;
+                this.gameCanvas.height = window.innerHeight;
+            },
+
+            setupInputListeners() {
+                window.addEventListener('mousemove', (e) => {
+                    if (!this.state.isPlaying || this.state.isPaused) return;
+                    this.paddle.x = e.clientX - this.paddle.width / 2;
+                    this.clampPaddle();
+                });
+
+                window.addEventListener('touchmove', (e) => {
+                    if (!this.state.isPlaying || this.state.isPaused) return;
+                    if (e.touches.length > 0) {
+                        this.paddle.x = e.touches[0].clientX - this.paddle.width / 2;
+                        this.clampPaddle();
+                    }
+                }, { passive: true });
+
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.state.isPlaying) {
+                        if (this.state.isPaused) this.resumeGame();
+                        else this.pauseGame();
+                    }
+                    if (!this.state.isPlaying || this.state.isPaused) return;
+
+                    if (e.key === 'ArrowLeft' || e.key === 'a') {
+                        this.paddle.vx = -12;
+                    } else if (e.key === 'ArrowRight' || e.key === 'd') {
+                        this.paddle.vx = 12;
+                    } else if (e.key === ' ' || e.key === 'ArrowUp') {
+                        this.releaseOrShoot();
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'ArrowRight' || e.key === 'd') {
+                        this.paddle.vx = 0;
+                    }
+                });
+            },
+
+            clampPaddle() {
+                if (this.paddle.x < 0) this.paddle.x = 0;
+                if (this.paddle.x + this.paddle.width > this.gameCanvas.width) {
+                    this.paddle.x = this.gameCanvas.width - this.paddle.width;
+                }
+            },
+
+            startGame(mode) {
+                this.state.gameMode = mode;
+                this.state.isPlaying = true;
+                this.state.isPaused = false;
+                this.state.score = 0;
+                this.state.lives = mode === 'challenge' ? 1 : 3;
+                this.state.wave = 1;
+                this.state.combo = 1;
+                this.state.comboTimer = 0;
+                this.state.blocksDestroyed = 0;
+                this.state.powerupsCollected = 0;
+                this.state.startTime = Date.now();
+                this.state.timeAttackLeft = 120;
+
+                this.state.stats.gamesPlayed++;
+                this.saveLocalStorage();
+
+                document.getElementById('screen-mode-select').classList.add('hidden');
+                document.getElementById('screen-main-menu').classList.add('hidden');
+                document.getElementById('hud-overlay').classList.remove('hidden');
+                document.getElementById('hud-overlay').classList.add('flex');
+                document.getElementById('gameCanvas').classList.remove('hidden');
+
+                if (mode === 'timeattack') {
+                    document.getElementById('hud-timer-container').classList.remove('hidden');
+                    document.getElementById('hud-timer-container').classList.add('flex');
+                } else {
+                    document.getElementById('hud-timer-container').classList.add('hidden');
+                }
+
+                this.initEntities();
+                this.spawnWave();
+
+                if (!this.gameLoopRunning) {
+                    this.gameLoopRunning = true;
+                    requestAnimationFrame(this.gameLoop.bind(this));
+                }
+            },
+
+            pauseGame() {
+                this.state.isPaused = true;
+                this.showScreen('screen-pause');
+            },
+
+            resumeGame() {
+                this.state.isPaused = false;
+                document.getElementById('screen-pause').classList.add('hidden');
+                document.getElementById('gameCanvas').classList.remove('hidden');
+            },
+
+            restartGame() {
+                document.getElementById('screen-pause').classList.add('hidden');
+                document.getElementById('screen-gameover').classList.add('hidden');
+                this.startGame(this.state.gameMode);
+            },
+
+            gameOver() {
+                this.state.isPlaying = false;
+                document.getElementById('hud-overlay').classList.add('hidden');
+
+                const finalScore = this.state.score;
+                const mode = this.state.gameMode;
+                let isNewHS = false;
+
+                if (finalScore > this.state.highScores[mode]) {
+                    this.state.highScores[mode] = finalScore;
+                    isNewHS = true;
+                }
+                if (this.state.combo > this.state.highScores.bestCombo) {
+                    this.state.highScores.bestCombo = this.state.combo;
+                }
+                if (this.state.wave > this.state.highScores.highestWave) {
+                    this.state.highScores.highestWave = this.state.wave;
+                }
+                const survivalTime = (Date.now() - this.state.startTime) / 1000;
+                if (survivalTime > this.state.highScores.longestSurvival) {
+                    this.state.highScores.longestSurvival = survivalTime;
+                }
+
+                this.state.stats.blocksDestroyed += this.state.blocksDestroyed;
+                this.state.stats.powerupsCollected += this.state.powerupsCollected;
+                this.state.stats.totalPlaytimeMin += Math.floor(survivalTime / 60);
+                this.saveLocalStorage();
+
+                // Check achievements
+                if (finalScore >= 10000) this.unlockAchievement('score_10k');
+                if (this.state.wave >= 5) this.unlockAchievement('endless_survivor');
+
+                document.getElementById('go-score').textContent = finalScore;
+                document.getElementById('go-combo').textContent = this.state.combo + 'x';
+                document.getElementById('go-blocks').textContent = this.state.blocksDestroyed;
+                document.getElementById('go-wave').textContent = this.state.wave;
+
+                const hsNotif = document.getElementById('go-new-highscore');
+                if (isNewHS) hsNotif.classList.remove('hidden');
+                else hsNotif.classList.add('hidden');
+
+                this.showScreen('screen-gameover');
+            },
+
+            initEntities() {
+                const w = this.gameCanvas.width;
+                const h = this.gameCanvas.height;
+
+                this.paddle = {
+                    x: w / 2 - 60,
+                    y: h - 50,
+                    width: 120,
+                    height: 16,
+                    vx: 0,
+                    laserActive: false,
+                    laserTimer: 0,
+                    wideActive: false,
+                    wideTimer: 0
+                };
+
+                this.balls = [{
+                    x: w / 2,
+                    y: h - 80,
+                    radius: 8,
+                    vx: 4 * (Math.random() > 0.5 ? 1 : -1),
+                    vy: -6,
+                    stuck: true
+                }];
+
+                this.blocks = [];
+                this.particles = [];
+                this.powerups = [];
+                this.lasers = [];
+            },
+
+            spawnWave() {
+                const rows = Math.min(4 + Math.floor(this.state.wave / 2), 8);
+                const cols = 10;
+                const padding = 10;
+                const totalW = this.gameCanvas.width - 80;
+                const blockW = (totalW - (cols - 1) * padding) / cols;
+                const blockH = 24;
+
+                this.blocks = [];
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        let type = 'normal';
+                        const rand = Math.random();
+                        if (rand < 0.1) type = 'explosive';
+                        else if (rand < 0.2) type = 'indestructible';
+                        else if (rand < 0.35) type = 'reinforced';
+
+                        let hp = type === 'reinforced' ? 2 : (type === 'indestructible' ? 999 : 1);
+
+                        this.blocks.push({
+                            x: 40 + c * (blockW + padding),
+                            y: 80 + r * (blockH + padding),
+                            width: blockW,
+                            height: blockH,
+                            type: type,
+                            hp: hp,
+                            maxHp: hp
+                        });
+                    }
+                }
+            },
+
+            releaseOrShoot() {
+                let released = false;
+                this.balls.forEach(b => {
+                    if (b.stuck) {
+                        b.stuck = false;
+                        released = true;
+                    }
+                });
+
+                if (!released && this.paddle.laserActive) {
+                    this.lasers.push({ x: this.paddle.x + 15, y: this.paddle.y, vy: -12 });
+                    this.lasers.push({ x: this.paddle.x + this.paddle.width - 15, y: this.paddle.y, vy: -12 });
+                }
+            },
+
+            // --- MAIN GAME LOOP ---
+            gameLoop(timestamp) {
+                if (this.state.isPlaying && !this.state.isPaused) {
+                    this.updateGame();
+                    this.renderGame();
+                }
+                requestAnimationFrame(this.gameLoop.bind(this));
+            },
+
+            updateGame() {
+                const w = this.gameCanvas.width;
+                const h = this.gameCanvas.height;
+
+                // Time Attack timer
+                if (this.state.gameMode === 'timeattack') {
+                    this.state.timeAttackLeft -= 1 / 60;
+                    const pct = Math.max(0, (this.state.timeAttackLeft / 120) * 100);
+                    document.getElementById('hud-timer-bar').style.width = pct + '%';
+                    if (this.state.timeAttackLeft <= 0) {
+                        this.gameOver();
+                        return;
+                    }
+                }
+
+                // Combo Decay
+                if (this.state.comboTimer > 0) {
+                    this.state.comboTimer -= 1 / 60;
+                    if (this.state.comboTimer <= 0 && this.state.combo > 1) {
+                        this.state.combo = 1;
+                    }
+                }
+
+                // Paddle physics
+                this.paddle.x += this.paddle.vx;
+                this.clampPaddle();
+
+                // Power-up timers
+                if (this.paddle.laserActive) {
+                    this.paddle.laserTimer -= 1 / 60;
+                    if (this.paddle.laserTimer <= 0) this.paddle.laserActive = false;
+                }
+                if (this.paddle.wideActive) {
+                    this.paddle.wideTimer -= 1 / 60;
+                    if (this.paddle.wideTimer <= 0) {
+                        this.paddle.width = 120;
+                        this.paddle.wideActive = false;
+                    }
+                }
+
+                // Lasers update
+                for (let i = this.lasers.length - 1; i >= 0; i--) {
+                    let l = this.lasers[i];
+                    l.y += l.vy;
+                    if (l.y < 0) {
+                        this.lasers.splice(i, 1);
+                        continue;
+                    }
+                    // Check collision with blocks
+                    for (let j = this.blocks.length - 1; j >= 0; j--) {
+                        let b = this.blocks[j];
+                        if (l.x > b.x && l.x < b.x + b.width && l.y > b.y && l.y < b.y + b.height) {
+                            this.lasers.splice(i, 1);
+                            if (b.type !== 'indestructible') {
+                                b.hp--;
+                                if (b.hp <= 0) this.destroyBlock(b, j);
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // Balls update
+                for (let i = this.balls.length - 1; i >= 0; i--) {
+                    let b = this.balls[i];
+                    if (b.stuck) {
+                        b.x = this.paddle.x + this.paddle.width / 2;
+                        b.y = this.paddle.y - b.radius;
+                        continue;
+                    }
+
+                    b.x += b.vx;
+                    b.y += b.vy;
+
+                    // Wall collision
+                    if (b.x - b.radius < 0) { b.x = b.radius; b.vx *= -1; }
+                    if (b.x + b.radius > w) { b.x = w - b.radius; b.vx *= -1; }
+                    if (b.y - b.radius < 0) { b.y = b.radius; b.vy *= -1; }
+
+                    // Bottom boundary (Lose ball)
+                    if (b.y > h + 30) {
+                        this.balls.splice(i, 1);
+                        if (this.balls.length === 0) {
+                            this.state.lives--;
+                            if (this.state.lives <= 0) {
+                                this.gameOver();
+                            } else {
+                                // Respawn ball
+                                this.balls.push({
+                                    x: this.paddle.x + this.paddle.width / 2,
+                                    y: this.paddle.y - 20,
+                                    radius: 8,
+                                    vx: 4 * (Math.random() > 0.5 ? 1 : -1),
+                                    vy: -6,
+                                    stuck: true
+                                });
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Paddle collision
+                    if (
+                        b.x > this.paddle.x && b.x < this.paddle.x + this.paddle.width &&
+                        b.y + b.radius >= this.paddle.y && b.y - b.radius <= this.paddle.y + this.paddle.height
+                    ) {
+                        b.y = this.paddle.y - b.radius;
+                        let hitPos = (b.x - (this.paddle.x + this.paddle.width / 2)) / (this.paddle.width / 2);
+                        let speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+                        b.vx = hitPos * 7;
+                        b.vy = -Math.sqrt(Math.max(16, speed * speed - b.vx * b.vx));
+                        this.spawnParticles(b.x, b.y, '#00f3ff', 8);
+                    }
+
+                    // Block collision
+                    for (let j = this.blocks.length - 1; j >= 0; j--) {
+                        let blk = this.blocks[j];
+                        if (
+                            b.x + b.radius > blk.x && b.x - b.radius < blk.x + blk.width &&
+                            b.y + b.radius > blk.y && b.y - b.radius < blk.y + blk.height
+                        ) {
+                            b.vy *= -1;
+                            if (blk.type !== 'indestructible') {
+                                blk.hp--;
+                                if (blk.hp <= 0) {
+                                    this.destroyBlock(blk, j);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // Powerups update
+                for (let i = this.powerups.length - 1; i >= 0; i--) {
+                    let p = this.powerups[i];
+                    p.y += p.vy;
+                    if (p.y > h) {
+                        this.powerups.splice(i, 1);
+                        continue;
+                    }
+                    // Paddle catch
+                    if (
+                        p.x > this.paddle.x && p.x < this.paddle.x + this.paddle.width &&
+                        p.y > this.paddle.y && p.y < this.paddle.y + this.paddle.height
+                    ) {
+                        this.applyPowerup(p.type);
+                        this.powerups.splice(i, 1);
+                    }
+                }
+
+                // Particles update
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    let pt = this.particles[i];
+                    pt.x += pt.vx;
+                    pt.y += pt.vy;
+                    pt.alpha -= 0.02;
+                    if (pt.alpha <= 0) this.particles.splice(i, 1);
+                }
+
+                // Check Wave clear
+                const breakableBlocks = this.blocks.filter(b => b.type !== 'indestructible');
+                if (breakableBlocks.length === 0) {
+                    this.state.wave++;
+                    this.spawnWave();
+                    // Heal or reward bonus
+                    this.state.score += 500 * this.state.wave;
+                }
+
+                // Update HUD DOM
+                document.getElementById('hud-score').textContent = this.state.score;
+                document.getElementById('hud-wave').textContent = this.state.wave;
+                document.getElementById('hud-combo').textContent = this.state.combo + 'x';
+                document.getElementById('hud-lives').textContent = '❤️'.repeat(Math.max(0, this.state.lives));
+            },
+
+            destroyBlock(blk, index) {
+                this.blocks.splice(index, 1);
+                this.state.blocksDestroyed++;
+                this.state.score += 100 * this.state.combo;
+                this.state.combo++;
+                this.state.comboTimer = 4; // 4 seconds to maintain combo
+
+                if (this.state.combo >= 10) this.unlockAchievement('combo_10');
+                if (this.state.blocksDestroyed === 1) this.unlockAchievement('first_win');
+
+                this.spawnParticles(blk.x + blk.width / 2, blk.y + blk.height / 2, '#ff0055', 15);
+
+                // Explosive block effect
+                if (blk.type === 'explosive') {
+                    this.blocks.forEach((other, oIdx) => {
+                        let dist = Math.hypot(other.x - blk.x, other.y - blk.y);
+                        if (dist < 120 && other.type !== 'indestructible') {
+                            other.hp--;
+                            if (other.hp <= 0) {
+                                this.blocks.splice(oIdx, 1);
+                                this.state.score += 50;
+                            }
+                        }
+                    });
+                }
+
+                // Chance to spawn powerup
+                if (Math.random() < 0.25) {
+                    const types = ['wide', 'laser', 'multiball', 'slow'];
+                    const pType = types[Math.floor(Math.random() * types.length)];
+                    this.powerups.push({
+                        x: blk.x + blk.width / 2,
+                        y: blk.y,
+                        vy: 2.5,
+                        type: pType
+                    });
+                }
+            },
+
+            applyPowerup(type) {
+                this.state.powerupsCollected++;
+                if (this.state.powerupsCollected >= 5) this.unlockAchievement('powerup_5');
+
+                if (type === 'wide') {
+                    this.paddle.width = 180;
+                    this.paddle.wideActive = true;
+                    this.paddle.wideTimer = 10;
+                } else if (type === 'laser') {
+                    this.paddle.laserActive = true;
+                    this.paddle.laserTimer = 10;
+                    this.unlockAchievement('laser_fury');
+                } else if (type === 'multiball') {
+                    if (this.balls.length > 0) {
+                        let ref = this.balls[0];
+                        this.balls.push({ x: ref.x, y: ref.y, radius: 8, vx: -ref.vx, vy: ref.vy, stuck: false });
+                        this.balls.push({ x: ref.x, y: ref.y, radius: 8, vx: ref.vx * 0.7, vy: ref.vy * 1.2, stuck: false });
+                    }
+                } else if (type === 'slow') {
+                    this.balls.forEach(b => {
+                        b.vx *= 0.7;
+                        b.vy *= 0.7;
+                    });
+                }
+            },
+
+            spawnParticles(x, y, color, count) {
+                if (!this.state.settings.particles) return;
+                for (let i = 0; i < count; i++) {
+                    let angle = Math.random() * Math.PI * 2;
+                    let speed = Math.random() * 5 + 1;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        color: color,
+                        alpha: 1
+                    });
+                }
+            },
+
+            // --- RENDERING ENGINE ---
+            bgLoop(timestamp) {
+                const ctx = this.bgCtx;
+                const w = this.bgCanvas.width;
+                const h = this.bgCanvas.height;
+
+                ctx.fillStyle = '#080812';
+                ctx.fillRect(0, 0, w, h);
+
+                // Animated futuristic grid
+                ctx.strokeStyle = 'rgba(0, 243, 255, 0.05)';
+                ctx.lineWidth = 1;
+                let offset = (timestamp * 0.03) % 40;
+                for (let x = 0; x < w; x += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, h);
+                    ctx.stroke();
+                }
+                for (let y = offset; y < h; y += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(w, y);
+                    ctx.stroke();
+                }
+
+                requestAnimationFrame(this.bgLoop.bind(this));
+            },
+
+            renderGame() {
+                const ctx = this.gameCtx;
+                const w = this.gameCanvas.width;
+                const h = this.gameCanvas.height;
+
+                ctx.clearRect(0, 0, w, h);
+
+                // Render Blocks
+                this.blocks.forEach(b => {
+                    ctx.save();
+                    if (b.type === 'explosive') ctx.fillStyle = '#ff0055';
+                    else if (b.type === 'reinforced') ctx.fillStyle = '#ffe600';
+                    else if (b.type === 'indestructible') ctx.fillStyle = '#64748b';
+                    else ctx.fillStyle = '#00f3ff';
+
+                    ctx.shadowColor = ctx.fillStyle;
+                    ctx.shadowBlur = 10;
+                    ctx.fillRect(b.x, b.y, b.width, b.height);
+                    ctx.restore();
+                });
+
+                // Render Lasers
+                ctx.fillStyle = '#ff0055';
+                ctx.shadowColor = '#ff0055';
+                ctx.shadowBlur = 10;
+                this.lasers.forEach(l => {
+                    ctx.fillRect(l.x - 2, l.y, 4, 12);
+                });
+
+                // Render Power-ups
+                this.powerups.forEach(p => {
+                    ctx.save();
+                    ctx.fillStyle = p.type === 'wide' ? '#00f3ff' : (p.type === 'laser' ? '#ff0055' : '#ffe600');
+                    ctx.shadowColor = ctx.fillStyle;
+                    ctx.shadowBlur = 12;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#080812';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(p.type[0].toUpperCase(), p.x, p.y + 4);
+                    ctx.restore();
+                });
+
+                // Render Paddle
+                ctx.save();
+                ctx.fillStyle = this.paddle.laserActive ? '#ff0055' : '#00f3ff';
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.roundRect(this.paddle.x, this.paddle.y, this.paddle.width, this.paddle.height, 8);
+                ctx.fill();
+                ctx.restore();
+
+                // Render Balls
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = '#00f3ff';
+                ctx.shadowBlur = 15;
+                this.balls.forEach(b => {
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.restore();
+
+                // Render Particles
+                this.particles.forEach(pt => {
+                    ctx.save();
+                    ctx.globalAlpha = pt.alpha;
+                    ctx.fillStyle = pt.color;
+                    ctx.shadowColor = pt.color;
+                    ctx.shadowBlur = 8;
+                    ctx.fillRect(pt.x, pt.y, 4, 4);
+                    ctx.restore();
+                });
+            }
+        };
+
+        window.onload = function() {
+            GameApp.init();
+        };
+    </script>
+</body>
+</html>
